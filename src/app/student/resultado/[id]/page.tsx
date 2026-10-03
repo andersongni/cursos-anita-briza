@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Card, { CardContent, CardHeader, CardFooter } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
-import { CheckCircle2, XCircle, Award, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, XCircle, Award, ArrowLeft, BookOpen } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 import { formatDuration } from '@/lib/utils'
 
@@ -15,11 +15,12 @@ export default function ResultadoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [result, setResult] = useState<any>(null)
+  const [passingScore, setPassingScore] = useState(70)
 
   useEffect(() => {
     const fetchResult = async () => {
       try {
-        const res = await fetch(`/api/assessments/${id}`)
+        const res = await fetch(`/api/assessments/${id}`, { cache: 'no-store' })
         if (!res.ok) throw new Error('Falha ao carregar resultado')
         const payload = await res.json()
         const assessment = payload.assessment ?? payload
@@ -35,6 +36,16 @@ export default function ResultadoPage() {
         }
 
         setResult(assessment)
+
+        const type = assessment.type === 'PROVA' ? 'PROVA' : 'SIMULADO'
+        const elig = await fetch(`/api/assessments/check-eligibility?type=${type}`, {
+          cache: 'no-store',
+        })
+        if (elig.ok) {
+          const data = await elig.json()
+          const p = Number(data.passingScore)
+          if (Number.isFinite(p)) setPassingScore(p)
+        }
       } catch (error) {
         console.error(error)
       } finally {
@@ -124,7 +135,7 @@ export default function ResultadoPage() {
           <p className={`mt-2 text-lg ${isApproved ? 'text-green-700' : 'text-red-700'}`}>
             {isApproved
               ? 'Parabéns! Você alcançou a nota necessária.'
-              : 'Você não alcançou a nota mínima de 70%.'}
+              : `Você não alcançou a nota mínima de ${passingScore}%.`}
           </p>
         </CardHeader>
 
@@ -155,6 +166,11 @@ export default function ResultadoPage() {
           <Button variant="outline" onClick={() => router.push('/dashboard')}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao início
           </Button>
+          {result.type === 'SIMULADO' && (
+            <Button onClick={() => router.push(`/student/revisao/${id}`)}>
+              <BookOpen className="w-4 h-4 mr-2" /> Ver respostas e explicações
+            </Button>
+          )}
           {result.type === 'PROVA' && isApproved && (
             <Button onClick={() => router.push('/student/certificados')}>
               <Award className="w-4 h-4 mr-2" /> Certificado

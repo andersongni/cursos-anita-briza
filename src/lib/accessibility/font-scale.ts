@@ -29,7 +29,9 @@ export function readStoredFontScale(): FontScale {
 
 export function applyFontScale(scale: FontScale) {
   if (typeof document === 'undefined') return
-  document.documentElement.style.fontSize = `${scale * 100}%`
+  // Base 16px * escala → rem do site inteiro (inclui prova/simulado)
+  document.documentElement.style.setProperty('--a11y-scale', String(scale))
+  document.documentElement.style.fontSize = `${16 * scale}px`
   document.documentElement.dataset.fontScale = String(scale)
 }
 
@@ -39,6 +41,9 @@ export function persistFontScale(scale: FontScale) {
     localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(scale))
   } catch {
     // ignore quota / private mode
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('a11y-font-scale'))
   }
 }
 

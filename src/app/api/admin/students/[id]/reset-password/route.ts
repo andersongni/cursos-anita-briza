@@ -53,9 +53,13 @@ export async function POST(
 
     const password_hash = await bcrypt.hash(newPassword, 12)
 
+    // Nova senha + invalida sessões JWT ativas do aluno
     await prisma.profile.update({
       where: { id: student.id },
-      data: { password_hash },
+      data: {
+        password_hash,
+        session_version: { increment: 1 },
+      },
     })
 
     await prisma.auditLog.create({

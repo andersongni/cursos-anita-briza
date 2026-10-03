@@ -1,32 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, LogOut, Home, PlayCircle, FileText, History, Award } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import PlatformLogo from '@/components/ui/PlatformLogo'
 import FontSizeControl from '@/components/accessibility/FontSizeControl'
+import { useSessionGuard } from '@/hooks/useSessionGuard'
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const { profile } = useSessionGuard(10000)
   const pathname = usePathname()
   const router = useRouter()
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/me')
-        if (res.ok) {
-          setProfile(await res.json())
-        }
-      } catch {
-        // ignore
-      }
-    }
-    fetchProfile()
-  }, [])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -46,11 +33,16 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   ]
 
   // Modo foco: execução da prova/simulado (sem /resumo)
-  const isAssessmentFocus = /^\/student\/avaliacao\/[^/]+$/.test(pathname)
+  // Execução da prova/simulado (página da avaliação, com ou sem barra final)
+  const isAssessmentFocus = /^\/student\/avaliacao\/[^/]+\/?$/.test(pathname)
 
   if (isAssessmentFocus) {
     return (
       <div className="h-dvh bg-slate-50 flex flex-col overflow-hidden">
+        <div className="shrink-0 z-[100] flex items-center justify-between gap-2 px-2 sm:px-3 py-1.5 bg-amber-50 border-b border-amber-300">
+          <span className="text-xs sm:text-sm font-semibold text-amber-950">Texto</span>
+          <FontSizeControl compact />
+        </div>
         <main className="flex-1 min-h-0 w-full overflow-hidden">{children}</main>
       </div>
     )

@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
-
-function parseSettingNumber(raw: string | undefined, fallback: number): number {
-  if (!raw) return fallback
-  try {
-    const parsed = JSON.parse(raw)
-    const n = Number(parsed)
-    return Number.isFinite(n) ? n : fallback
-  } catch {
-    const n = Number(raw)
-    return Number.isFinite(n) ? n : fallback
-  }
-}
+import { getAssessmentSettings } from '@/lib/settings/assessment'
 
 /**
  * Distribui N questões pelos temas conforme target_percentage.
@@ -149,19 +138,10 @@ export async function POST(req: Request) {
       }
     }
 
-    const qCountSettingKey = `assessment.${type.toLowerCase()}.question_count`
-    const timeLimitSettingKey = `assessment.${type.toLowerCase()}.time_limit_minutes`
-
-    const [qCountSetting, timeLimitSetting] = await Promise.all([
-      prisma.systemSetting.findUnique({ where: { key: qCountSettingKey } }),
-      prisma.systemSetting.findUnique({ where: { key: timeLimitSettingKey } }),
-    ])
-
-    const totalQuestions = Math.max(1, Math.floor(parseSettingNumber(qCountSetting?.value, 40)))
-    // Simulado é "tempo livre" na UI — usa prazo longo para não auto-enviar
-    const configuredMinutes = parseSettingNumber(timeLimitSetting?.value, 120)
-    const timeLimitMins =
-      type === 'SIMULADO' ? Math.max(configuredMinutes, 60 * 24) : configuredMinutes
+    const typeKey = type === 'PROVA' ? 'prova' : 'simulado'
+    const settings = await getAssessmentSettings(typeKey)
+    const totalQuestions = settings.questionCount
+    const timeLimitMins = settings.timeLimitMinutes
 
     const dimensions = await prisma.dimension.findMany({
       where: { active: true },

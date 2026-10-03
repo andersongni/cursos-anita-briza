@@ -8,6 +8,18 @@ const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
 const adapter = new PrismaLibSql({ url: dbUrl })
 const prisma = new PrismaClient({ adapter })
 
+function formatName(name: string) {
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => {
+      const lower = w.toLocaleLowerCase('pt-BR')
+      return lower.charAt(0).toLocaleUpperCase('pt-BR') + lower.slice(1)
+    })
+    .join(' ')
+}
 
 async function main() {
   const rl = readline.createInterface({ input, output });
@@ -31,6 +43,9 @@ async function main() {
     }
 
     const lowerUsername = username.toLowerCase().trim();
+    if (!/^[a-z0-9.]+$/.test(lowerUsername)) {
+      throw new Error('Username deve conter apenas letras minúsculas, números e pontos.');
+    }
 
     const existingUser = await prisma.profile.findUnique({
       where: { username: lowerUsername }
@@ -45,7 +60,7 @@ async function main() {
     const newAdmin = await prisma.profile.create({
       data: {
         username: lowerUsername,
-        full_name: full_name.trim(),
+        full_name: formatName(full_name),
         password_hash: hashedPassword,
         role: 'ADMIN',
         status: 'APPROVED'

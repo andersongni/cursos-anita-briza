@@ -14,6 +14,8 @@ export interface SessionPayload {
   username: string
   role: string
   status: string
+  /** Incrementado ao resetar/alterar senha — invalida JWTs antigos */
+  sessionVersion: number
 }
 
 // ── Create ──────────────────────────────────────────────────────────────────

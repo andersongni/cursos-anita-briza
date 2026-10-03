@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock } from 'lucide-react'
 import Button from '@/components/ui/Button'
@@ -11,37 +11,53 @@ import toast from 'react-hot-toast'
 export default function AguardandoAprovacaoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const redirectedRef = useRef(false)
 
-  const checkStatus = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/auth/me')
-      if (!res.ok) {
-        router.push('/login')
-        return
-      }
+  const checkStatus = useCallback(
+    async (opts?: { manual?: boolean }) => {
+      if (redirectedRef.current) return
+      if (opts?.manual) setLoading(true)
 
-      const profile = await res.json()
-
-      if (profile.status === 'APPROVED') {
-        toast.success('Seu cadastro foi aprovado!')
-        if (profile.role === 'ADMIN') {
-          router.push('/admin/dashboard')
-        } else {
-          router.push('/dashboard')
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' })
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            router.push('/login')
+          }
+          return
         }
-      } else if (profile.status === 'BLOCKED') {
-        router.push('/login?blocked=true')
-      } else {
-        toast('Cadastro ainda em análise. Aguarde a aprovação do administrador.')
+
+        const profile = await res.json()
+
+        if (profile.status === 'APPROVED') {
+          redirectedRef.current = true
+          toast.success('Seu cadastro foi aprovado!')
+          if (profile.role === 'ADMIN') {
+            router.replace('/admin/dashboard')
+          } else {
+            router.replace('/dashboard')
+          }
+          return
+        }
+
+        if (profile.status === 'BLOCKED') {
+          redirectedRef.current = true
+          router.replace('/login?blocked=true')
+          return
+        }
+
+        if (opts?.manual) {
+          toast('Cadastro ainda em análise. Aguarde a aprovação do administrador.')
+        }
+      } catch (error) {
+        console.error(error)
+        if (opts?.manual) toast.error('Erro ao verificar status.')
+      } finally {
+        if (opts?.manual) setLoading(false)
       }
-    } catch (error) {
-      console.error(error)
-      toast.error('Erro ao verificar status.')
-    } finally {
-      setLoading(false)
-    }
-  }, [router])
+    },
+    [router]
+  )
 
   const handleLogout = useCallback(async () => {
     try {
@@ -53,8 +69,20 @@ export default function AguardandoAprovacaoPage() {
   }, [router])
 
   useEffect(() => {
-    const interval = setInterval(checkStatus, 30000)
-    return () => clearInterval(interval)
+    void checkStatus()
+    const interval = setInterval(() => {
+      void checkStatus()
+    }, 5000)
+
+    const onFocus = () => {
+      void checkStatus()
+    }
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [checkStatus])
 
   return (
@@ -83,25 +111,21 @@ export default function AguardandoAprovacaoPage() {
             </p>
 
             <p className="text-sm text-gray-500 mb-8">
-              Assim que seu cadastro for aprovado, você poderá acessar a plataforma.
-              Esta página verifica automaticamente a cada 30 segundos.
+              Assim que seu cadastro for aprovado, você será redirecionado automaticamente
+              para a área logada. Esta página verifica a cada 5 segundos.
             </p>
 
             <div className="w-full space-y-3">
               <Button
                 variant="primary"
                 className="w-full"
-                onClick={checkStatus}
+                onClick={() => checkStatus({ manual: true })}
                 loading={loading}
               >
                 Verificar status agora
               </Button>
 
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleLogout}
-              >
+              <Button variant="outline" className="w-full" onClick={handleLogout}>
                 Sair
               </Button>
             </div>

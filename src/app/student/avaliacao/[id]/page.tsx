@@ -9,7 +9,6 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
 import { ChevronLeft, ChevronRight, CheckCircle, LayoutGrid, X, Ban } from 'lucide-react'
-import FontSizeControl from '@/components/accessibility/FontSizeControl'
 
 type UiQuestion = {
   id: string
@@ -221,21 +220,21 @@ export default function AssessmentPage() {
   const answeredCount = Object.keys(answers).length
 
   return (
-    <div className="h-full max-w-7xl mx-auto flex flex-col overflow-hidden px-3 sm:px-4">
-      {/* Barra superior fixa */}
-      <header className="shrink-0 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <div className="h-full max-w-7xl mx-auto flex flex-col overflow-hidden px-2 sm:px-3">
+      {/* Barra superior fixa — compacta para liberar espaço ao texto grande */}
+      <header className="shrink-0 py-1.5 flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-200 bg-slate-50">
+        <div className="flex items-center gap-2 min-w-0">
           <Badge
             variant={assessment.type === 'PROVA' ? 'error' : 'info'}
-            className="text-xs sm:text-sm px-2 py-0.5 shrink-0"
+            className="text-xs px-2 py-0.5 shrink-0"
           >
             {assessment.type === 'PROVA' ? 'Prova' : 'Simulado'}
           </Badge>
-          <span className="font-medium text-slate-600 text-sm truncate">
+          <span className="font-medium text-slate-600 text-xs sm:text-sm truncate">
             {currentIndex + 1}/{questions.length}
             <span className="hidden sm:inline text-slate-400 font-normal">
               {' '}
-              · {answeredCount} respondidas
+              · {answeredCount} resp.
             </span>
           </span>
           {saving && (
@@ -245,14 +244,13 @@ export default function AssessmentPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <FontSizeControl compact />
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setMapOpen(true)}
-            className="lg:hidden inline-flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-md border border-slate-200 bg-white text-slate-600"
+            className="lg:hidden inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-slate-200 bg-white text-slate-600"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
             Mapa
           </button>
           <Button
@@ -260,19 +258,19 @@ export default function AssessmentPage() {
             size="sm"
             onClick={handleAbort}
             disabled={aborting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
             title="Abortar avaliação"
           >
             <Ban className="w-4 h-4 sm:mr-1" />
-            <span className="hidden sm:inline">{aborting ? 'Abortando…' : 'Abortar'}</span>
+            <span className="hidden sm:inline text-xs">{aborting ? 'Abortando…' : 'Abortar'}</span>
           </Button>
           {deadline && <Timer deadline={deadline} onTimeUp={handleTimeUp} />}
         </div>
       </header>
 
       {/* Corpo: questão + mapa (desktop) */}
-      <div className="flex-1 min-h-0 flex gap-3 sm:gap-4 py-2 sm:py-3">
-        <section className="flex-1 min-h-0 min-w-0 flex flex-col">
+      <div className="flex-1 min-h-0 flex gap-2 sm:gap-3 py-1.5 overflow-hidden">
+        <section className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
           <div className="flex-1 min-h-0 overflow-hidden">
             <QuestionCard
               compact
@@ -286,11 +284,11 @@ export default function AssessmentPage() {
             />
           </div>
 
-          <div className="shrink-0 flex justify-between items-center gap-2 pt-2 border-t border-slate-200 mt-2">
+          <div className="shrink-0 flex justify-between items-center gap-2 pt-1.5 border-t border-slate-200 mt-1">
             <Button
               variant="outline"
               size="sm"
-              className="sm:min-w-[7.5rem]"
+              className="h-8"
               onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
               disabled={currentIndex === 0}
             >
@@ -300,7 +298,7 @@ export default function AssessmentPage() {
             {isLastQuestion ? (
               <Button
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white sm:min-w-[9rem]"
+                className="bg-green-600 hover:bg-green-700 text-white h-8"
                 onClick={() => router.push(`/student/avaliacao/${id}/resumo`)}
               >
                 Revisão <CheckCircle className="ml-1 w-4 h-4" />
@@ -308,7 +306,7 @@ export default function AssessmentPage() {
             ) : (
               <Button
                 size="sm"
-                className="sm:min-w-[7.5rem]"
+                className="h-8"
                 onClick={() =>
                   setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))
                 }
@@ -319,15 +317,15 @@ export default function AssessmentPage() {
           </div>
         </section>
 
-        <aside className="hidden lg:flex w-64 xl:w-72 shrink-0 min-h-0 flex-col">
+        <aside className="hidden lg:flex w-56 xl:w-64 shrink-0 min-h-0 flex-col overflow-hidden">
           <QuestionGrid
             compact
             questions={gridQuestions}
             currentIndex={currentIndex}
             onSelect={setCurrentIndex}
           />
-          <p className="mt-2 text-xs text-slate-500 text-center shrink-0">
-            Respostas salvas automaticamente
+          <p className="mt-1 text-[10px] text-slate-500 text-center shrink-0">
+            Salvo automaticamente
           </p>
         </aside>
       </div>

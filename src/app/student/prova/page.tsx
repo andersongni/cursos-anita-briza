@@ -19,13 +19,18 @@ export default function ProvaStartPage() {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch('/api/assessments/check-eligibility?type=PROVA')
+        const res = await fetch('/api/assessments/check-eligibility?type=PROVA', {
+          cache: 'no-store',
+        })
         if (res.ok) {
           const data = await res.json()
           if (data.inProgressId) setInProgressId(data.inProgressId)
-          if (typeof data.questionCount === 'number') setQuestionCount(data.questionCount)
-          if (typeof data.timeLimitMinutes === 'number') setTimeLimitMinutes(data.timeLimitMinutes)
-          if (typeof data.passingScore === 'number') setPassingScore(data.passingScore)
+          const q = Number(data.questionCount)
+          const t = Number(data.timeLimitMinutes)
+          const p = Number(data.passingScore)
+          if (Number.isFinite(q) && q > 0) setQuestionCount(q)
+          if (Number.isFinite(t) && t > 0) setTimeLimitMinutes(t)
+          if (Number.isFinite(p) && p >= 0) setPassingScore(p)
         }
       } catch (error) {
         console.error(error)
@@ -103,10 +108,7 @@ export default function ProvaStartPage() {
               <div>
                 <div className="font-semibold text-slate-800">Duração</div>
                 <div className="text-sm text-slate-500">
-                  {timeLimitMinutes >= 60
-                    ? `${(timeLimitMinutes / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} h`
-                    : `${timeLimitMinutes} min`}{' '}
-                  (cronometrado)
+                  {timeLimitMinutes} minutos (cronometrado)
                 </div>
               </div>
             </div>

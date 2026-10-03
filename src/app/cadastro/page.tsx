@@ -23,9 +23,14 @@ export default function CadastroPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-    if (errors[e.target.name]) {
-      setErrors(prev => ({ ...prev, [e.target.name]: '' }))
+    const { name, value } = e.target
+    const nextValue =
+      name === 'username'
+        ? value.toLowerCase().replace(/[^a-z0-9.]/g, '')
+        : value
+    setFormData((prev) => ({ ...prev, [name]: nextValue }))
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }))
     }
   }
 
@@ -36,8 +41,8 @@ export default function CadastroPage() {
     
     if (!formData.username.trim()) {
       newErrors.username = 'Usuário é obrigatório'
-    } else if (!/^[a-zA-Z0-9._]+$/.test(formData.username)) {
-      newErrors.username = 'Use apenas letras, números, pontos e sublinhados'
+    } else if (!/^[a-z0-9.]+$/.test(formData.username)) {
+      newErrors.username = 'Use apenas letras minúsculas, números e pontos'
     }
 
     if (!formData.password) {
@@ -126,7 +131,10 @@ export default function CadastroPage() {
                 value={formData.username}
                 onChange={handleChange}
                 error={errors.username}
-                helperText="Use letras, números e pontos"
+                helperText="Apenas letras minúsculas, números e pontos"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
               />
               
               <Input

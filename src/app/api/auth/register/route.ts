@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { createToken, setSessionCookie } from '@/lib/auth/session';
+import { formatFullName, isValidUsername } from '@/lib/utils';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { username, password, full_name, email, phone } = body;
+    const normalizedFullName = typeof full_name === 'string' ? formatFullName(full_name) : '';
 
-    if (!username || !password || !full_name) {
+    if (!username || !password || !normalizedFullName) {
       return NextResponse.json(
         { error: 'Nome de usuário, senha e nome completo são obrigatórios' },
         { status: 400 }
@@ -22,15 +24,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const usernameRegex = /^[a-zA-Z0-9._]+$/;
-    if (!usernameRegex.test(username)) {
+    const normalizedUsername = typeof username === 'string' ? username.trim().toLowerCase() : '';
+
+    if (!isValidUsername(normalizedUsername)) {
       return NextResponse.json(
-        { error: 'O nome de usuário deve conter apenas letras, números, pontos ou sublinhados' },
+        { error: 'O nome de usuário deve conter apenas letras minúsculas, números e pontos' },
         { status: 400 }
       );
     }
-
-    const normalizedUsername = username.toLowerCase();
 
     const existingUser = await prisma.profile.findUnique({
       where: { username: normalizedUsername },
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
     const profile = await prisma.profile.create({
       data: {
         username: normalizedUsername,
-        full_name,
+        full_name: normalizedFullName,
         email: email || null,
         phone: phone || null,
         role: 'STUDENT',
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       username: profile.username,
       role: profile.role,
       status: profile.status,
+      sessionVersion: profile.session_version ?? 0,
     });
     await setSessionCookie(token);
 

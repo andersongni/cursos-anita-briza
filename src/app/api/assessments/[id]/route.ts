@@ -29,11 +29,8 @@ export async function GET(
 
     let responseAssessment: any = { ...assessment }
 
-    if (
-      assessment.type === 'PROVA' &&
-      assessment.status === 'IN_PROGRESS' &&
-      profile.role !== 'ADMIN'
-    ) {
+    // Prova: aluno nunca vê gabarito/explicações por esta rota (só o admin)
+    if (assessment.type === 'PROVA' && profile.role !== 'ADMIN') {
       responseAssessment.questions = assessment.questions.map((q) => {
         const {
           correct_option,

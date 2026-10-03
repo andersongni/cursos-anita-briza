@@ -10,15 +10,23 @@ import { DEFAULT_LOGO_URL } from '@/lib/platform/logo'
 import toast from 'react-hot-toast'
 
 type SettingsMap = Record<string, string | number | boolean>
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 function asString(v: unknown, fallback = ''): string {
   if (v == null) return fallback
   return String(v)
 }
 
+function toApiValue(raw: unknown) {
+  if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
+    return Number(raw)
+  }
+  return raw
+}
+
 export default function AdminConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [changingPassword, setChangingPassword] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL)
@@ -31,9 +39,13 @@ export default function AdminConfiguracoesPage() {
     confirm_password: '',
   })
 
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const readyRef = useRef(false)
+  const savedLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/settings')
+      const res = await fetch('/api/admin/settings', { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar configurações')
       const data = await res.json()
       const map: SettingsMap = {}
@@ -47,6 +59,7 @@ export default function AdminConfiguracoesPage() {
         setLogoUrl(DEFAULT_LOGO_URL)
       }
       setLogoKey((k) => k + 1)
+      readyRef.current = true
     } catch (e: any) {
       toast.error(e.message || 'Erro ao carregar configurações')
     } finally {
@@ -56,10 +69,41 @@ export default function AdminConfiguracoesPage() {
 
   useEffect(() => {
     load()
+    return () => {
+      Object.values(debounceTimers.current).forEach(clearTimeout)
+      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+    }
   }, [load])
+
+  const persistKey = useCallback(async (key: string, raw: unknown) => {
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: toApiValue(raw) }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Erro ao salvar ${key}`)
+      }
+      setSaveStatus('saved')
+      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+      savedLabelTimer.current = setTimeout(() => setSaveStatus('idle'), 1500)
+    } catch (e: any) {
+      setSaveStatus('error')
+      toast.error(e.message || 'Erro ao salvar configuração')
+    }
+  }, [])
 
   const setField = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
+    if (!readyRef.current) return
+
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
+    debounceTimers.current[key] = setTimeout(() => {
+      void persistKey(key, value)
+    }, 500)
   }
 
   const handleChangePassword = async () => {
@@ -101,7 +145,7 @@ export default function AdminConfiguracoesPage() {
         const to = Math.round((data.final_bytes || 0) / 1024)
         toast.success(`Logo comprimido (${from} KB → ${to} KB) e atualizado.`)
       } else {
-        toast.success('Logo atualizado. Atualize a página para ver em todos os lugares.')
+        toast.success('Logo atualizado.')
       }
     } catch (e: any) {
       toast.error(e.message)
@@ -128,33 +172,6 @@ export default function AdminConfiguracoesPage() {
     }
   }
 
-  const saveKeys = async (keys: string[], section: string) => {
-    setSaving(true)
-    try {
-      for (const key of keys) {
-        const raw = settings[key]
-        const value =
-          typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())
-            ? Number(raw)
-            : raw
-        const res = await fetch('/api/admin/settings', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, value }),
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || `Erro ao salvar ${key}`)
-        }
-      }
-      toast.success(`Configurações de ${section} salvas.`)
-    } catch (e: any) {
-      toast.error(e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center p-12">
@@ -163,28 +180,37 @@ export default function AdminConfiguracoesPage() {
     )
   }
 
+  const statusLabel =
+    saveStatus === 'saving'
+      ? 'Salvando…'
+      : saveStatus === 'saved'
+        ? 'Salvo automaticamente'
+        : saveStatus === 'error'
+          ? 'Erro ao salvar'
+          : 'Alterações são salvas automaticamente'
+
   return (
     <div className="space-y-6 pb-10">
-      <h1 className="text-3xl font-bold text-secondary">Configurações do Sistema</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="text-3xl font-bold text-secondary">Configurações do Sistema</h1>
+        <p
+          className={`text-sm ${
+            saveStatus === 'error'
+              ? 'text-red-600'
+              : saveStatus === 'saving'
+                ? 'text-amber-600'
+                : saveStatus === 'saved'
+                  ? 'text-green-600'
+                  : 'text-slate-500'
+          }`}
+        >
+          {statusLabel}
+        </p>
+      </div>
 
       <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
+        <CardHeader>
           <CardTitle>Configurações da Prova Oficial</CardTitle>
-          <Button
-            loading={saving}
-            onClick={() =>
-              saveKeys(
-                [
-                  'assessment.prova.question_count',
-                  'assessment.prova.time_limit_minutes',
-                  'assessment.prova.passing_score',
-                ],
-                'Prova'
-              )
-            }
-          >
-            Salvar Alterações
-          </Button>
         </CardHeader>
         <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
@@ -215,23 +241,8 @@ export default function AdminConfiguracoesPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
+        <CardHeader>
           <CardTitle>Configurações do Simulado</CardTitle>
-          <Button
-            loading={saving}
-            onClick={() =>
-              saveKeys(
-                [
-                  'assessment.simulado.question_count',
-                  'assessment.simulado.time_limit_minutes',
-                  'assessment.simulado.passing_score',
-                ],
-                'Simulado'
-              )
-            }
-          >
-            Salvar Alterações
-          </Button>
         </CardHeader>
         <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
@@ -248,6 +259,14 @@ export default function AdminConfiguracoesPage() {
             value={asString(settings['assessment.simulado.time_limit_minutes'], '120')}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setField('assessment.simulado.time_limit_minutes', e.target.value)
+            }
+          />
+          <Input
+            label="Nota mínima para aprovação (%)"
+            type="number"
+            value={asString(settings['assessment.simulado.passing_score'], '70')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setField('assessment.simulado.passing_score', e.target.value)
             }
           />
         </div>
@@ -303,25 +322,18 @@ export default function AdminConfiguracoesPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
-          <CardTitle>Plataforma e Certificado</CardTitle>
-          <Button
-            loading={saving}
-            onClick={() =>
-              saveKeys(
-                [
-                  'platform.institution',
-                  'platform.course_name',
-                  'certificate.template_text',
-                ],
-                'Plataforma'
-              )
-            }
-          >
-            Salvar Alterações
-          </Button>
+        <CardHeader>
+          <CardTitle>Template do Certificado</CardTitle>
         </CardHeader>
         <div className="p-4 pt-0 space-y-4">
+          <p className="text-xs text-slate-500">
+            O PDF usa o template visual oficial; o texto fica sem fundo para não cobrir a arte.
+            Título e subtítulo vêm da imagem do template. Campos dinâmicos:{' '}
+            <code>{'{student_name}'}</code>, <code>{'{date}'}</code>,{' '}
+            <code>{'{course_hours}'}</code>, <code>{'{certificate_code}'}</code>,{' '}
+            <code>{'{course_name}'}</code>, <code>{'{institution}'}</code>,{' '}
+            <code>{'{location}'}</code>.
+          </p>
           <Input
             label="Nome da Instituição"
             value={asString(settings['platform.institution'], '')}
@@ -330,23 +342,77 @@ export default function AdminConfiguracoesPage() {
             }
           />
           <Input
-            label="Nome do Curso no Certificado"
-            value={asString(settings['platform.course_name'], '')}
+            label="Texto introdutório (antes do nome)"
+            value={asString(settings['certificate.intro_text'], '')}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('platform.course_name', e.target.value)
+              setField('certificate.intro_text', e.target.value)
             }
           />
-          <div>
-            <label className="block text-sm font-medium mb-1">Texto Base do Certificado</label>
-            <p className="text-xs text-gray-500 mb-2">
-              Variáveis: {'{student_name}, {course_name}, {institution}'}
-            </p>
-            <textarea
-              className="w-full border rounded-md p-2 h-32"
-              value={asString(settings['certificate.template_text'], '')}
-              onChange={(e) => setField('certificate.template_text', e.target.value)}
+          <Input
+            label="Texto após o nome"
+            value={asString(settings['certificate.middle_text'], '')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setField('certificate.middle_text', e.target.value)
+            }
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Nome do Curso"
+              value={asString(settings['platform.course_name'], '')}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setField('platform.course_name', e.target.value)
+              }
+            />
+            <Input
+              label="Carga horária (horas)"
+              type="number"
+              value={asString(settings['certificate.course_hours'], '40')}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setField('certificate.course_hours', e.target.value)
+              }
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Descrição do curso</label>
+            <p className="text-xs text-slate-500 mb-2">
+              Use {'{course_hours}'} para inserir a carga horária dinamicamente.
+            </p>
+            <textarea
+              className="w-full border rounded-md p-2 h-28"
+              value={asString(settings['certificate.course_description'], '')}
+              onChange={(e) => setField('certificate.course_description', e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Cidade"
+              value={asString(settings['certificate.location'], '')}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setField('certificate.location', e.target.value)
+              }
+            />
+            <Input
+              label="Linha de local e data"
+              value={asString(settings['certificate.date_line'], '')}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setField('certificate.date_line', e.target.value)
+              }
+            />
+          </div>
+          <Input
+            label="Rótulo abaixo da data"
+            value={asString(settings['certificate.date_label'], '')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setField('certificate.date_label', e.target.value)
+            }
+          />
+          <Input
+            label="Rótulo do código"
+            value={asString(settings['certificate.code_label'], '')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setField('certificate.code_label', e.target.value)
+            }
+          />
         </div>
       </Card>
 

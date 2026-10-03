@@ -1,31 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, HelpCircle, BookOpen, ClipboardList, Award, Settings, Menu, X, LogOut } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import PlatformLogo from '@/components/ui/PlatformLogo'
+import { useSessionGuard } from '@/hooks/useSessionGuard'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const { profile } = useSessionGuard(20000)
   const pathname = usePathname()
   const router = useRouter()
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/me')
-        if (res.ok) {
-          setProfile(await res.json())
-        }
-      } catch {
-        // ignore
-      }
-    }
-    fetchProfile()
-  }, [])
 
   const handleLogout = useCallback(async () => {
     try {

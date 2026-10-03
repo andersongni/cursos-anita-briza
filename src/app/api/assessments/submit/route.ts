@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyAuth } from '@/lib/auth/verify';
+import { getAssessmentSettings } from '@/lib/settings/assessment';
 
 export async function POST(req: Request) {
   try {
@@ -65,10 +66,8 @@ export async function POST(req: Request) {
 
     const score = (correctCount / assessment.total_questions) * 100;
 
-    const passingScoreSetting = await prisma.systemSetting.findUnique({
-      where: { key: `assessment.${assessment.type.toLowerCase()}.passing_score` }
-    });
-    const passingScore = passingScoreSetting ? Number(JSON.parse(passingScoreSetting.value)) : 70;
+    const typeKey = assessment.type.toLowerCase() === 'prova' ? 'prova' : 'simulado'
+    const { passingScore } = await getAssessmentSettings(typeKey)
 
     const passed = score >= passingScore;
     const completedAt = new Date();

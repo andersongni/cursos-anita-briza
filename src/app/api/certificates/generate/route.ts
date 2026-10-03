@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
-import { generateCertificateCode } from '@/lib/utils'
+import { formatFullName, generateCertificateCode } from '@/lib/utils'
 import { getCertificateSettings } from '@/lib/certificate/settings'
 
 export async function POST(req: Request) {
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         student_id: user.id,
         assessment_id,
         certificate_code,
-        student_name_snapshot: assessment.student.full_name,
+        student_name_snapshot: formatFullName(assessment.student.full_name),
         course_name_snapshot: settings.courseName,
         completion_date: assessment.completed_at || new Date(),
         score_snapshot: assessment.score || 0,

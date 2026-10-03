@@ -3,7 +3,7 @@ import { verifyAuth } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
 import { generateCertificatePDF } from '@/lib/certificate/generate-pdf'
 import { getCertificateSettings } from '@/lib/certificate/settings'
-import { formatDate } from '@/lib/utils'
+import { formatCertificateDate, formatFullName } from '@/lib/utils'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -30,13 +30,24 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const settings = await getCertificateSettings()
 
     const doc = generateCertificatePDF({
-      studentName: certificate.student_name_snapshot,
+      studentName: formatFullName(certificate.student_name_snapshot),
       courseName: certificate.course_name_snapshot || settings.courseName,
       institutionName: settings.institutionName,
-      completionDate: formatDate(certificate.completion_date),
-      score: certificate.score_snapshot ?? 0,
+      completionDateLabel: formatCertificateDate(certificate.completion_date),
       certificateCode: certificate.certificate_code,
-      templateText: settings.templateText,
+      courseHours: settings.courseHours,
+      title: settings.title,
+      subtitle: settings.subtitle,
+      introText: settings.introText,
+      middleText: settings.middleText,
+      courseDescription: settings.courseDescription,
+      location: settings.location,
+      dateLine: settings.dateLine,
+      dateLabel: settings.dateLabel,
+      signatureTitle: settings.signatureTitle,
+      signatureSubtitle: settings.signatureSubtitle,
+      codeLabel: settings.codeLabel,
+      logoUrl: settings.logoUrl,
     })
 
     const buffer = Buffer.from(doc.output('arraybuffer'))

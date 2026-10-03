@@ -12,15 +12,21 @@ export default function SimuladoStartPage() {
   const [loading, setLoading] = useState(false)
   const [inProgressId, setInProgressId] = useState<string | null>(null)
   const [questionCount, setQuestionCount] = useState<number | null>(null)
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
 
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch('/api/assessments/check-eligibility?type=SIMULADO')
+        const res = await fetch('/api/assessments/check-eligibility?type=SIMULADO', {
+          cache: 'no-store',
+        })
         if (!res.ok) return
         const data = await res.json()
         if (data.inProgressId) setInProgressId(data.inProgressId)
-        if (typeof data.questionCount === 'number') setQuestionCount(data.questionCount)
+        const q = Number(data.questionCount)
+        const t = Number(data.timeLimitMinutes)
+        if (Number.isFinite(q) && q > 0) setQuestionCount(q)
+        if (Number.isFinite(t) && t > 0) setTimeLimitMinutes(t)
       } catch {
         // ignore
       }
@@ -87,8 +93,10 @@ export default function SimuladoStartPage() {
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
               <Clock className="w-6 h-6 text-blue-500" />
               <div>
-                <div className="font-semibold text-slate-800">Tempo livre</div>
-                <div className="text-sm text-slate-500">Sem limite de tempo</div>
+                <div className="font-semibold text-slate-800">Duração</div>
+                <div className="text-sm text-slate-500">
+                  {timeLimitMinutes} minutos (cronometrado)
+                </div>
               </div>
             </div>
           </div>

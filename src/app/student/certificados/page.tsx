@@ -126,12 +126,6 @@ export default function CertificadosPage() {
                   <span className="font-semibold text-slate-700">Data de Emissão:</span>
                   <span>{formatDate(cert.completion_date || cert.created_at)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold text-slate-700">Nota Final:</span>
-                  <span className="text-green-600 font-bold">
-                    {cert.score_snapshot != null ? `${cert.score_snapshot}%` : '—'}
-                  </span>
-                </div>
               </CardContent>
               <CardFooter className="pt-4 border-t border-slate-100 flex gap-2">
                 <Button

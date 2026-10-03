@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ALargeSmall } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   FONT_SCALE_LABELS,
+  FONT_SCALES,
   FontScale,
   nextFontScale,
   persistFontScale,
@@ -14,17 +14,26 @@ import {
 
 type FontSizeControlProps = {
   className?: string
-  /** Versão compacta (só A− / A+) */
   compact?: boolean
 }
 
 export default function FontSizeControl({ className, compact = false }: FontSizeControlProps) {
   const [scale, setScale] = useState<FontScale>(1)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const stored = readStoredFontScale()
-    setScale(stored)
-    persistFontScale(stored)
+    const current = readStoredFontScale()
+    setScale(current)
+    persistFontScale(current)
+    setReady(true)
+
+    const sync = () => setScale(readStoredFontScale())
+    window.addEventListener('a11y-font-scale', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener('a11y-font-scale', sync)
+      window.removeEventListener('storage', sync)
+    }
   }, [])
 
   const set = (next: FontScale) => {
@@ -35,37 +44,34 @@ export default function FontSizeControl({ className, compact = false }: FontSize
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white',
-        compact ? 'p-0.5' : 'px-1 py-0.5',
+        'inline-flex items-center rounded-lg border-2 border-slate-300 bg-white',
+        compact ? 'p-0.5' : 'gap-1 px-2 py-1',
         className
       )}
       role="group"
       aria-label="Tamanho da fonte"
+      data-ready={ready ? 'true' : 'false'}
     >
-      {!compact && (
-        <span className="hidden sm:inline-flex items-center gap-1 px-1.5 text-xs text-slate-500">
-          <ALargeSmall className="w-3.5 h-3.5" aria-hidden />
-          Texto
-        </span>
-      )}
       <button
         type="button"
         onClick={() => set(prevFontScale(scale))}
-        disabled={scale === 1}
-        className="min-w-8 h-8 px-1.5 rounded-md text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={scale === FONT_SCALES[0]}
+        className="min-w-9 h-9 px-2 rounded-md text-sm font-bold text-slate-800 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
         title="Diminuir fonte"
         aria-label="Diminuir tamanho da fonte"
       >
         A−
       </button>
-      <span className="px-1 text-xs text-slate-500 tabular-nums min-w-[4.5rem] text-center hidden md:inline">
-        {FONT_SCALE_LABELS[scale]}
-      </span>
+      {!compact && (
+        <span className="px-1 text-xs font-medium text-slate-600 tabular-nums min-w-[5rem] text-center">
+          {FONT_SCALE_LABELS[scale]}
+        </span>
+      )}
       <button
         type="button"
         onClick={() => set(nextFontScale(scale))}
-        disabled={scale === 1.5}
-        className="min-w-8 h-8 px-1.5 rounded-md text-base font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={scale === FONT_SCALES[FONT_SCALES.length - 1]}
+        className="min-w-9 h-9 px-2 rounded-md text-lg font-bold text-slate-800 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
         title="Aumentar fonte"
         aria-label="Aumentar tamanho da fonte"
       >

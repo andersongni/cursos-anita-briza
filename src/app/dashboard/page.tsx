@@ -5,6 +5,9 @@ import { prisma } from '@/lib/db'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { PlayCircle, FileText, History, Award } from 'lucide-react'
+import { getAssessmentSettings } from '@/lib/settings/assessment'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -24,13 +27,14 @@ export default async function DashboardPage() {
   if (profile.role === 'ADMIN') redirect('/admin/dashboard')
 
   // Quick stats
-  const [totalAssessments, bestScore] = await Promise.all([
+  const [totalAssessments, bestScore, provaSettings] = await Promise.all([
     prisma.assessment.count({ where: { student_id: session.userId, status: 'COMPLETED' } }),
     prisma.assessment.findFirst({
       where: { student_id: session.userId, status: 'COMPLETED', type: 'PROVA' },
       orderBy: { score: 'desc' },
       select: { score: true },
     }),
+    getAssessmentSettings('prova'),
   ])
 
   return (
@@ -76,7 +80,8 @@ export default async function DashboardPage() {
                 <div className="ml-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Prova Oficial</h2>
                   <p className="text-gray-600 mb-6">
-                    Realize a avaliação oficial do curso. Você precisa de 70% de acertos para ser aprovado.
+                    Realize a avaliação oficial do curso. Você precisa de{' '}
+                    {provaSettings.passingScore}% de acertos para ser aprovado.
                   </p>
                   <Link href="/student/prova">
                     <Button variant="primary" className="w-full sm:w-auto">

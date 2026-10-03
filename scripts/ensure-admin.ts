@@ -11,10 +11,23 @@ const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
 const adapter = new PrismaLibSql({ url: dbUrl })
 const prisma = new PrismaClient({ adapter })
 
+function formatName(name: string) {
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => {
+      const lower = w.toLocaleLowerCase('pt-BR')
+      return lower.charAt(0).toLocaleUpperCase('pt-BR') + lower.slice(1)
+    })
+    .join(' ')
+}
+
 async function main() {
   const username = (process.env.ADMIN_USERNAME ?? 'admin').toLowerCase().trim()
   const password = process.env.ADMIN_PASSWORD ?? 'admin123'
-  const fullName = process.env.ADMIN_FULL_NAME ?? 'Administrador'
+  const fullName = formatName(process.env.ADMIN_FULL_NAME ?? 'Administrador')
 
   const existing = await prisma.profile.findFirst({
     where: { role: 'ADMIN' },

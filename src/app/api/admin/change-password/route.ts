@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { createToken, setSessionCookie } from '@/lib/auth/session'
 
 export async function POST(req: Request) {
   try {
@@ -53,10 +54,23 @@ export async function POST(req: Request) {
 
     const password_hash = await bcrypt.hash(new_password, 12)
 
-    await prisma.profile.update({
+    const updated = await prisma.profile.update({
       where: { id: profile.id },
-      data: { password_hash },
+      data: {
+        password_hash,
+        session_version: { increment: 1 },
+      },
     })
+
+    // Renova o cookie do admin para ele não ser deslogado da própria sessão
+    const token = await createToken({
+      userId: updated.id,
+      username: updated.username,
+      role: updated.role,
+      status: updated.status,
+      sessionVersion: updated.session_version,
+    })
+    await setSessionCookie(token)
 
     await prisma.auditLog.create({
       data: {

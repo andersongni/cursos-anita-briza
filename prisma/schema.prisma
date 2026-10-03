@@ -14,10 +14,11 @@ model Profile {
   phone         String?
   role          String    @default("STUDENT")
   status        String    @default("PENDING")
-  password_hash String
-  last_login_at DateTime?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  password_hash   String
+  session_version Int       @default(0)
+  last_login_at   DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
 
   assessments      Assessment[]
   releasesGiven    AttemptRelease[] @relation("ReleasedBy")
