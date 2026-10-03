@@ -198,7 +198,7 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
     location: data.location,
   }
 
-  const templatePath = resolvePublicFile('/certificate-template.jpg')
+  const templatePath = resolvePublicFile('/certificate-template.png')
   const template = templatePath ? loadImageAsDataUrl(templatePath) : null
 
   if (template) {
@@ -244,22 +244,28 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
   const codeLabel = applyPlaceholders(data.codeLabel, vars)
   const courseName = applyPlaceholders(data.courseName, vars)
 
-  // Corpo — tipografia arredondada (Nunito), próxima da identidade visual
+  // Intro + nome: centralizados no 3º quarto da largura (50%–75% → centro em 62,5%)
+  const thirdQuarterCenterX = (pageWidth * 5) / 8
+
   doc.setFont(bodyFont, 'normal')
   doc.setFontSize(13)
   doc.setTextColor(...BLUE_SOFT)
-  doc.text(intro, pageWidth / 2, 79, { align: 'center' })
+  doc.text(intro, thirdQuarterCenterX, 79, { align: 'center' })
 
-  // Nome — Nunito negrito (legível)
   doc.setFont(bodyFont, 'bold')
   doc.setFontSize(26)
   doc.setTextColor(...BLUE)
-  doc.text(data.studentName, pageWidth / 2, 92, { align: 'center' })
+  doc.text(data.studentName, thirdQuarterCenterX, 92, { align: 'center' })
 
   const nameWidth = doc.getTextWidth(data.studentName)
   doc.setDrawColor(...BLUE)
   doc.setLineWidth(0.35)
-  doc.line(pageWidth / 2 - nameWidth / 2 - 2, 96, pageWidth / 2 + nameWidth / 2 + 2, 96)
+  doc.line(
+    thirdQuarterCenterX - nameWidth / 2 - 2,
+    96,
+    thirdQuarterCenterX + nameWidth / 2 + 2,
+    96
+  )
 
   doc.setFont(bodyFont, 'normal')
   doc.setFontSize(13)
