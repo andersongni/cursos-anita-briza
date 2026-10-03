@@ -1,12 +1,9 @@
-import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { GROUP_META, resolveDimensionGroup } from './dimension-groups'
+import { createScriptPrisma } from './prisma-client'
 
-const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
-const adapter = new PrismaLibSql({ url: dbUrl })
-const prisma = new PrismaClient({ adapter })
+const prisma = createScriptPrisma()
 
 
 interface OptionJson {

@@ -3,13 +3,10 @@
  * Uso: npx tsx scripts/ensure-admin.ts
  * Env opcional: ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_FULL_NAME
  */
-import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
 import bcrypt from 'bcryptjs'
+import { createScriptPrisma } from './prisma-client'
 
-const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
-const adapter = new PrismaLibSql({ url: dbUrl })
-const prisma = new PrismaClient({ adapter })
+const prisma = createScriptPrisma()
 
 function formatName(name: string) {
   return name

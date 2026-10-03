@@ -142,6 +142,35 @@ avaliacao-anita-briza/
 
 ---
 
+## Deploy gratuito (Vercel + Turso)
+
+1. Crie um banco em [turso.tech](https://turso.tech) e gere um token.
+2. Na [Vercel](https://vercel.com), importe este repositório e configure:
+
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | `libsql://seu-banco.turso.io` |
+| `TURSO_AUTH_TOKEN` | token do Turso |
+| `JWT_SECRET` | string longa e aleatória |
+| `NEXT_PUBLIC_APP_URL` | URL do projeto na Vercel |
+
+3. Após o primeiro deploy, inicialize o banco (no seu PC, com as mesmas vars):
+
+```powershell
+$env:DATABASE_URL="libsql://...."
+$env:TURSO_AUTH_TOKEN="...."
+npx prisma db push
+npm run seed:settings
+npm run ensure-admin
+npm run seed
+```
+
+4. Acesse a URL da Vercel e troque a senha do admin no primeiro login.
+
+> Upload de logo customizado usa disco local e **não persiste** na Vercel; o logo padrão continua funcionando.
+
+---
+
 ## Problemas comuns
 
 **Erro ao abrir o SQLite / caminho inválido**

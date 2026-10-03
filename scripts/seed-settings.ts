@@ -1,12 +1,9 @@
 /**
  * Insere apenas configurações padrão do sistema (sem perguntas, alunos ou certificados).
  */
-import { PrismaClient } from '@prisma/client'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
+import { createScriptPrisma } from './prisma-client'
 
-const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
-const adapter = new PrismaLibSql({ url: dbUrl })
-const prisma = new PrismaClient({ adapter })
+const prisma = createScriptPrisma()
 
 const defaultSettings = [
   { key: 'assessment.prova.question_count', value: '40', description: 'Número de questões por prova' },
