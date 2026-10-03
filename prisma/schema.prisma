@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Profile {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  full_name     String
+  email         String?
+  phone         String?
+  role          String    @default("STUDENT")
+  status        String    @default("PENDING")
+  password_hash String
+  last_login_at DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  assessments      Assessment[]
+  releasesGiven    AttemptRelease[] @relation("ReleasedBy")
+  releasesReceived AttemptRelease[] @relation("Student")
+  certificates     Certificate[]
+  auditLogs        AuditLog[]
+  settingsUpdated  SystemSetting[]
+}
+
+model Dimension {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  weight            Int      @default(1)
+  display_order     Int      @default(0)
+  target_percentage Float    @default(5.0)
+  active            Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  questions           Question[]
+  assessmentQuestions AssessmentQuestion[]
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  type          String
+  dimension_id  String
+  question_text String
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  dimension           Dimension            @relation(fields: [dimension_id], references: [id])
+  options             QuestionOption[]
+  assessmentQuestions AssessmentQuestion[]
+}
+
+model QuestionOption {
+  id          String  @id @default(cuid())
+  question_id String
+  option_key  String
+  option_text String
+  is_correct  Boolean @default(false)
+  explanation String
+
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+}
+
+model Assessment {
+  id               String    @id @default(cuid())
+  student_id       String
+  type             String
+  status           String    @default("IN_PROGRESS")
+  attempt_number   Int       @default(1)
+  started_at       DateTime  @default(now())
+  deadline_at      DateTime
+  completed_at     DateTime?
+  duration_seconds Int?
+  total_questions  Int
+  score            Float?
+  correct_count    Int?
+  wrong_count      Int?
+  passed           Boolean?
+  created_at       DateTime  @default(now())
+
+  student     Profile              @relation(fields: [student_id], references: [id])
+  questions   AssessmentQuestion[]
+  answers     AssessmentAnswer[]
+  certificate Certificate?
+  releases    AttemptRelease[]
+}
+
+model AssessmentQuestion {
+  id                      String  @id @default(cuid())
+  assessment_id           String
+  question_id             String?
+  question_order          Int
+  dimension_id            String?
+  dimension_name_snapshot String
+  question_text_snapshot  String
+  option_a_text           String
+  option_b_text           String
+  option_c_text           String
+  option_d_text           String
+  option_e_text           String
+  option_a_explanation    String
+  option_b_explanation    String
+  option_c_explanation    String
+  option_d_explanation    String
+  option_e_explanation    String
+  correct_option          String
+
+  assessment Assessment        @relation(fields: [assessment_id], references: [id], onDelete: Cascade)
+  question   Question?         @relation(fields: [question_id], references: [id])
+  dimension  Dimension?        @relation(fields: [dimension_id], references: [id])
+  answers    AssessmentAnswer[]
+}
+
+model AssessmentAnswer {
+  id                     String    @id @default(cuid())
+  assessment_id          String
+  assessment_question_id String
+  selected_option        String?
+  is_correct             Boolean?
+  answered_at            DateTime?
+  flagged_for_review     Boolean   @default(false)
+
+  assessment         Assessment         @relation(fields: [assessment_id], references: [id], onDelete: Cascade)
+  assessmentQuestion AssessmentQuestion @relation(fields: [assessment_question_id], references: [id], onDelete: Cascade)
+
+  @@unique([assessment_id, assessment_question_id])
+}
+
+model AttemptRelease {
+  id            String    @id @default(cuid())
+  student_id    String
+  released_by   String
+  reason        String?
+  used          Boolean   @default(false)
+  cancelled     Boolean   @default(false)
+  assessment_id String?
+  created_at    DateTime  @default(now())
+
+  student    Profile     @relation("Student", fields: [student_id], references: [id])
+  releasedBy Profile     @relation("ReleasedBy", fields: [released_by], references: [id])
+  assessment Assessment? @relation(fields: [assessment_id], references: [id])
+}
+
+model Certificate {
+  id                    String   @id @default(cuid())
+  student_id            String
+  assessment_id         String   @unique
+  certificate_code      String   @unique
+  student_name_snapshot String
+  course_name_snapshot  String
+  completion_date       DateTime
+  score_snapshot        Float?
+  template_version      Int      @default(1)
+  pdf_path              String?
+  created_at            DateTime @default(now())
+
+  student    Profile    @relation(fields: [student_id], references: [id])
+  assessment Assessment @relation(fields: [assessment_id], references: [id])
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updated_at  DateTime @updatedAt
+  updated_by  String?
+
+  updatedBy Profile? @relation(fields: [updated_by], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  user_id     String?
+  action      String
+  entity_type String
+  entity_id   String?
+  metadata    String?
+  created_at  DateTime @default(now())
+
+  user Profile? @relation(fields: [user_id], references: [id])
+}

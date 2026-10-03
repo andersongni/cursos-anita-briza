@@ -1,0 +1,1302 @@
+[
+  {
+    "id": 1,
+    "type": "PROVA",
+    "dimension": "Fundamentos do computador",
+    "question_text": "O que é o hardware de um computador?",
+    "options": [
+      { "key": "A", "text": "Os programas instalados", "is_correct": false, "explanation": "Programas são a parte lógica (software)." },
+      { "key": "B", "text": "A parte física do computador", "is_correct": true, "explanation": "Hardware é toda a parte física e palpável." },
+      { "key": "C", "text": "A conexão com a internet", "is_correct": false, "explanation": "Internet é a rede de computadores." },
+      { "key": "D", "text": "O sistema operacional", "is_correct": false, "explanation": "O sistema operacional é um software." },
+      { "key": "E", "text": "O navegador de internet", "is_correct": false, "explanation": "O navegador é um aplicativo (software)." }
+    ]
+  },
+  {
+    "id": 2,
+    "type": "PROVA",
+    "dimension": "Fundamentos do computador",
+    "question_text": "Para que serve a CPU (processador)?",
+    "options": [
+      { "key": "A", "text": "Armazenar arquivos permanentemente", "is_correct": false, "explanation": "Isso é função do HD ou SSD." },
+      { "key": "B", "text": "Exibir as imagens na tela", "is_correct": false, "explanation": "Isso é feito pela placa de vídeo ou monitor." },
+      { "key": "C", "text": "Conectar o computador à tomada", "is_correct": false, "explanation": "A fonte de alimentação faz isso." },
+      { "key": "D", "text": "Processar dados e comandos", "is_correct": true, "explanation": "A CPU é o 'cérebro' do computador que processa informações." },
+      { "key": "E", "text": "Tocar sons", "is_correct": false, "explanation": "Isso é função da placa de som ou caixas de som." }
+    ]
+  },
+  {
+    "id": 3,
+    "type": "PROVA",
+    "dimension": "Fundamentos do computador",
+    "question_text": "Qual destes dispositivos é usado APENAS para entrada de informações?",
+    "options": [
+      { "key": "A", "text": "Monitor", "is_correct": false, "explanation": "O monitor exibe informações (saída)." },
+      { "key": "B", "text": "Impressora", "is_correct": false, "explanation": "A impressora produz cópias físicas (saída)." },
+      { "key": "C", "text": "Teclado", "is_correct": true, "explanation": "O teclado é usado exclusivamente para inserir dados." },
+      { "key": "D", "text": "Caixas de som", "is_correct": false, "explanation": "Produzem som (saída)." },
+      { "key": "E", "text": "Fones de ouvido", "is_correct": false, "explanation": "Recebem o áudio do computador (saída)." }
+    ]
+  },
+  {
+    "id": 4,
+    "type": "PROVA",
+    "dimension": "Fundamentos do computador",
+    "question_text": "Qual é a principal função do disco rígido (HD) ou SSD?",
+    "options": [
+      { "key": "A", "text": "Resfriar o computador", "is_correct": false, "explanation": "A ventoinha (cooler) faz o resfriamento." },
+      { "key": "B", "text": "Armazenar os arquivos de forma permanente", "is_correct": true, "explanation": "O HD/SSD guarda seus dados mesmo quando desligado." },
+      { "key": "C", "text": "Conectar na internet", "is_correct": false, "explanation": "A placa de rede ou Wi-Fi faz a conexão." },
+      { "key": "D", "text": "Digitar textos", "is_correct": false, "explanation": "O teclado é usado para digitar." },
+      { "key": "E", "text": "Aumentar a velocidade da internet", "is_correct": false, "explanation": "O armazenamento não afeta diretamente a velocidade da internet." }
+    ]
+  },
+  {
+    "id": 5,
+    "type": "PROVA",
+    "dimension": "Fundamentos do computador",
+    "question_text": "O que acontece quando você desliga o computador puxando o cabo da tomada?",
+    "options": [
+      { "key": "A", "text": "A internet fica mais rápida", "is_correct": false, "explanation": "Isso não afeta a velocidade da internet." },
+      { "key": "B", "text": "O sistema operacional é atualizado", "is_correct": false, "explanation": "Atualizações exigem conexão e o computador ligado." },
+      { "key": "C", "text": "Pode causar perda de dados e danos", "is_correct": true, "explanation": "Desligar incorretamente pode corromper arquivos ou danificar peças." },
+      { "key": "D", "text": "Os arquivos ficam mais seguros", "is_correct": false, "explanation": "Pelo contrário, há risco de perder arquivos não salvos." },
+      { "key": "E", "text": "Nada acontece, é o jeito certo", "is_correct": false, "explanation": "O certo é usar a opção 'Desligar' no sistema." }
+    ]
+  },
+  {
+    "id": 6,
+    "type": "PROVA",
+    "dimension": "Mouse e teclado",
+    "question_text": "Qual é a função do botão direito do mouse na maioria dos programas?",
+    "options": [
+      { "key": "A", "text": "Selecionar um item", "is_correct": false, "explanation": "O botão esquerdo é usado para selecionar." },
+      { "key": "B", "text": "Abrir um arquivo com duplo clique", "is_correct": false, "explanation": "Usa-se o botão esquerdo para o duplo clique." },
+      { "key": "C", "text": "Arrastar uma janela", "is_correct": false, "explanation": "Para arrastar, pressionamos o botão esquerdo." },
+      { "key": "D", "text": "Mostrar um menu com opções adicionais", "is_correct": true, "explanation": "O botão direito abre o menu de contexto (opções)." },
+      { "key": "E", "text": "Apagar um texto", "is_correct": false, "explanation": "Para apagar, usamos a tecla Backspace ou Delete." }
+    ]
+  },
+  {
+    "id": 7,
+    "type": "PROVA",
+    "dimension": "Mouse e teclado",
+    "question_text": "Para que serve a rodinha (scroll) do mouse?",
+    "options": [
+      { "key": "A", "text": "Desligar o computador", "is_correct": false, "explanation": "A rodinha não tem essa função." },
+      { "key": "B", "text": "Aumentar o volume do som sempre", "is_correct": false, "explanation": "Geralmente ela rola a tela, não o volume." },
+      { "key": "C", "text": "Rolar a página para cima ou para baixo", "is_correct": true, "explanation": "O scroll permite navegar verticalmente no conteúdo." },
+      { "key": "D", "text": "Apagar um arquivo", "is_correct": false, "explanation": "Para isso usamos a tecla Delete." },
+      { "key": "E", "text": "Escrever textos", "is_correct": false, "explanation": "O teclado é responsável pela escrita." }
+    ]
+  },
+  {
+    "id": 8,
+    "type": "PROVA",
+    "dimension": "Mouse e teclado",
+    "question_text": "Qual tecla apaga o texto à esquerda do cursor?",
+    "options": [
+      { "key": "A", "text": "Enter", "is_correct": false, "explanation": "Enter cria uma nova linha." },
+      { "key": "B", "text": "Space (Espaço)", "is_correct": false, "explanation": "A barra de espaço insere um espaço em branco." },
+      { "key": "C", "text": "Shift", "is_correct": false, "explanation": "Shift altera o caso de letras (maiúsculas/minúsculas)." },
+      { "key": "D", "text": "Delete", "is_correct": false, "explanation": "Delete apaga o caractere à direita." },
+      { "key": "E", "text": "Backspace", "is_correct": true, "explanation": "Backspace retrocede apagando o caractere à esquerda." }
+    ]
+  },
+  {
+    "id": 9,
+    "type": "PROVA",
+    "dimension": "Mouse e teclado",
+    "question_text": "Como fazer uma letra maiúscula ao digitar?",
+    "options": [
+      { "key": "A", "text": "Segurar Shift e apertar a letra", "is_correct": true, "explanation": "A tecla Shift muda temporariamente para maiúsculas." },
+      { "key": "B", "text": "Apertar Ctrl e a letra", "is_correct": false, "explanation": "Ctrl é usado para atalhos do sistema." },
+      { "key": "C", "text": "Apertar Enter antes", "is_correct": false, "explanation": "Enter apenas pula para a linha de baixo." },
+      { "key": "D", "text": "Clicar com o botão direito na letra", "is_correct": false, "explanation": "O mouse não muda o comportamento do teclado dessa forma." },
+      { "key": "E", "text": "Digitar mais forte", "is_correct": false, "explanation": "A força não altera o caractere." }
+    ]
+  },
+  {
+    "id": 10,
+    "type": "PROVA",
+    "dimension": "Mouse e teclado",
+    "question_text": "Para selecionar um texto inteiro, você pode...",
+    "options": [
+      { "key": "A", "text": "Clicar e arrastar o cursor sobre o texto", "is_correct": true, "explanation": "Clicar com o botão esquerdo e arrastar seleciona o trecho." },
+      { "key": "B", "text": "Rolar a rodinha do mouse rapidamente", "is_correct": false, "explanation": "Isso apenas rola a página." },
+      { "key": "C", "text": "Apertar a tecla Windows", "is_correct": false, "explanation": "A tecla Windows abre o Menu Iniciar." },
+      { "key": "D", "text": "Apertar a tecla Esc", "is_correct": false, "explanation": "Esc geralmente cancela uma ação." },
+      { "key": "E", "text": "Desligar e ligar a tela", "is_correct": false, "explanation": "Isso não afeta o software." }
+    ]
+  },
+  {
+    "id": 11,
+    "type": "PROVA",
+    "dimension": "Windows e área de trabalho",
+    "question_text": "O que é a Área de Trabalho (Desktop)?",
+    "options": [
+      { "key": "A", "text": "O navegador de internet", "is_correct": false, "explanation": "O navegador é apenas um programa." },
+      { "key": "B", "text": "A tela inicial onde ficam ícones e a lixeira", "is_correct": true, "explanation": "É o ambiente principal do Windows após iniciar." },
+      { "key": "C", "text": "A pasta onde ficam as fotos", "is_correct": false, "explanation": "Fotos costumam ficar na pasta 'Imagens'." },
+      { "key": "D", "text": "Um programa para escrever textos", "is_correct": false, "explanation": "O Word ou Bloco de Notas fazem isso." },
+      { "key": "E", "text": "A parte interna da CPU", "is_correct": false, "explanation": "Isso seria a placa-mãe e componentes físicos." }
+    ]
+  },
+  {
+    "id": 12,
+    "type": "PROVA",
+    "dimension": "Windows e área de trabalho",
+    "question_text": "Como você encontra um programa que não está na tela inicial do Windows?",
+    "options": [
+      { "key": "A", "text": "Desligando o computador", "is_correct": false, "explanation": "Desligar não ajuda a encontrar programas." },
+      { "key": "B", "text": "Apertando a barra de espaço muitas vezes", "is_correct": false, "explanation": "Isso não pesquisa no sistema." },
+      { "key": "C", "text": "Clicando no Menu Iniciar e digitando o nome dele", "is_correct": true, "explanation": "A pesquisa do Menu Iniciar acha programas instalados." },
+      { "key": "D", "text": "Apagando arquivos velhos", "is_correct": false, "explanation": "Isso apenas libera espaço." },
+      { "key": "E", "text": "Trocando a imagem de fundo", "is_correct": false, "explanation": "Apenas altera a aparência do sistema." }
+    ]
+  },
+  {
+    "id": 13,
+    "type": "PROVA",
+    "dimension": "Windows e área de trabalho",
+    "question_text": "O que acontece quando você minimiza uma janela?",
+    "options": [
+      { "key": "A", "text": "O programa é fechado", "is_correct": false, "explanation": "Ele continua aberto em segundo plano." },
+      { "key": "B", "text": "O programa é desinstalado", "is_correct": false, "explanation": "Desinstalar requer um processo específico." },
+      { "key": "C", "text": "Ela se esconde na Barra de Tarefas, mas o programa continua aberto", "is_correct": true, "explanation": "Minimizar apenas oculta a janela da tela principal." },
+      { "key": "D", "text": "Ela diminui um pouco de tamanho na tela", "is_correct": false, "explanation": "Isso é feito pela opção 'Restaurar tamanho'." },
+      { "key": "E", "text": "O computador trava", "is_correct": false, "explanation": "Minimizar é uma ação normal do sistema." }
+    ]
+  },
+  {
+    "id": 14,
+    "type": "PROVA",
+    "dimension": "Windows e área de trabalho",
+    "question_text": "Para que serve a Barra de Tarefas (linha na parte inferior da tela)?",
+    "options": [
+      { "key": "A", "text": "Mostrar os programas abertos e a hora", "is_correct": true, "explanation": "Ela exibe programas ativos e atalhos rápidos." },
+      { "key": "B", "text": "Para aumentar o som", "is_correct": false, "explanation": "O controle de som fica lá, mas não é a única função." },
+      { "key": "C", "text": "Para salvar os arquivos", "is_correct": false, "explanation": "Arquivos são salvos em pastas no disco." },
+      { "key": "D", "text": "Apenas para decoração", "is_correct": false, "explanation": "A barra é essencial para a navegação no Windows." },
+      { "key": "E", "text": "Para digitar textos", "is_correct": false, "explanation": "Usa-se um editor de texto para isso." }
+    ]
+  },
+  {
+    "id": 15,
+    "type": "PROVA",
+    "dimension": "Windows e área de trabalho",
+    "question_text": "Como você ajusta o volume do som do computador no Windows?",
+    "options": [
+      { "key": "A", "text": "Pressionando Enter", "is_correct": false, "explanation": "Enter apenas confirma ações." },
+      { "key": "B", "text": "No ícone de alto-falante na Barra de Tarefas", "is_correct": true, "explanation": "Fica no canto inferior direito, perto do relógio." },
+      { "key": "C", "text": "No Menu Iniciar > Imagens", "is_correct": false, "explanation": "Isso abre imagens, não som." },
+      { "key": "D", "text": "Na Lixeira", "is_correct": false, "explanation": "A lixeira guarda arquivos apagados." },
+      { "key": "E", "text": "Apagando ícones da área de trabalho", "is_correct": false, "explanation": "Isso não afeta o som." }
+    ]
+  },
+  {
+    "id": 16,
+    "type": "PROVA",
+    "dimension": "Arquivos e pastas",
+    "question_text": "Qual a finalidade de se criar pastas no computador?",
+    "options": [
+      { "key": "A", "text": "Gastar espaço do HD", "is_correct": false, "explanation": "Pastas não ocupam espaço significativo." },
+      { "key": "B", "text": "Proteger o computador de vírus", "is_correct": false, "explanation": "Para isso usamos antivírus." },
+      { "key": "C", "text": "Organizar os arquivos e facilitar a busca", "is_correct": true, "explanation": "Pastas funcionam como gavetas de organização." },
+      { "key": "D", "text": "Deixar o computador mais rápido", "is_correct": false, "explanation": "Pastas não alteram a velocidade da máquina." },
+      { "key": "E", "text": "Conectar na internet", "is_correct": false, "explanation": "Não há relação entre pastas e conexão." }
+    ]
+  },
+  {
+    "id": 17,
+    "type": "PROVA",
+    "dimension": "Arquivos e pastas",
+    "question_text": "O que acontece com um arquivo quando você o envia para a Lixeira?",
+    "options": [
+      { "key": "A", "text": "Ele é excluído permanentemente", "is_correct": false, "explanation": "Para excluir de vez é preciso esvaziar a Lixeira." },
+      { "key": "B", "text": "Ele é enviado por e-mail", "is_correct": false, "explanation": "Isso seria 'Enviar para'." },
+      { "key": "C", "text": "Ele é salvo na nuvem", "is_correct": false, "explanation": "A Lixeira é uma pasta local no computador." },
+      { "key": "D", "text": "Ele fica lá e pode ser restaurado caso você mude de ideia", "is_correct": true, "explanation": "A Lixeira permite recuperar arquivos excluídos por engano." },
+      { "key": "E", "text": "Ele fica invisível para sempre", "is_correct": false, "explanation": "Ele pode ser visto abrindo a Lixeira." }
+    ]
+  },
+  {
+    "id": 18,
+    "type": "PROVA",
+    "dimension": "Arquivos e pastas",
+    "question_text": "Como criar uma nova pasta na Área de Trabalho?",
+    "options": [
+      { "key": "A", "text": "Clicando com botão direito num espaço vazio > Novo > Pasta", "is_correct": true, "explanation": "Esta é a forma padrão de criar pastas no Windows." },
+      { "key": "B", "text": "Clicando na Lixeira duas vezes", "is_correct": false, "explanation": "Isso apenas abre a Lixeira." },
+      { "key": "C", "text": "Arrastando um arquivo para o canto da tela", "is_correct": false, "explanation": "Isso apenas move a janela ou o arquivo." },
+      { "key": "D", "text": "Apertando a tecla Enter no teclado", "is_correct": false, "explanation": "Enter abre um item selecionado." },
+      { "key": "E", "text": "Pressionando Ctrl + C", "is_correct": false, "explanation": "Isso serve para copiar." }
+    ]
+  },
+  {
+    "id": 19,
+    "type": "PROVA",
+    "dimension": "Arquivos e pastas",
+    "question_text": "João quer mudar o nome de um arquivo chamado 'foto1'. Como ele faz isso?",
+    "options": [
+      { "key": "A", "text": "Dá dois cliques rápidos para abrir", "is_correct": false, "explanation": "Isso apenas exibe a foto." },
+      { "key": "B", "text": "Clica com o botão direito no arquivo e escolhe 'Renomear'", "is_correct": true, "explanation": "A opção renomear permite alterar o nome do item." },
+      { "key": "C", "text": "Arrasta o arquivo para a Lixeira", "is_correct": false, "explanation": "Isso apaga o arquivo." },
+      { "key": "D", "text": "Pressiona a tecla Esc", "is_correct": false, "explanation": "Esc cancela ações." },
+      { "key": "E", "text": "Desliga o monitor", "is_correct": false, "explanation": "Isso não afeta o software." }
+    ]
+  },
+  {
+    "id": 20,
+    "type": "PROVA",
+    "dimension": "Arquivos e pastas",
+    "question_text": "Qual programa do Windows usamos para navegar por todos os arquivos e pastas do computador?",
+    "options": [
+      { "key": "A", "text": "Google Chrome", "is_correct": false, "explanation": "É um navegador de internet." },
+      { "key": "B", "text": "Calculadora", "is_correct": false, "explanation": "Serve para fazer contas matematicas." },
+      { "key": "C", "text": "Explorador de Arquivos (File Explorer)", "is_correct": true, "explanation": "É o gerenciador oficial do Windows." },
+      { "key": "D", "text": "Bloco de Notas", "is_correct": false, "explanation": "Usado para editar textos simples." },
+      { "key": "E", "text": "Paint", "is_correct": false, "explanation": "Editor de imagens." }
+    ]
+  },
+  {
+    "id": 21,
+    "type": "PROVA",
+    "dimension": "Atalhos e produtividade",
+    "question_text": "Qual o atalho de teclado usado para COPIAR um texto ou arquivo?",
+    "options": [
+      { "key": "A", "text": "Ctrl + P", "is_correct": false, "explanation": "Usado para imprimir (Print)." },
+      { "key": "B", "text": "Ctrl + C", "is_correct": true, "explanation": "Vem do inglês 'Copy' (copiar)." },
+      { "key": "C", "text": "Ctrl + Z", "is_correct": false, "explanation": "Desfaz a última ação." },
+      { "key": "D", "text": "Ctrl + V", "is_correct": false, "explanation": "Usado para colar." },
+      { "key": "E", "text": "Ctrl + X", "is_correct": false, "explanation": "Usado para recortar." }
+    ]
+  },
+  {
+    "id": 22,
+    "type": "PROVA",
+    "dimension": "Atalhos e produtividade",
+    "question_text": "Qual o atalho usado para COLAR algo que você acabou de copiar?",
+    "options": [
+      { "key": "A", "text": "Ctrl + P", "is_correct": false, "explanation": "Imprime." },
+      { "key": "B", "text": "Ctrl + Z", "is_correct": false, "explanation": "Desfaz ação." },
+      { "key": "C", "text": "Ctrl + X", "is_correct": false, "explanation": "Recorta." },
+      { "key": "D", "text": "Ctrl + C", "is_correct": false, "explanation": "Copia." },
+      { "key": "E", "text": "Ctrl + V", "is_correct": true, "explanation": "É o comando para colar o item copiado." }
+    ]
+  },
+  {
+    "id": 23,
+    "type": "PROVA",
+    "dimension": "Atalhos e produtividade",
+    "question_text": "Se você apagou um texto sem querer no Word, qual atalho DESFAZ esse erro?",
+    "options": [
+      { "key": "A", "text": "Ctrl + Z", "is_correct": true, "explanation": "O comando 'Desfazer' corrige o último erro." },
+      { "key": "B", "text": "Ctrl + B", "is_correct": false, "explanation": "No Word, pode salvar ou colocar em negrito." },
+      { "key": "C", "text": "Alt + F4", "is_correct": false, "explanation": "Fecha a janela aberta." },
+      { "key": "D", "text": "Shift + Delete", "is_correct": false, "explanation": "Apaga um arquivo permanentemente." },
+      { "key": "E", "text": "Ctrl + V", "is_correct": false, "explanation": "Serve para colar." }
+    ]
+  },
+  {
+    "id": 24,
+    "type": "PROVA",
+    "dimension": "Atalhos e produtividade",
+    "question_text": "Qual a diferença entre 'Copiar' e 'Recortar' um arquivo?",
+    "options": [
+      { "key": "A", "text": "Nenhuma, são a mesma coisa", "is_correct": false, "explanation": "Eles têm funções diferentes." },
+      { "key": "B", "text": "Copiar duplica, Recortar move o item de lugar", "is_correct": true, "explanation": "Recortar retira o item do local original ao ser colado em outro." },
+      { "key": "C", "text": "Recortar apaga o arquivo para sempre", "is_correct": false, "explanation": "Ele só apaga se você não colar depois." },
+      { "key": "D", "text": "Copiar apaga o original", "is_correct": false, "explanation": "Copiar mantém o original intacto." },
+      { "key": "E", "text": "Recortar diminui o tamanho da imagem", "is_correct": false, "explanation": "Não afeta o conteúdo do arquivo." }
+    ]
+  },
+  {
+    "id": 25,
+    "type": "PROVA",
+    "dimension": "Atalhos e produtividade",
+    "question_text": "Qual atalho de teclado é comum para SALVAR um documento?",
+    "options": [
+      { "key": "A", "text": "Ctrl + B (ou Ctrl + S no inglês)", "is_correct": true, "explanation": "Estes são os atalhos clássicos para salvar no Windows/Office." },
+      { "key": "B", "text": "Ctrl + X", "is_correct": false, "explanation": "Isso serve para recortar." },
+      { "key": "C", "text": "Alt + Tab", "is_correct": false, "explanation": "Alterna entre janelas." },
+      { "key": "D", "text": "Ctrl + P", "is_correct": false, "explanation": "Isso é para imprimir." },
+      { "key": "E", "text": "F5", "is_correct": false, "explanation": "Atualiza a página ou inicia apresentação." }
+    ]
+  },
+  {
+    "id": 26,
+    "type": "PROVA",
+    "dimension": "Internet e navegadores",
+    "question_text": "Qual destes ícones na área de trabalho geralmente representa um Navegador de Internet?",
+    "options": [
+      { "key": "A", "text": "Uma folha azul com um 'W'", "is_correct": false, "explanation": "Isso é o Microsoft Word." },
+      { "key": "B", "text": "Uma pasta amarela", "is_correct": false, "explanation": "Representa o Explorador de Arquivos." },
+      { "key": "C", "text": "Uma esfera colorida (Google Chrome) ou um 'e' azul (Edge)", "is_correct": true, "explanation": "Estes são os logotipos dos navegadores mais usados." },
+      { "key": "D", "text": "Uma lixeira", "is_correct": false, "explanation": "A Lixeira guarda arquivos apagados." },
+      { "key": "E", "text": "Uma calculadora", "is_correct": false, "explanation": "É o aplicativo de calculadora." }
+    ]
+  },
+  {
+    "id": 27,
+    "type": "PROVA",
+    "dimension": "Internet e navegadores",
+    "question_text": "O que é a barra de endereços do navegador?",
+    "options": [
+      { "key": "A", "text": "Onde você escreve o site que quer visitar (ex: www.globo.com)", "is_correct": true, "explanation": "É a barra superior onde inserimos as URLs." },
+      { "key": "B", "text": "Onde a bateria do computador é mostrada", "is_correct": false, "explanation": "Isso fica na barra de tarefas do Windows." },
+      { "key": "C", "text": "Onde você aumenta o brilho da tela", "is_correct": false, "explanation": "Isso é feito nas configurações do sistema." },
+      { "key": "D", "text": "A barra que liga o computador", "is_correct": false, "explanation": "Ligar o PC usa-se o botão físico." },
+      { "key": "E", "text": "A aba de favoritos", "is_correct": false, "explanation": "Favoritos é outra barra, separada." }
+    ]
+  },
+  {
+    "id": 28,
+    "type": "PROVA",
+    "dimension": "Internet e navegadores",
+    "question_text": "Para que serve o botão em formato de 'seta em círculo' perto da barra de endereços?",
+    "options": [
+      { "key": "A", "text": "Aumentar a letra do texto", "is_correct": false, "explanation": "Usa-se o atalho de zoom (Ctrl + +)." },
+      { "key": "B", "text": "Desligar a internet", "is_correct": false, "explanation": "Isso é feito no ícone de Wi-Fi ou rede." },
+      { "key": "C", "text": "Atualizar (recarregar) a página", "is_correct": true, "explanation": "O botão 'Refresh' tenta carregar a página novamente." },
+      { "key": "D", "text": "Apagar a página da memória", "is_correct": false, "explanation": "Para isso fecha-se a aba." },
+      { "key": "E", "text": "Imprimir a tela", "is_correct": false, "explanation": "Usa-se Ctrl + P ou 'Imprimir'." }
+    ]
+  },
+  {
+    "id": 29,
+    "type": "PROVA",
+    "dimension": "Internet e navegadores",
+    "question_text": "O que acontece ao clicar em um 'link' (palavra sublinhada ou azul) num site?",
+    "options": [
+      { "key": "A", "text": "O computador trava", "is_correct": false, "explanation": "Links não devem travar o sistema." },
+      { "key": "B", "text": "O texto é copiado", "is_correct": false, "explanation": "É preciso selecionar e dar Ctrl + C." },
+      { "key": "C", "text": "Você é direcionado para outra página da internet", "is_correct": true, "explanation": "Links conectam diferentes páginas na Web." },
+      { "key": "D", "text": "Um vírus é baixado", "is_correct": false, "explanation": "A maioria dos links são seguros." },
+      { "key": "E", "text": "O site muda de cor", "is_correct": false, "explanation": "Pode mudar temporariamente ao clicar, mas o objetivo é redirecionar." }
+    ]
+  },
+  {
+    "id": 30,
+    "type": "PROVA",
+    "dimension": "Internet e navegadores",
+    "question_text": "Como você abre um site novo sem fechar a página que já está lendo?",
+    "options": [
+      { "key": "A", "text": "Abrindo uma 'Nova Guia' (ou Nova Aba) clicando no símbolo de +", "is_correct": true, "explanation": "O sinal de '+' cria uma nova aba em paralelo." },
+      { "key": "B", "text": "Desligando o monitor", "is_correct": false, "explanation": "Isso não afeta a navegação." },
+      { "key": "C", "text": "Fechando o navegador no 'X' vermelho", "is_correct": false, "explanation": "Isso fecha todas as páginas." },
+      { "key": "D", "text": "Apertando a tecla Delete", "is_correct": false, "explanation": "Não tem função na navegação." },
+      { "key": "E", "text": "Tirando o computador da tomada", "is_correct": false, "explanation": "Isso desliga o computador." }
+    ]
+  },
+  {
+    "id": 31,
+    "type": "PROVA",
+    "dimension": "Pesquisa na Internet",
+    "question_text": "Se você quer saber a receita de um bolo, qual o melhor site para pesquisar?",
+    "options": [
+      { "key": "A", "text": "Microsoft Word", "is_correct": false, "explanation": "É um editor de textos." },
+      { "key": "B", "text": "Google", "is_correct": true, "explanation": "O Google é o principal motor de buscas da internet." },
+      { "key": "C", "text": "Calculadora do Windows", "is_correct": false, "explanation": "Serve para matemática." },
+      { "key": "D", "text": "Lixeira", "is_correct": false, "explanation": "Não tem acesso à internet." },
+      { "key": "E", "text": "Paint", "is_correct": false, "explanation": "Programa de desenho." }
+    ]
+  },
+  {
+    "id": 32,
+    "type": "PROVA",
+    "dimension": "Pesquisa na Internet",
+    "question_text": "O que você deve digitar no Google para encontrar bons resultados sobre 'horário de ônibus para São Paulo'?",
+    "options": [
+      { "key": "A", "text": "Apenas a palavra 'São'", "is_correct": false, "explanation": "É muito vago e trará resultados mistos." },
+      { "key": "B", "text": "'horário de ônibus para São Paulo'", "is_correct": true, "explanation": "É uma pesquisa clara e direta ao ponto." },
+      { "key": "C", "text": "'que horas são'", "is_correct": false, "explanation": "Vai mostrar o horário atual da sua cidade." },
+      { "key": "D", "text": "www.onibus.com.br", "is_correct": false, "explanation": "Você já estaria tentando acessar um site que pode nem existir." },
+      { "key": "E", "text": "'quero viajar'", "is_correct": false, "explanation": "Resultados serão apenas agências de turismo em geral." }
+    ]
+  },
+  {
+    "id": 33,
+    "type": "PROVA",
+    "dimension": "Pesquisa na Internet",
+    "question_text": "Todos os sites encontrados em uma pesquisa no Google são verdadeiros e confiáveis?",
+    "options": [
+      { "key": "A", "text": "Sim, o Google fiscaliza tudo", "is_correct": false, "explanation": "O Google não garante a veracidade das informações." },
+      { "key": "B", "text": "Sim, a internet só tem verdades", "is_correct": false, "explanation": "Existem muitas 'fake news' online." },
+      { "key": "C", "text": "Não, é preciso verificar se o site é conhecido e de confiança", "is_correct": true, "explanation": "O usuário deve ter senso crítico com as fontes." },
+      { "key": "D", "text": "Nenhum site é de confiança", "is_correct": false, "explanation": "Existem ótimas fontes na internet." },
+      { "key": "E", "text": "Só os sites com fundo azul são confiáveis", "is_correct": false, "explanation": "A cor do site não determina sua confiabilidade." }
+    ]
+  },
+  {
+    "id": 34,
+    "type": "PROVA",
+    "dimension": "Pesquisa na Internet",
+    "question_text": "Como pesquisar uma frase exata no Google?",
+    "options": [
+      { "key": "A", "text": "Digitando em letras maiúsculas", "is_correct": false, "explanation": "Maiúsculas não fazem diferença." },
+      { "key": "B", "text": "Colocando a frase entre aspas (ex: \"receita de bolo de milho\")", "is_correct": true, "explanation": "As aspas forçam o Google a buscar as palavras exatas." },
+      { "key": "C", "text": "Pressionando Enter três vezes", "is_correct": false, "explanation": "Uma vez basta para pesquisar." },
+      { "key": "D", "text": "Digitando bem devagar", "is_correct": false, "explanation": "A velocidade de digitação não importa." },
+      { "key": "E", "text": "Pesquisando no Paint", "is_correct": false, "explanation": "Paint é para imagens." }
+    ]
+  },
+  {
+    "id": 35,
+    "type": "PROVA",
+    "dimension": "Pesquisa na Internet",
+    "question_text": "O que costumam ser os primeiros 2 ou 3 resultados de uma pesquisa no Google?",
+    "options": [
+      { "key": "A", "text": "Anúncios pagos de empresas (Patrocinado)", "is_correct": true, "explanation": "O Google exibe anúncios relevantes no topo." },
+      { "key": "B", "text": "Sempre a resposta mais correta", "is_correct": false, "explanation": "Nem sempre a resposta certa é a patrocinada." },
+      { "key": "C", "text": "Vídeos do YouTube de humor", "is_correct": false, "explanation": "Isso depende do que foi pesquisado." },
+      { "key": "D", "text": "Sempre um golpe", "is_correct": false, "explanation": "Anúncios costumam ser de empresas legítimas." },
+      { "key": "E", "text": "Mensagens do governo", "is_correct": false, "explanation": "Geralmente são empresas privadas anunciando." }
+    ]
+  },
+  {
+    "id": 36,
+    "type": "PROVA",
+    "dimension": "E-mail",
+    "question_text": "O que significa o símbolo '@' (arroba) em um endereço de e-mail (ex: maria@gmail.com)?",
+    "options": [
+      { "key": "A", "text": "Separa o nome do usuário do provedor de e-mail", "is_correct": true, "explanation": "Significa 'em' (at), ou seja, 'maria no gmail.com'." },
+      { "key": "B", "text": "Significa que é uma senha secreta", "is_correct": false, "explanation": "É parte pública do endereço." },
+      { "key": "C", "text": "Que o e-mail tem vírus", "is_correct": false, "explanation": "Todo e-mail contém o '@'." },
+      { "key": "D", "text": "Aumenta a velocidade da mensagem", "is_correct": false, "explanation": "Não afeta velocidade." },
+      { "key": "E", "text": "É apenas decoração", "is_correct": false, "explanation": "É um caractere obrigatório no formato." }
+    ]
+  },
+  {
+    "id": 37,
+    "type": "PROVA",
+    "dimension": "E-mail",
+    "question_text": "Ao enviar um e-mail, para que serve o campo 'Assunto'?",
+    "options": [
+      { "key": "A", "text": "Para escrever toda a mensagem", "is_correct": false, "explanation": "A mensagem vai no corpo do e-mail." },
+      { "key": "B", "text": "Para colocar a senha do e-mail", "is_correct": false, "explanation": "Nunca envie sua senha." },
+      { "key": "C", "text": "Para resumir o tema principal do e-mail em poucas palavras", "is_correct": true, "explanation": "Ajuda quem recebe a entender do que se trata." },
+      { "key": "D", "text": "Para colocar o número de telefone", "is_correct": false, "explanation": "Isso fica na assinatura ou corpo." },
+      { "key": "E", "text": "Para anexar uma foto", "is_correct": false, "explanation": "Usa-se o botão de clipe (anexo) para fotos." }
+    ]
+  },
+  {
+    "id": 38,
+    "type": "PROVA",
+    "dimension": "E-mail",
+    "question_text": "Se você precisa enviar um documento junto com o e-mail, que ferramenta você usa?",
+    "options": [
+      { "key": "A", "text": "O botão 'Anexar' (ícone de clipe de papel)", "is_correct": true, "explanation": "O clipe universalmente significa adicionar um arquivo junto." },
+      { "key": "B", "text": "Escreve o documento de novo", "is_correct": false, "explanation": "Isso toma muito tempo." },
+      { "key": "C", "text": "Desliga o computador", "is_correct": false, "explanation": "Não ajudará." },
+      { "key": "D", "text": "Usa o botão 'Excluir'", "is_correct": false, "explanation": "Isso apaga a mensagem." },
+      { "key": "E", "text": "Pede para a pessoa buscar na sua casa", "is_correct": false, "explanation": "O e-mail facilita justamente esse envio digital." }
+    ]
+  },
+  {
+    "id": 39,
+    "type": "PROVA",
+    "dimension": "E-mail",
+    "question_text": "O que é o 'Spam' (ou Lixo Eletrônico) na caixa de e-mail?",
+    "options": [
+      { "key": "A", "text": "E-mails importantes de amigos", "is_correct": false, "explanation": "Esses vão para a Caixa de Entrada." },
+      { "key": "B", "text": "Mensagens não solicitadas, muitas vezes propagandas ou golpes", "is_correct": true, "explanation": "O provedor tenta filtrar para não poluir sua caixa." },
+      { "key": "C", "text": "A lixeira do computador", "is_correct": false, "explanation": "Spam é específico de e-mail." },
+      { "key": "D", "text": "Sua senha esquecida", "is_correct": false, "explanation": "A recuperação de senha vai para o e-mail." },
+      { "key": "E", "text": "Uma ferramenta de segurança", "is_correct": false, "explanation": "O filtro de spam é, mas o spam em si é a mensagem ruim." }
+    ]
+  },
+  {
+    "id": 40,
+    "type": "PROVA",
+    "dimension": "E-mail",
+    "question_text": "Qual o botão usado para responder a quem te enviou um e-mail?",
+    "options": [
+      { "key": "A", "text": "Encaminhar (Forward)", "is_correct": false, "explanation": "Envia para uma terceira pessoa." },
+      { "key": "B", "text": "Responder (Reply)", "is_correct": true, "explanation": "Cria um novo e-mail endereçado ao remetente original." },
+      { "key": "C", "text": "Anexar", "is_correct": false, "explanation": "Adiciona arquivos." },
+      { "key": "D", "text": "Apagar", "is_correct": false, "explanation": "Deleta a mensagem." },
+      { "key": "E", "text": "Marcar como Spam", "is_correct": false, "explanation": "Bloqueia o remetente." }
+    ]
+  },
+  {
+    "id": 41,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "Você recebeu um e-mail do 'Seu Banco' pedindo para clicar em um link para atualizar a senha urgentemente. O que fazer?",
+    "options": [
+      { "key": "A", "text": "Clicar imediatamente para não bloquear a conta", "is_correct": false, "explanation": "É exatamente isso que o golpista quer." },
+      { "key": "B", "text": "Não clicar, ignorar e, se tiver dúvida, ligar para o banco ou ir na agência", "is_correct": true, "explanation": "Bancos nunca mandam links pedindo senhas por e-mail." },
+      { "key": "C", "text": "Responder o e-mail enviando a senha para facilitar", "is_correct": false, "explanation": "Isso entrega seus dados na mão de criminosos." },
+      { "key": "D", "text": "Encaminhar para todos os amigos", "is_correct": false, "explanation": "Isso espalharia o golpe." },
+      { "key": "E", "text": "Apenas clicar e fechar a página logo depois", "is_correct": false, "explanation": "Só clicar pode ser suficiente para baixar vírus." }
+    ]
+  },
+  {
+    "id": 42,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "O que é 'Phishing'?",
+    "options": [
+      { "key": "A", "text": "Um tipo de pescaria", "is_correct": false, "explanation": "Na internet tem outro significado." },
+      { "key": "B", "text": "Um programa para desenhar", "is_correct": false, "explanation": "Isso é o Paint ou Photoshop." },
+      { "key": "C", "text": "Um golpe para 'pescar' informações suas fingindo ser uma empresa real", "is_correct": true, "explanation": "Os criminosos tentam te enganar com mensagens falsas." },
+      { "key": "D", "text": "Um tipo de antivírus", "is_correct": false, "explanation": "Pelo contrário, é uma ameaça." },
+      { "key": "E", "text": "O ato de comprar online", "is_correct": false, "explanation": "Comprar online chama-se e-commerce." }
+    ]
+  },
+  {
+    "id": 43,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "Uma mensagem no WhatsApp diz: 'Você ganhou um celular! Clique aqui e preencha seus dados'. Isso é provável que seja:",
+    "options": [
+      { "key": "A", "text": "Um dia de muita sorte", "is_correct": false, "explanation": "Não existem promoções milagrosas assim." },
+      { "key": "B", "text": "Um prêmio do governo", "is_correct": false, "explanation": "O governo não distribui prêmios assim por WhatsApp." },
+      { "key": "C", "text": "Um golpe para roubar seus dados", "is_correct": true, "explanation": "A promessa de presentes fáceis é a maior isca para golpes." },
+      { "key": "D", "text": "Uma mensagem da sua operadora de telefone", "is_correct": false, "explanation": "Operadoras usam canais oficiais." },
+      { "key": "E", "text": "Uma mensagem verdadeira de uma loja", "is_correct": false, "explanation": "Lojas não dão coisas caras sem motivo em correntes." }
+    ]
+  },
+  {
+    "id": 44,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "Alguém com a foto do seu filho pede dinheiro urgente no WhatsApp de um número novo. Como agir?",
+    "options": [
+      { "key": "A", "text": "Fazer o PIX rapidamente para ajudar", "is_correct": false, "explanation": "Isso é perder dinheiro na certa." },
+      { "key": "B", "text": "Ligar de voz ou vídeo para o número ANTIGO do seu filho para confirmar", "is_correct": true, "explanation": "A foto é fácil de roubar, confirme com a pessoa pela voz." },
+      { "key": "C", "text": "Xingar o golpista no WhatsApp", "is_correct": false, "explanation": "Eles podem usar isso contra você. Apenas bloqueie." },
+      { "key": "D", "text": "Enviar metade do dinheiro", "is_correct": false, "explanation": "Não envie nada." },
+      { "key": "E", "text": "Compartilhar a conta para doações", "is_correct": false, "explanation": "Você prejudicaria outras pessoas." }
+    ]
+  },
+  {
+    "id": 45,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "Por que não devemos fornecer nossa senha do banco para atendentes pelo telefone?",
+    "options": [
+      { "key": "A", "text": "Porque o atendente pode demorar a digitar", "is_correct": false, "explanation": "A questão é de segurança, não velocidade." },
+      { "key": "B", "text": "Porque o banco nunca pede a sua senha secreta", "is_correct": true, "explanation": "Senhas são de uso exclusivo e bancos verdadeiros não pedem." },
+      { "key": "C", "text": "Porque a ligação pode cair", "is_correct": false, "explanation": "Mesmo se não caísse, seria um erro." },
+      { "key": "D", "text": "Porque senhas não tem letras", "is_correct": false, "explanation": "Senhas podem ter letras." },
+      { "key": "E", "text": "Porque só pode falar pessoalmente", "is_correct": false, "explanation": "Nem pessoalmente o banco te pede a senha verbalmente." }
+    ]
+  },
+  {
+    "id": 46,
+    "type": "PROVA",
+    "dimension": "Segurança — golpes e phishing",
+    "question_text": "O que significa o cadeado fechado ao lado do endereço de um site?",
+    "options": [
+      { "key": "A", "text": "Que o site está bloqueado", "is_correct": false, "explanation": "Você está acessando ele normalmente." },
+      { "key": "B", "text": "Que a comunicação com o site é criptografada e mais segura", "is_correct": true, "explanation": "O cadeado (HTTPS) indica que os dados não podem ser interceptados facilmente." },
+      { "key": "C", "text": "Que o site não tem vírus", "is_correct": false, "explanation": "Sites com cadeado ainda podem ser maliciosos." },
+      { "key": "D", "text": "Que o computador está travado", "is_correct": false, "explanation": "Não tem a ver com o travamento." },
+      { "key": "E", "text": "Que você precisa de uma senha para entrar na internet", "is_correct": false, "explanation": "A internet já está conectada." }
+    ]
+  },
+  {
+    "id": 47,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "O que faz um programa Antivírus?",
+    "options": [
+      { "key": "A", "text": "Acelera a internet", "is_correct": false, "explanation": "Não afeta a velocidade da internet." },
+      { "key": "B", "text": "Impede o computador de desligar", "is_correct": false, "explanation": "O PC desliga normalmente." },
+      { "key": "C", "text": "Protege o computador identificando e bloqueando programas maliciosos", "is_correct": true, "explanation": "Ele atua como um 'guarda-costas' do sistema." },
+      { "key": "D", "text": "Limpa a tela do monitor", "is_correct": false, "explanation": "A limpeza física é manual." },
+      { "key": "E", "text": "Conserta o teclado quebrado", "is_correct": false, "explanation": "Problema de hardware se conserta trocando a peça." }
+    ]
+  },
+  {
+    "id": 48,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "Qual dessas é considerada uma senha FORTE?",
+    "options": [
+      { "key": "A", "text": "123456", "is_correct": false, "explanation": "É a senha mais fraca do mundo." },
+      { "key": "B", "text": "Data de nascimento do usuário", "is_correct": false, "explanation": "É a primeira coisa que tentam." },
+      { "key": "C", "text": "O próprio nome (ex: Maria)", "is_correct": false, "explanation": "Fácil de adivinhar." },
+      { "key": "D", "text": "M1nh@S3nh4!forte23", "is_correct": true, "explanation": "Mistura maiúsculas, minúsculas, números e símbolos." },
+      { "key": "E", "text": "abcdef", "is_correct": false, "explanation": "Sequência óbvia." }
+    ]
+  },
+  {
+    "id": 49,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "Por que é importante manter o sistema e os aplicativos atualizados?",
+    "options": [
+      { "key": "A", "text": "Para mudar as cores da tela", "is_correct": false, "explanation": "Cores podem ser mudadas manualmente." },
+      { "key": "B", "text": "Para corrigir falhas de segurança e melhorar o funcionamento", "is_correct": true, "explanation": "Atualizações fecham as 'portas' que os hackers poderiam usar." },
+      { "key": "C", "text": "Para deixar a internet mais cara", "is_correct": false, "explanation": "Não afeta a conta de internet." },
+      { "key": "D", "text": "Para o computador ficar mais pesado e devagar", "is_correct": false, "explanation": "Às vezes pode ficar um pouco, mas o foco é segurança." },
+      { "key": "E", "text": "Para gastar a bateria do notebook", "is_correct": false, "explanation": "Não é o propósito." }
+    ]
+  },
+  {
+    "id": 50,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "O que você deve fazer antes de colocar um Pendrive de um desconhecido no seu computador?",
+    "options": [
+      { "key": "A", "text": "Abrir rapidamente os arquivos de fotos", "is_correct": false, "explanation": "Pode abrir vírus junto." },
+      { "key": "B", "text": "Verificar com o antivírus se o pendrive é seguro", "is_correct": true, "explanation": "Sempre faça uma verificação (escaneamento) antes de abrir." },
+      { "key": "C", "text": "Mudar a cor de fundo do Windows", "is_correct": false, "explanation": "Não ajuda em nada." },
+      { "key": "D", "text": "Desligar a internet para o vírus não entrar", "is_correct": false, "explanation": "O vírus pode entrar pelo pendrive." },
+      { "key": "E", "text": "Lavar o pendrive", "is_correct": false, "explanation": "Isso estragaria o dispositivo." }
+    ]
+  },
+  {
+    "id": 51,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "Ao usar um computador público, o que é essencial fazer antes de sair?",
+    "options": [
+      { "key": "A", "text": "Sair (Fazer Logout) de todas as suas contas", "is_correct": true, "explanation": "Evita que o próximo usuário acesse seus dados." },
+      { "key": "B", "text": "Deixar o Facebook aberto para o próximo", "is_correct": false, "explanation": "Isso expõe sua privacidade." },
+      { "key": "C", "text": "Apagar a Lixeira", "is_correct": false, "explanation": "Não remove suas contas logadas." },
+      { "key": "D", "text": "Salvar suas senhas no navegador", "is_correct": false, "explanation": "Daria acesso aos seus dados para estranhos." },
+      { "key": "E", "text": "Levar o mouse com você", "is_correct": false, "explanation": "Isso seria furto." }
+    ]
+  },
+  {
+    "id": 52,
+    "type": "PROVA",
+    "dimension": "Segurança — proteção",
+    "question_text": "Qual é a melhor forma de guardar as senhas importantes?",
+    "options": [
+      { "key": "A", "text": "Anotar em um post-it no monitor", "is_correct": false, "explanation": "Qualquer pessoa pode ver." },
+      { "key": "B", "text": "Usar a mesma senha para tudo", "is_correct": false, "explanation": "Se descobrirem, acessam tudo." },
+      { "key": "C", "text": "Em um aplicativo gerenciador de senhas ou caderno seguro em casa", "is_correct": true, "explanation": "Mantém as senhas protegidas e organizadas." },
+      { "key": "D", "text": "Salvar em um arquivo 'senhas.txt' na área de trabalho", "is_correct": false, "explanation": "Muito fácil para invasores acharem." },
+      { "key": "E", "text": "Contar para os vizinhos", "is_correct": false, "explanation": "Senha é pessoal e intransferível." }
+    ]
+  },
+  {
+    "id": 53,
+    "type": "PROVA",
+    "dimension": "Defesa cibernética no dia a dia",
+    "question_text": "O que é a Autenticação de Dois Fatores (2FA)?",
+    "options": [
+      { "key": "A", "text": "Duas pessoas digitando juntas", "is_correct": false, "explanation": "É um sistema automatizado." },
+      { "key": "B", "text": "Uma segunda camada de proteção (ex: senha + código no celular)", "is_correct": true, "explanation": "Mesmo com a senha, o invasor precisa do código do seu celular." },
+      { "key": "C", "text": "Pagar duas vezes a internet", "is_correct": false, "explanation": "Não tem relação com pagamento." },
+      { "key": "D", "text": "Ter dois antivírus instalados", "is_correct": false, "explanation": "Pode causar conflitos no sistema." },
+      { "key": "E", "text": "Digitar a senha duas vezes", "is_correct": false, "explanation": "Apenas confirmar senha não é dois fatores." }
+    ]
+  },
+  {
+    "id": 54,
+    "type": "PROVA",
+    "dimension": "Defesa cibernética no dia a dia",
+    "question_text": "Ao fazer compras online, o que garante mais segurança no site?",
+    "options": [
+      { "key": "A", "text": "Preços muito baixos", "is_correct": false, "explanation": "Preços muito baixos podem ser isca para golpes." },
+      { "key": "B", "text": "O site ter o nome conhecido, boa reputação e o cadeado (HTTPS)", "is_correct": true, "explanation": "Isso indica uma empresa legítima e conexão segura." },
+      { "key": "C", "text": "O site pedir a senha do seu e-mail", "is_correct": false, "explanation": "Nenhuma loja deve pedir a senha do seu e-mail pessoal." },
+      { "key": "D", "text": "A loja só aceitar transferência direta", "is_correct": false, "explanation": "É arriscado, pois não há garantia de estorno." },
+      { "key": "E", "text": "Ser uma loja no WhatsApp que você nunca viu", "is_correct": false, "explanation": "Alto risco de fraude." }
+    ]
+  },
+  {
+    "id": 55,
+    "type": "PROVA",
+    "dimension": "Defesa cibernética no dia a dia",
+    "question_text": "Você encontrou um pen drive na rua. O que deve fazer?",
+    "options": [
+      { "key": "A", "text": "Colocar no seu computador imediatamente para ver as fotos", "is_correct": false, "explanation": "Pode infectar seu computador." },
+      { "key": "B", "text": "Não inserir em seu computador, pois pode conter vírus perigosos", "is_correct": true, "explanation": "Muitos ataques acontecem por pendrives 'perdidos' de propósito." },
+      { "key": "C", "text": "Levar ao banco", "is_correct": false, "explanation": "Eles não têm relação com isso." },
+      { "key": "D", "text": "Guardar na geladeira", "is_correct": false, "explanation": "Estragaria o dispositivo." },
+      { "key": "E", "text": "Vender na internet", "is_correct": false, "explanation": "Pode espalhar vírus para o comprador." }
+    ]
+  },
+  {
+    "id": 56,
+    "type": "PROVA",
+    "dimension": "Defesa cibernética no dia a dia",
+    "question_text": "O que você deve evitar ao usar um Wi-Fi público gratuito (como no shopping)?",
+    "options": [
+      { "key": "A", "text": "Acessar o banco ou fazer compras com cartão", "is_correct": true, "explanation": "Redes abertas podem ser interceptadas por hackers." },
+      { "key": "B", "text": "Ler notícias", "is_correct": false, "explanation": "Isso não traz riscos diretos." },
+      { "key": "C", "text": "Ouvir música", "is_correct": false, "explanation": "Sem risco de roubo de dados." },
+      { "key": "D", "text": "Jogar jogos offline", "is_correct": false, "explanation": "Não usa a rede." },
+      { "key": "E", "text": "Ver a previsão do tempo", "is_correct": false, "explanation": "Totalmente seguro." }
+    ]
+  },
+  {
+    "id": 57,
+    "type": "PROVA",
+    "dimension": "Defesa cibernética no dia a dia",
+    "question_text": "Seu computador de repente mostra uma tela de erro assustadora pedindo para ligar para um número de suporte. O que é?",
+    "options": [
+      { "key": "A", "text": "O fabricante do computador querendo ajudar", "is_correct": false, "explanation": "Fabricantes não fazem isso." },
+      { "key": "B", "text": "Um alerta real de que o PC vai explodir", "is_correct": false, "explanation": "PCs não explodem por falha de software." },
+      { "key": "C", "text": "Um golpe para você pagar por um 'falso suporte'", "is_correct": true, "explanation": "Eles tentam te assustar para extorquir dinheiro." },
+      { "key": "D", "text": "Um prêmio disfarçado", "is_correct": false, "explanation": "Não é um prêmio." },
+      { "key": "E", "text": "Aviso que a internet caiu", "is_correct": false, "explanation": "Isso apareceria na barra de tarefas, não na tela toda pedindo pra ligar." }
+    ]
+  },
+  {
+    "id": 58,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "Qual programa é mais adequado para escrever uma carta, currículo ou trabalho escolar?",
+    "options": [
+      { "key": "A", "text": "Microsoft Excel", "is_correct": false, "explanation": "Excel é para planilhas e cálculos." },
+      { "key": "B", "text": "Microsoft PowerPoint", "is_correct": false, "explanation": "PowerPoint é para apresentações de slides." },
+      { "key": "C", "text": "Microsoft Word", "is_correct": true, "explanation": "O Word é um processador de textos completo." },
+      { "key": "D", "text": "Paint", "is_correct": false, "explanation": "Para desenhar." },
+      { "key": "E", "text": "Calculadora", "is_correct": false, "explanation": "Para contas matemáticas." }
+    ]
+  },
+  {
+    "id": 59,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "No Word, o que a ferramenta 'Negrito' (N) faz com o texto selecionado?",
+    "options": [
+      { "key": "A", "text": "Deixa o texto sublinhado", "is_correct": false, "explanation": "Isso é a ferramenta Sublinhado (S)." },
+      { "key": "B", "text": "Apaga o texto", "is_correct": false, "explanation": "Isso é feito com Delete ou Backspace." },
+      { "key": "C", "text": "Deixa a letra mais grossa e escura", "is_correct": true, "explanation": "O Negrito dá destaque visual à palavra." },
+      { "key": "D", "text": "Muda a cor para vermelho", "is_correct": false, "explanation": "Isso é a ferramenta de Cor da Fonte." },
+      { "key": "E", "text": "Aumenta o tamanho da folha", "is_correct": false, "explanation": "Isso é em Configurar Página." }
+    ]
+  },
+  {
+    "id": 60,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "Como você alinha um título no meio da página no Word?",
+    "options": [
+      { "key": "A", "text": "Apertando a barra de espaço até chegar ao meio", "is_correct": false, "explanation": "Isso desalinha quando o texto muda." },
+      { "key": "B", "text": "Clicando no botão de 'Alinhar ao Centro' (Centralizar)", "is_correct": true, "explanation": "Esta ferramenta posiciona o texto perfeitamente no centro." },
+      { "key": "C", "text": "Aumentando a letra", "is_correct": false, "explanation": "O tamanho não afeta o alinhamento central." },
+      { "key": "D", "text": "Fechando o programa", "is_correct": false, "explanation": "Você perderia o trabalho." },
+      { "key": "E", "text": "Desenhando com o mouse", "is_correct": false, "explanation": "O Word organiza o texto automaticamente." }
+    ]
+  },
+  {
+    "id": 61,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "Para mudar o tipo da letra (por exemplo, de Arial para Times New Roman), qual ferramenta usamos?",
+    "options": [
+      { "key": "A", "text": "Cor da página", "is_correct": false, "explanation": "Muda o fundo." },
+      { "key": "B", "text": "Fonte", "is_correct": true, "explanation": "A caixa de Fonte permite escolher diferentes estilos de letra." },
+      { "key": "C", "text": "Salvar como", "is_correct": false, "explanation": "Salva o arquivo com outro nome." },
+      { "key": "D", "text": "Inserir imagem", "is_correct": false, "explanation": "Coloca fotos no texto." },
+      { "key": "E", "text": "Imprimir", "is_correct": false, "explanation": "Envia para a impressora." }
+    ]
+  },
+  {
+    "id": 62,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "Se você digitou uma palavra errada e ela ficou sublinhada de vermelho, o que isso significa?",
+    "options": [
+      { "key": "A", "text": "Que a palavra está muito bonita", "is_correct": false, "explanation": "O Word não faz avaliações estéticas." },
+      { "key": "B", "text": "Que o computador tem vírus", "is_correct": false, "explanation": "É apenas uma verificação de texto." },
+      { "key": "C", "text": "O corretor ortográfico encontrou um possível erro de escrita", "is_correct": true, "explanation": "O Word avisa para você corrigir clicando com o botão direito." },
+      { "key": "D", "text": "Que a impressora está sem tinta vermelha", "is_correct": false, "explanation": "Isso não afeta a tela." },
+      { "key": "E", "text": "Que a palavra foi salva", "is_correct": false, "explanation": "Salvar não sublinha o texto." }
+    ]
+  },
+  {
+    "id": 63,
+    "type": "PROVA",
+    "dimension": "Word",
+    "question_text": "Qual é a maneira correta de passar para a próxima linha no Word?",
+    "options": [
+      { "key": "A", "text": "Apertar espaço até o cursor descer", "is_correct": false, "explanation": "Isso bagunça todo o documento." },
+      { "key": "B", "text": "Apertar a tecla Enter", "is_correct": true, "explanation": "Enter cria um novo parágrafo na linha de baixo." },
+      { "key": "C", "text": "Apertar Esc", "is_correct": false, "explanation": "Esc cancela uma ação." },
+      { "key": "D", "text": "Desligar o monitor", "is_correct": false, "explanation": "Não afeta o texto." },
+      { "key": "E", "text": "Clicar em 'Salvar'", "is_correct": false, "explanation": "Apenas salva." }
+    ]
+  },
+  {
+    "id": 64,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "Para que serve o programa Microsoft Excel?",
+    "options": [
+      { "key": "A", "text": "Escrever livros", "is_correct": false, "explanation": "O Word é melhor para livros." },
+      { "key": "B", "text": "Criar planilhas, organizar dados em tabelas e fazer cálculos", "is_correct": true, "explanation": "O Excel é o principal programa de planilhas eletrônicas." },
+      { "key": "C", "text": "Navegar na internet", "is_correct": false, "explanation": "Isso é feito com navegadores como o Chrome." },
+      { "key": "D", "text": "Ouvir músicas", "is_correct": false, "explanation": "Para isso usamos tocadores de áudio." },
+      { "key": "E", "text": "Editar vídeos", "is_correct": false, "explanation": "Excel não edita vídeos." }
+    ]
+  },
+  {
+    "id": 65,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "No Excel, as colunas são representadas por letras (A, B, C...) e as linhas por:",
+    "options": [
+      { "key": "A", "text": "Cores", "is_correct": false, "explanation": "As cores são formatações." },
+      { "key": "B", "text": "Símbolos", "is_correct": false, "explanation": "Símbolos não identificam linhas." },
+      { "key": "C", "text": "Números (1, 2, 3...)", "is_correct": true, "explanation": "O cruzamento da coluna com a linha forma a célula (ex: A1)." },
+      { "key": "D", "text": "Outras letras", "is_correct": false, "explanation": "Isso causaria confusão." },
+      { "key": "E", "text": "Nomes de animais", "is_correct": false, "explanation": "Obviamente não." }
+    ]
+  },
+  {
+    "id": 66,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "O que é uma 'Célula' no Excel?",
+    "options": [
+      { "key": "A", "text": "Um vírus de computador", "is_correct": false, "explanation": "Nada a ver com biologia ou vírus." },
+      { "key": "B", "text": "O cruzamento de uma coluna com uma linha (o 'quadradinho' onde digitamos)", "is_correct": true, "explanation": "É a unidade básica onde inserimos os dados." },
+      { "key": "C", "text": "O botão de fechar", "is_correct": false, "explanation": "É o 'X' no canto." },
+      { "key": "D", "text": "Uma ferramenta de pintar", "is_correct": false, "explanation": "Para isso usamos o balde de tinta." },
+      { "key": "E", "text": "O título da planilha", "is_correct": false, "explanation": "O título é escrito dentro de uma célula." }
+    ]
+  },
+  {
+    "id": 67,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "Toda fórmula matemática no Excel DEVE começar com qual sinal?",
+    "options": [
+      { "key": "A", "text": "Sinal de mais (+)", "is_correct": false, "explanation": "Pode funcionar às vezes, mas não é o padrão." },
+      { "key": "B", "text": "Sinal de menos (-)", "is_correct": false, "explanation": "Indicaria um número negativo." },
+      { "key": "C", "text": "Sinal de interrogação (?)", "is_correct": false, "explanation": "Usado para dúvidas." },
+      { "key": "D", "text": "Sinal de igual (=)", "is_correct": true, "explanation": "O '=' avisa ao Excel que você vai fazer um cálculo ali." },
+      { "key": "E", "text": "Arroba (@)", "is_correct": false, "explanation": "Usado para e-mails." }
+    ]
+  },
+  {
+    "id": 68,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "Qual é o símbolo usado para MULTIPLICAR no Excel?",
+    "options": [
+      { "key": "A", "text": "A letra X (x)", "is_correct": false, "explanation": "O 'x' é considerado um texto." },
+      { "key": "B", "text": "Asterisco (*)", "is_correct": true, "explanation": "No computador, o '*' representa a multiplicação." },
+      { "key": "C", "text": "Sinal de mais (+)", "is_correct": false, "explanation": "Usado para somar." },
+      { "key": "D", "text": "Barra (/)", "is_correct": false, "explanation": "Usado para dividir." },
+      { "key": "E", "text": "Dois pontos (:)", "is_correct": false, "explanation": "Indica 'até' em um intervalo." }
+    ]
+  },
+  {
+    "id": 69,
+    "type": "PROVA",
+    "dimension": "Excel — fundamentos",
+    "question_text": "Para SOMAR os valores da célula A1 e A2, como deve ser a fórmula?",
+    "options": [
+      { "key": "A", "text": "SOMA A1 A2", "is_correct": false, "explanation": "Falta o sinal de igual." },
+      { "key": "B", "text": "A1 + A2", "is_correct": false, "explanation": "Falta o sinal de igual no começo." },
+      { "key": "C", "text": "=A1+A2", "is_correct": true, "explanation": "É a forma correta e direta de somar duas células." },
+      { "key": "D", "text": "A1 e A2", "is_correct": false, "explanation": "O Excel não entende palavras no lugar de operadores." },
+      { "key": "E", "text": "=SOMA()", "is_correct": false, "explanation": "A função está vazia." }
+    ]
+  },
+  {
+    "id": 70,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "Como o Excel pode ajudar no orçamento de uma casa?",
+    "options": [
+      { "key": "A", "text": "Pagando as contas automaticamente", "is_correct": false, "explanation": "O Excel não tem acesso direto à sua conta bancária." },
+      { "key": "B", "text": "Anotando receitas e despesas para calcular se sobrou ou faltou dinheiro", "is_correct": true, "explanation": "É ótimo para organizar as finanças e fazer os cálculos." },
+      { "key": "C", "text": "Imprimindo dinheiro", "is_correct": false, "explanation": "Isso é impossível." },
+      { "key": "D", "text": "Escrevendo um diário com texto longo", "is_correct": false, "explanation": "O Word seria melhor para isso." },
+      { "key": "E", "text": "Desligando a geladeira para economizar luz", "is_correct": false, "explanation": "O software não controla a casa física." }
+    ]
+  },
+  {
+    "id": 71,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "Para fazer uma lista de compras no Excel e somar o total gasto, que função é mais rápida?",
+    "options": [
+      { "key": "A", "text": "Apertar F5", "is_correct": false, "explanation": "F5 abre a opção 'Ir para'." },
+      { "key": "B", "text": "Digitar na calculadora manual", "is_correct": false, "explanation": "Isso perde a vantagem de usar o Excel." },
+      { "key": "C", "text": "Usar a função =SOMA() ou o botão AutoSoma", "is_correct": true, "explanation": "Soma todos os valores selecionados rapidamente." },
+      { "key": "D", "text": "Mudar a cor das letras para verde", "is_correct": false, "explanation": "A cor não afeta os números." },
+      { "key": "E", "text": "Apagar tudo", "is_correct": false, "explanation": "Isso exclui seus dados." }
+    ]
+  },
+  {
+    "id": 72,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "No Excel, como deixamos os valores numéricos aparecendo como dinheiro (R$)?",
+    "options": [
+      { "key": "A", "text": "Temos que digitar R$ em todas as células manualmente", "is_correct": false, "explanation": "O Excel faz isso de forma automática se configurado." },
+      { "key": "B", "text": "Selecionando os números e clicando no botão 'Formato de Número de Contabilização' (ícone de dinheiro)", "is_correct": true, "explanation": "Isso formata os números como moeda." },
+      { "key": "C", "text": "Gritando com o computador", "is_correct": false, "explanation": "Não tem efeito." },
+      { "key": "D", "text": "Aumentando a fonte", "is_correct": false, "explanation": "Só aumenta o tamanho." },
+      { "key": "E", "text": "Colocando a letra M do lado", "is_correct": false, "explanation": "Isso tornaria a célula em texto." }
+    ]
+  },
+  {
+    "id": 73,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "Para que serve a função =MÉDIA()?",
+    "options": [
+      { "key": "A", "text": "Para somar todos os valores", "is_correct": false, "explanation": "Isso é o =SOMA()." },
+      { "key": "B", "text": "Para calcular a média aritmética de um grupo de números (ex: notas escolares)", "is_correct": true, "explanation": "Ela soma os itens e divide pela quantidade." },
+      { "key": "C", "text": "Para deixar o computador com velocidade média", "is_correct": false, "explanation": "Não afeta o sistema." },
+      { "key": "D", "text": "Para apagar a metade dos arquivos", "is_correct": false, "explanation": "Não apaga nada." },
+      { "key": "E", "text": "Para multiplicar números", "is_correct": false, "explanation": "Multiplicar usa o asterisco." }
+    ]
+  },
+  {
+    "id": 74,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "Se a célula B2 tem o valor do salário e B3 os gastos, como calcular quanto sobrou?",
+    "options": [
+      { "key": "A", "text": "=B2+B3", "is_correct": false, "explanation": "Isso somaria os gastos ao salário." },
+      { "key": "B", "text": "=B2*B3", "is_correct": false, "explanation": "Isso multiplicaria." },
+      { "key": "C", "text": "=B2-B3", "is_correct": true, "explanation": "A subtração mostra o saldo (Salário menos Gastos)." },
+      { "key": "D", "text": "=B3-B2", "is_correct": false, "explanation": "Daria um valor negativo." },
+      { "key": "E", "text": "=MÉDIA(B2:B3)", "is_correct": false, "explanation": "Daria a média entre salário e gastos." }
+    ]
+  },
+  {
+    "id": 75,
+    "type": "PROVA",
+    "dimension": "Excel — aplicações práticas",
+    "question_text": "O que acontece se você alterar um número em uma célula que já estava sendo usada em uma fórmula?",
+    "options": [
+      { "key": "A", "text": "O Excel trava e fecha", "is_correct": false, "explanation": "Ele foi feito para recalcular." },
+      { "key": "B", "text": "A fórmula se apaga", "is_correct": false, "explanation": "A fórmula continua lá, só o resultado muda." },
+      { "key": "C", "text": "O resultado da fórmula é atualizado automaticamente", "is_correct": true, "explanation": "Esta é a maior vantagem do Excel." },
+      { "key": "D", "text": "Nada muda", "is_correct": false, "explanation": "Se não atualizasse, a planilha estaria errada." },
+      { "key": "E", "text": "O computador pede a senha", "is_correct": false, "explanation": "Não tem a ver com segurança." }
+    ]
+  },
+  {
+    "id": 76,
+    "type": "PROVA",
+    "dimension": "PowerPoint",
+    "question_text": "Para que serve o Microsoft PowerPoint?",
+    "options": [
+      { "key": "A", "text": "Fazer planilhas de gastos", "is_correct": false, "explanation": "Isso é no Excel." },
+      { "key": "B", "text": "Criar apresentações visuais usando slides", "is_correct": true, "explanation": "O PowerPoint monta slides para aulas e palestras." },
+      { "key": "C", "text": "Navegar na internet", "is_correct": false, "explanation": "Usa-se um navegador." },
+      { "key": "D", "text": "Limpar o computador", "is_correct": false, "explanation": "Para isso usa-se antivírus e ferramentas do sistema." },
+      { "key": "E", "text": "Escrever um livro de 300 páginas", "is_correct": false, "explanation": "O Word é melhor." }
+    ]
+  },
+  {
+    "id": 77,
+    "type": "PROVA",
+    "dimension": "PowerPoint",
+    "question_text": "O que é um 'Slide' no PowerPoint?",
+    "options": [
+      { "key": "A", "text": "Um modelo de teclado", "is_correct": false, "explanation": "Não tem relação com hardware." },
+      { "key": "B", "text": "A 'página' ou 'tela' individual da sua apresentação", "is_correct": true, "explanation": "Cada tela mostrada ao público é um slide." },
+      { "key": "C", "text": "Um vírus escondido", "is_correct": false, "explanation": "Slides são partes do seu trabalho." },
+      { "key": "D", "text": "A barra de rolagem do mouse", "is_correct": false, "explanation": "Isso é o Scroll." },
+      { "key": "E", "text": "Um cálculo automático", "is_correct": false, "explanation": "Isso seria uma fórmula no Excel." }
+    ]
+  },
+  {
+    "id": 78,
+    "type": "PROVA",
+    "dimension": "PowerPoint",
+    "question_text": "Qual tecla geralmente aperta-se para iniciar a apresentação dos slides em tela cheia (desde o começo)?",
+    "options": [
+      { "key": "A", "text": "Enter", "is_correct": false, "explanation": "Geralmente avança para a próxima linha ou slide." },
+      { "key": "B", "text": "Esc", "is_correct": false, "explanation": "Sai da apresentação." },
+      { "key": "C", "text": "F5", "is_correct": true, "explanation": "F5 é o atalho clássico para iniciar o modo apresentação." },
+      { "key": "D", "text": "Barra de espaço", "is_correct": false, "explanation": "Avança um slide durante a apresentação." },
+      { "key": "E", "text": "Delete", "is_correct": false, "explanation": "Apaga o slide." }
+    ]
+  },
+  {
+    "id": 79,
+    "type": "PROVA",
+    "dimension": "PowerPoint",
+    "question_text": "Para não deixar a apresentação chata, o PowerPoint permite inserir...",
+    "options": [
+      { "key": "A", "text": "Cheiros no computador", "is_correct": false, "explanation": "Tecnologia ainda não faz isso." },
+      { "key": "B", "text": "Comida de verdade", "is_correct": false, "explanation": "Impossível pelo PC." },
+      { "key": "C", "text": "Imagens, vídeos e áudios", "is_correct": true, "explanation": "Elementos multimídia tornam os slides atrativos." },
+      { "key": "D", "text": "Dinheiro na conta", "is_correct": false, "explanation": "Infelizmente, não." },
+      { "key": "E", "text": "Códigos de programação complexos", "is_correct": false, "explanation": "Não é o foco principal para apresentações básicas." }
+    ]
+  },
+  {
+    "id": 80,
+    "type": "PROVA",
+    "dimension": "PowerPoint",
+    "question_text": "Durante a apresentação, o que acontece ao pressionar a tecla 'Esc'?",
+    "options": [
+      { "key": "A", "text": "O computador desliga", "is_correct": false, "explanation": "Apenas o programa reage." },
+      { "key": "B", "text": "O slide é apagado", "is_correct": false, "explanation": "Os slides ficam salvos." },
+      { "key": "C", "text": "A apresentação em tela cheia é encerrada", "is_correct": true, "explanation": "Esc significa Escape, 'sair' da tela de apresentação." },
+      { "key": "D", "text": "O slide avança mais rápido", "is_correct": false, "explanation": "Usa-se a seta para a direita para avançar." },
+      { "key": "E", "text": "A música para de tocar para sempre", "is_correct": false, "explanation": "A música só para naquele momento." }
+    ]
+  },
+  {
+    "id": 81,
+    "type": "PROVA",
+    "dimension": "Nuvem e armazenamento",
+    "question_text": "O que significa 'salvar um arquivo na Nuvem'?",
+    "options": [
+      { "key": "A", "text": "Enviar o arquivo para o espaço sideral", "is_correct": false, "explanation": "Apenas um termo comercial." },
+      { "key": "B", "text": "Deixar o computador no tempo de chuva", "is_correct": false, "explanation": "Isso estragaria a máquina." },
+      { "key": "C", "text": "Guardar o arquivo em servidores de internet protegidos (como Google Drive ou OneDrive)", "is_correct": true, "explanation": "Seus arquivos ficam salvos em servidores e acessíveis de qualquer lugar." },
+      { "key": "D", "text": "Imprimir em papel branco", "is_correct": false, "explanation": "Isso é uma cópia física." },
+      { "key": "E", "text": "Excluir o arquivo", "is_correct": false, "explanation": "Salvar não é excluir." }
+    ]
+  },
+  {
+    "id": 82,
+    "type": "PROVA",
+    "dimension": "Nuvem e armazenamento",
+    "question_text": "Qual a principal vantagem de usar o Google Drive (nuvem)?",
+    "options": [
+      { "key": "A", "text": "Poder acessar seus arquivos pelo celular ou de outro computador, se tiver internet", "is_correct": true, "explanation": "A mobilidade é a maior vantagem da nuvem." },
+      { "key": "B", "text": "Fazer o computador gastar menos energia", "is_correct": false, "explanation": "Não afeta o gasto elétrico de forma perceptível." },
+      { "key": "C", "text": "Obrigar a usar disquetes", "is_correct": false, "explanation": "Disquetes são obsoletos." },
+      { "key": "D", "text": "Lavar os arquivos contra vírus", "is_correct": false, "explanation": "Embora haja antivírus no drive, essa não é a vantagem principal." },
+      { "key": "E", "text": "Deixar a internet mais rápida", "is_correct": false, "explanation": "Não acelera a internet." }
+    ]
+  },
+  {
+    "id": 83,
+    "type": "PROVA",
+    "dimension": "Nuvem e armazenamento",
+    "question_text": "Se o seu computador quebrar e seus arquivos mais importantes estavam salvos APENAS na nuvem, o que acontece com eles?",
+    "options": [
+      { "key": "A", "text": "Eles somem para sempre", "is_correct": false, "explanation": "Eles não estavam no seu computador fisicamente." },
+      { "key": "B", "text": "Eles estão seguros e você pode acessá-los de outro aparelho com sua senha", "is_correct": true, "explanation": "A nuvem funciona como um backup externo perfeito." },
+      { "key": "C", "text": "A empresa cobra multa para devolver", "is_correct": false, "explanation": "Geralmente há planos gratuitos ou você já paga a assinatura." },
+      { "key": "D", "text": "Eles quebram junto com o computador", "is_correct": false, "explanation": "A nuvem é independente do seu aparelho." },
+      { "key": "E", "text": "O governo apaga", "is_correct": false, "explanation": "O governo não interfere nisso." }
+    ]
+  },
+  {
+    "id": 84,
+    "type": "PROVA",
+    "dimension": "Nuvem e armazenamento",
+    "question_text": "Qual desses serviços é conhecido por ser de armazenamento na Nuvem?",
+    "options": [
+      { "key": "A", "text": "Paint", "is_correct": false, "explanation": "É editor de imagem." },
+      { "key": "B", "text": "Bloco de Notas", "is_correct": false, "explanation": "É editor de texto." },
+      { "key": "C", "text": "OneDrive", "is_correct": true, "explanation": "É a nuvem da Microsoft." },
+      { "key": "D", "text": "Calculadora", "is_correct": false, "explanation": "Faz contas." },
+      { "key": "E", "text": "Lixeira", "is_correct": false, "explanation": "Guarda arquivos locais apagados." }
+    ]
+  },
+  {
+    "id": 85,
+    "type": "PROVA",
+    "dimension": "Nuvem e armazenamento",
+    "question_text": "Posso compartilhar um arquivo do Google Drive com um amigo sem enviar por e-mail?",
+    "options": [
+      { "key": "A", "text": "Não, só se imprimir", "is_correct": false, "explanation": "A nuvem foi feita para facilitar envios digitais." },
+      { "key": "B", "text": "Sim, enviando um 'link' de compartilhamento para ele acessar", "is_correct": true, "explanation": "Com o link, a pessoa acessa o arquivo direto da sua nuvem." },
+      { "key": "C", "text": "Não, é proibido", "is_correct": false, "explanation": "Compartilhar é uma função principal." },
+      { "key": "D", "text": "Sim, mas ele tem que pagar", "is_correct": false, "explanation": "O acesso é geralmente gratuito se tiver o link." },
+      { "key": "E", "text": "Só entregando o pen drive para ele", "is_correct": false, "explanation": "Com a nuvem, não precisa de pendrive." }
+    ]
+  },
+  {
+    "id": 86,
+    "type": "PROVA",
+    "dimension": "Vida digital",
+    "question_text": "O que você deve considerar antes de postar uma foto na internet ou redes sociais?",
+    "options": [
+      { "key": "A", "text": "Que a foto ficará na internet para sempre e qualquer um pode ver e baixar", "is_correct": true, "explanation": "Tudo na internet deixa um rastro digital difícil de apagar." },
+      { "key": "B", "text": "Que a foto vai sumir amanhã", "is_correct": false, "explanation": "Geralmente fica gravada para sempre." },
+      { "key": "C", "text": "Se a moldura do monitor está limpa", "is_correct": false, "explanation": "Não afeta o arquivo digital." },
+      { "key": "D", "text": "Se vai gastar a tinta do computador", "is_correct": false, "explanation": "Fotos digitais não usam tinta." },
+      { "key": "E", "text": "Nenhuma preocupação, a internet é 100% privada", "is_correct": false, "explanation": "Redes sociais são geralmente espaços públicos." }
+    ]
+  },
+  {
+    "id": 87,
+    "type": "PROVA",
+    "dimension": "Vida digital",
+    "question_text": "Ao agendar uma consulta médica pelo site ou aplicativo do convênio, qual o benefício principal?",
+    "options": [
+      { "key": "A", "text": "Você ganha a consulta de graça", "is_correct": false, "explanation": "O custo continua o mesmo." },
+      { "key": "B", "text": "Economiza tempo e evita filas no telefone ou presenciais", "is_correct": true, "explanation": "A tecnologia facilita o acesso aos serviços de casa." },
+      { "key": "C", "text": "O médico atende pelo WhatsApp", "is_correct": false, "explanation": "O agendamento é só para marcar o horário." },
+      { "key": "D", "text": "O aplicativo receita os remédios sozinho", "is_correct": false, "explanation": "Somente o médico receita." },
+      { "key": "E", "text": "Não existe benefício", "is_correct": false, "explanation": "A praticidade é o grande benefício." }
+    ]
+  },
+  {
+    "id": 88,
+    "type": "PROVA",
+    "dimension": "Vida digital",
+    "question_text": "Você leu uma notícia muito polêmica e chocante no WhatsApp. O que fazer antes de repassar?",
+    "options": [
+      { "key": "A", "text": "Enviar correndo para os grupos da família", "is_correct": false, "explanation": "Pode ser mentira e espalhar pânico." },
+      { "key": "B", "text": "Pesquisar no Google se a notícia é verdadeira (checagem de fatos)", "is_correct": true, "explanation": "Sempre verifique antes de compartilhar." },
+      { "key": "C", "text": "Acreditar logo, pois se está na internet é verdade", "is_correct": false, "explanation": "Existem muitas Fake News." },
+      { "key": "D", "text": "Ligar para a polícia", "is_correct": false, "explanation": "Apenas se for um caso de crime direto a você." },
+      { "key": "E", "text": "Apagar o aplicativo", "is_correct": false, "explanation": "Não precisa parar de usar, apenas filtrar." }
+    ]
+  },
+  {
+    "id": 89,
+    "type": "PROVA",
+    "dimension": "Vida digital",
+    "question_text": "Aplicativos de mobilidade, como o Uber, exigem que a localização do celular esteja ativada. Por quê?",
+    "options": [
+      { "key": "A", "text": "Para o aplicativo saber onde o motorista deve te buscar", "is_correct": true, "explanation": "O GPS é essencial para conectar você ao carro." },
+      { "key": "B", "text": "Para roubar sua internet", "is_correct": false, "explanation": "O GPS não consome internet significativa, só dados de posição." },
+      { "key": "C", "text": "Para o celular não desligar", "is_correct": false, "explanation": "Não tem relação com a bateria, aliás até gasta mais." },
+      { "key": "D", "text": "Para tirar fotos suas", "is_correct": false, "explanation": "A localização não usa a câmera." },
+      { "key": "E", "text": "Para tocar música", "is_correct": false, "explanation": "Música usa outro recurso." }
+    ]
+  },
+  {
+    "id": 90,
+    "type": "PROVA",
+    "dimension": "Vida digital",
+    "question_text": "Qual cuidado devemos ter ao baixar aplicativos no celular ou computador?",
+    "options": [
+      { "key": "A", "text": "Baixar apenas das lojas oficiais (Play Store, App Store) para evitar vírus", "is_correct": true, "explanation": "As lojas oficiais verificam se os aplicativos são seguros." },
+      { "key": "B", "text": "Baixar de qualquer link enviado por WhatsApp", "is_correct": false, "explanation": "É um grande risco de pegar vírus." },
+      { "key": "C", "text": "Baixar sempre os mais caros", "is_correct": false, "explanation": "Preço não garante segurança." },
+      { "key": "D", "text": "Nunca baixar nenhum", "is_correct": false, "explanation": "Aplicativos são úteis se baixados com cuidado." },
+      { "key": "E", "text": "Deletar as fotos antes de baixar", "is_correct": false, "explanation": "Não há necessidade." }
+    ]
+  },
+  {
+    "id": 91,
+    "type": "PROVA",
+    "dimension": "Inteligência Artificial / ChatGPT",
+    "question_text": "O que é o ChatGPT?",
+    "options": [
+      { "key": "A", "text": "Uma ferramenta de Inteligência Artificial que conversa em texto e responde perguntas", "is_correct": true, "explanation": "Ele funciona como um assistente virtual avançado para textos." },
+      { "key": "B", "text": "Um jogo de videogame de ação", "is_correct": false, "explanation": "Não é um jogo." },
+      { "key": "C", "text": "Um antivírus", "is_correct": false, "explanation": "Não protege o computador." },
+      { "key": "D", "text": "Um aparelho físico", "is_correct": false, "explanation": "É um serviço de software/site." },
+      { "key": "E", "text": "Uma nova marca de celular", "is_correct": false, "explanation": "Não fabrica hardware." }
+    ]
+  },
+  {
+    "id": 92,
+    "type": "PROVA",
+    "dimension": "Inteligência Artificial / ChatGPT",
+    "question_text": "Como devemos conversar com uma Inteligência Artificial (IA)?",
+    "options": [
+      { "key": "A", "text": "Digitando apenas uma letra", "is_correct": false, "explanation": "Ela não entenderia." },
+      { "key": "B", "text": "Usando perguntas claras e diretas, como se falasse com uma pessoa", "is_correct": true, "explanation": "As IAs atuais entendem a linguagem natural." },
+      { "key": "C", "text": "Enviando números soltos", "is_correct": false, "explanation": "Não gera contexto." },
+      { "key": "D", "text": "Gritando com o computador", "is_correct": false, "explanation": "O microfone ou teclado só pega o texto, não a emoção física." },
+      { "key": "E", "text": "Sempre em inglês", "is_correct": false, "explanation": "Ela entende português muito bem." }
+    ]
+  },
+  {
+    "id": 93,
+    "type": "PROVA",
+    "dimension": "Inteligência Artificial / ChatGPT",
+    "question_text": "O ChatGPT sabe TUDO sem errar?",
+    "options": [
+      { "key": "A", "text": "Sim, ele é um robô perfeito", "is_correct": false, "explanation": "IAs podem 'alucinar' e inventar respostas falsas." },
+      { "key": "B", "text": "Não, ele pode cometer erros ou inventar informações, então precisamos verificar", "is_correct": true, "explanation": "O senso crítico é necessário, a IA pode se enganar." },
+      { "key": "C", "text": "Ele só fala mentiras", "is_correct": false, "explanation": "Na maior parte do tempo, a informação é útil e correta." },
+      { "key": "D", "text": "Ele sabe o futuro", "is_correct": false, "explanation": "Ele só usa dados do passado e presente." },
+      { "key": "E", "text": "Ele nunca responde a mesma coisa", "is_correct": false, "explanation": "Pode repetir se a pergunta for a mesma." }
+    ]
+  },
+  {
+    "id": 94,
+    "type": "PROVA",
+    "dimension": "Inteligência Artificial / ChatGPT",
+    "question_text": "Qual é uma boa utilidade para a Inteligência Artificial no dia a dia?",
+    "options": [
+      { "key": "A", "text": "Limpar a casa", "is_correct": false, "explanation": "O ChatGPT não é um robô físico (como aspirador)." },
+      { "key": "B", "text": "Fazer comida", "is_correct": false, "explanation": "Ainda não tem essa capacidade física." },
+      { "key": "C", "text": "Ajudar a escrever uma carta, resumir um texto ou dar ideias", "is_correct": true, "explanation": "Ele é excelente assistente de redação e criatividade." },
+      { "key": "D", "text": "Consertar a televisão", "is_correct": false, "explanation": "Apenas pode te dar o manual, mas não consertar." },
+      { "key": "E", "text": "Dirigir o carro", "is_correct": false, "explanation": "Isso depende de carros autônomos, não do ChatGPT." }
+    ]
+  },
+  {
+    "id": 95,
+    "type": "PROVA",
+    "dimension": "Inteligência Artificial / ChatGPT",
+    "question_text": "Eu preciso baixar um programa pesado no computador para usar o ChatGPT?",
+    "options": [
+      { "key": "A", "text": "Sim, ele exige muito do computador", "is_correct": false, "explanation": "Não, pois o processamento ocorre nos servidores da empresa." },
+      { "key": "B", "text": "Sim, e pagar muito caro", "is_correct": false, "explanation": "Existe versão gratuita no navegador." },
+      { "key": "C", "text": "Não, ele pode ser usado pelo navegador de internet (site)", "is_correct": true, "explanation": "Basta acessar o site da ferramenta." },
+      { "key": "D", "text": "Apenas em computadores de 20.000 reais", "is_correct": false, "explanation": "Qualquer PC com internet acessa." },
+      { "key": "E", "text": "Só funciona no escuro", "is_correct": false, "explanation": "A luz do ambiente não importa." }
+    ]
+  },
+  {
+    "id": 96,
+    "type": "PROVA",
+    "dimension": "Informação e cidadania digital",
+    "question_text": "O que significa 'Cidadania Digital'?",
+    "options": [
+      { "key": "A", "text": "Ter um passaporte", "is_correct": false, "explanation": "Não é um documento de viagem." },
+      { "key": "B", "text": "Agir na internet com respeito, segurança e responsabilidade", "is_correct": true, "explanation": "É saber se comportar de forma ética no ambiente virtual." },
+      { "key": "C", "text": "Ser amigo do presidente", "is_correct": false, "explanation": "Não tem ligação com política pessoal." },
+      { "key": "D", "text": "Comprar tudo online", "is_correct": false, "explanation": "Cidadania não é apenas consumo." },
+      { "key": "E", "text": "Usar a internet 24h por dia", "is_correct": false, "explanation": "O tempo de uso não define a cidadania." }
+    ]
+  },
+  {
+    "id": 97,
+    "type": "PROVA",
+    "dimension": "Informação e cidadania digital",
+    "question_text": "É correto criar perfis falsos nas redes sociais para falar mal de outras pessoas?",
+    "options": [
+      { "key": "A", "text": "Sim, porque a internet é terra sem lei", "is_correct": false, "explanation": "A internet tem regras e leis punitivas." },
+      { "key": "B", "text": "Sim, se a pessoa merecer", "is_correct": false, "explanation": "Não se deve cometer crimes contra a honra." },
+      { "key": "C", "text": "Não, pois calúnia e difamação na internet são crimes, mesmo com perfis falsos", "is_correct": true, "explanation": "A polícia pode rastrear o verdadeiro autor através do IP." },
+      { "key": "D", "text": "Apenas de brincadeira", "is_correct": false, "explanation": "Brincadeira de mau gosto pode gerar processo judicial." },
+      { "key": "E", "text": "Sim, pois ninguém vai saber", "is_correct": false, "explanation": "Sempre deixa rastro." }
+    ]
+  },
+  {
+    "id": 98,
+    "type": "PROVA",
+    "dimension": "Informação e cidadania digital",
+    "question_text": "O que é 'Cyberbullying'?",
+    "options": [
+      { "key": "A", "text": "Aprender inglês na internet", "is_correct": false, "explanation": "Não é um curso." },
+      { "key": "B", "text": "Intimidação, ofensas ou humilhações feitas usando a internet", "is_correct": true, "explanation": "É o famoso bullying (violência emocional) trazido para o meio digital." },
+      { "key": "C", "text": "Fazer compras seguras", "is_correct": false, "explanation": "Isso seria e-commerce." },
+      { "key": "D", "text": "Um jogo online", "is_correct": false, "explanation": "Não é brincadeira." },
+      { "key": "E", "text": "Assistir a muitos vídeos", "is_correct": false, "explanation": "Isso é maratonar." }
+    ]
+  },
+  {
+    "id": 99,
+    "type": "PROVA",
+    "dimension": "Informação e cidadania digital",
+    "question_text": "Se você presenciar ofensas racistas ou ataques graves em um site ou rede social, o que pode fazer?",
+    "options": [
+      { "key": "A", "text": "Entrar na briga e ofender também", "is_correct": false, "explanation": "Isso também te torna um infrator." },
+      { "key": "B", "text": "Denunciar a postagem na própria rede social e tirar um print (foto da tela) caso precise denunciar à polícia", "is_correct": true, "explanation": "Salvar provas é essencial antes que o criminoso apague." },
+      { "key": "C", "text": "Rir da situação", "is_correct": false, "explanation": "Isso normaliza a violência." },
+      { "key": "D", "text": "Desligar a tela para a ofensa sumir", "is_correct": false, "explanation": "Não resolve o problema." },
+      { "key": "E", "text": "Apoiar quem xingou", "is_correct": false, "explanation": "Você seria cúmplice do preconceito." }
+    ]
+  },
+  {
+    "id": 100,
+    "type": "PROVA",
+    "dimension": "Informação e cidadania digital",
+    "question_text": "Você recebeu um boleto por e-mail que diz ser da sua conta de luz, mas a conta não bate com o valor usual e o remetente é estranho. O que fazer?",
+    "options": [
+      { "key": "A", "text": "Pagar rapidamente para evitar cortes", "is_correct": false, "explanation": "Provavelmente você pagará o boleto de um golpista." },
+      { "key": "B", "text": "Checar a veracidade com a companhia elétrica através do aplicativo oficial ou telefone", "is_correct": true, "explanation": "Sempre verifique na fonte oficial antes de pagar boletos suspeitos." },
+      { "key": "C", "text": "Encaminhar para o vizinho pagar", "is_correct": false, "explanation": "Incorreto e prejudica o outro." },
+      { "key": "D", "text": "Achar que é promoção", "is_correct": false, "explanation": "Contas fixas não têm essas promoções estranhas." },
+      { "key": "E", "text": "Responder ofendendo", "is_correct": false, "explanation": "Não responda e-mails falsos, apenas bloqueie/ignore." }
+    ]
+  }
+]

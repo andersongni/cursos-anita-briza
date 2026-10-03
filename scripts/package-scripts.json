@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "npx tsx scripts/seed-questions.ts",
+    "create-admin": "npx tsx scripts/create-admin.ts",
+    "test": "jest --passWithNoTests"
+  }
+}

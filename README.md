@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plataforma de Avaliação — Núcleo Assistencial Anita Briza
 
-## Getting Started
+Plataforma web para aplicação de avaliações do curso de **Informática para Iniciantes**.
 
-First, run the development server:
+Roda **localmente e offline** em desenvolvimento: SQLite (arquivo) + autenticação JWT. Não exige Supabase nem internet após `npm install`.
+
+---
+
+## Rodando localmente em 3 passos
+
+### Pré-requisitos
+
+| Ferramenta | Versão mínima | Download |
+|---|---|---|
+| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
+| Git | qualquer | [git-scm.com](https://git-scm.com) |
+
+---
+
+### Passo 1 — Instale as dependências
+
+```bash
+git clone https://github.com/seu-usuario/avaliacao-anita-briza.git
+cd avaliacao-anita-briza
+npm install
+```
+
+> Se já baixou o projeto como ZIP, apenas acesse a pasta e rode `npm install`.
+
+---
+
+### Passo 2 — Configure o ambiente e o banco
+
+```bash
+# Linux/Mac
+cp .env.example .env.local
+
+# Windows (PowerShell)
+Copy-Item .env.example .env.local
+```
+
+Depois:
+
+```bash
+npm run setup
+```
+
+Isso cria o SQLite em `prisma/dev.db` **vazio** (sem alunos, perguntas, avaliações ou certificados), aplica as configurações padrão e cria um admin:
+
+| Campo | Valor |
+|---|---|
+| Usuário | `admin` |
+| Senha | `admin123` |
+
+Para importar o banco de perguntas (JSON em `data/questions/`): `npm run seed`.  
+Para outro admin (interativo): `npm run create-admin`.
+
+---
+
+### Passo 3 — Inicie o servidor
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: **[http://localhost:3000](http://localhost:3000)**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Faça login com `admin` / `admin123`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Comandos disponíveis
 
-To learn more about Next.js, take a look at the following resources:
+| Comando | O que faz |
+|---|---|
+| `npm run setup` | Cria banco zerado + configs + admin |
+| `npm run dev` | Inicia o servidor de desenvolvimento |
+| `npm run build` | Gera o build de produção |
+| `npm run start` | Inicia o servidor de produção (após o build) |
+| `npm run seed` | (Opcional) importa perguntas do JSON |
+| `npm run seed:settings` | Insere só as configurações padrão |
+| `npm run create-admin` | Cria um administrador (interativo) |
+| `npm run ensure-admin` | Cria admin padrão se nenhum existir |
+| `npm run db:studio` | Abre o Prisma Studio (visualizar o banco) |
+| `npm run db:reset` | Recria o banco zerado do zero |
+| `npm run lint` | Verifica problemas de código |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Estrutura do projeto
 
-## Deploy on Vercel
+```
+avaliacao-anita-briza/
+├── data/questions/            # JSON com as 400 perguntas
+├── prisma/
+│   ├── schema.prisma          # Schema SQLite
+│   └── dev.db                 # Banco local (gerado; não versionado)
+├── scripts/
+│   ├── seed-questions.ts
+│   ├── create-admin.ts
+│   └── ensure-admin.ts
+├── src/
+│   ├── app/api/               # Rotas de API (Prisma + JWT)
+│   ├── app/admin/             # Painel administrativo
+│   ├── app/student/           # Área do aluno
+│   ├── components/
+│   └── lib/
+│       ├── auth/              # Sessão JWT (cookie httpOnly)
+│       ├── db.ts              # Cliente Prisma (SQLite/libSQL)
+│       └── certificate/       # Geração de PDF
+├── .env.example
+└── README.md
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Perfis de usuário
+
+### ADMIN
+- Aprovar/bloquear alunos
+- Gerenciar perguntas e temas
+- Ver todas as avaliações e respostas
+- Configurar regras e distribuição de questões
+- Liberar nova tentativa de prova
+- Gerar e baixar certificados
+
+### STUDENT (aprovado pelo admin)
+- Realizar simulados (com revisão e gabarito)
+- Realizar provas (correção automática, sem gabarito)
+- Ver histórico de avaliações
+- Emitir certificado quando aprovado
+
+---
+
+## Segurança
+
+- Senhas com hash bcrypt
+- Sessão JWT em cookie httpOnly
+- Gabarito da PROVA nunca enviado ao frontend
+- Correção feita exclusivamente no servidor
+- Cronômetro baseado no servidor (resiste a refresh)
+
+---
+
+## Problemas comuns
+
+**Erro ao abrir o SQLite / caminho inválido**
+→ Use `DATABASE_URL="file:./prisma/dev.db"` (caminho relativo). Não use path absoluto do Windows com `file:///C:/...`.
+
+**`npm run setup` falhou**
+→ Confirme que `npm install` terminou sem erro e que a pasta `prisma/` existe.
+
+**Login não funciona**
+→ O login é por **usuário** (não e-mail). Após `npm run setup`, use `admin` / `admin123`.
+
+**Página de layouts sem nome do usuário**
+→ Faça logout e login novamente; o perfil vem de `/api/auth/me`.
