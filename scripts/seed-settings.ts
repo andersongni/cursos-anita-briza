@@ -6,13 +6,38 @@ import { createScriptPrisma } from './prisma-client'
 const prisma = createScriptPrisma()
 
 const defaultSettings = [
-  { key: 'assessment.prova.question_count', value: '40', description: 'Número de questões por prova' },
-  { key: 'assessment.prova.time_limit_minutes', value: '120', description: 'Tempo limite em minutos' },
-  { key: 'assessment.prova.passing_score', value: '70', description: 'Nota mínima para aprovação (%)' },
+  {
+    key: 'assessment.prova.question_count',
+    value: '40',
+    description: 'Número de questões (prova e simulado)',
+  },
+  {
+    key: 'assessment.prova.time_limit_minutes',
+    value: '120',
+    description: 'Tempo limite em minutos (prova e simulado)',
+  },
+  {
+    key: 'assessment.prova.passing_score',
+    value: '70',
+    description: 'Nota mínima para aprovação % (prova e simulado)',
+  },
   { key: 'assessment.prova.retry_interval_hours', value: '24', description: 'Intervalo entre tentativas (horas)' },
-  { key: 'assessment.simulado.question_count', value: '40', description: 'Número de questões por simulado' },
-  { key: 'assessment.simulado.time_limit_minutes', value: '120', description: 'Tempo limite em minutos' },
-  { key: 'assessment.simulado.passing_score', value: '70', description: 'Nota mínima (%)' },
+  // Espelho do simulado — mantido em sync com assessment.prova.*
+  {
+    key: 'assessment.simulado.question_count',
+    value: '40',
+    description: 'Espelho: questões (mesmo valor da prova)',
+  },
+  {
+    key: 'assessment.simulado.time_limit_minutes',
+    value: '120',
+    description: 'Espelho: tempo limite (mesmo valor da prova)',
+  },
+  {
+    key: 'assessment.simulado.passing_score',
+    value: '70',
+    description: 'Espelho: nota mínima (mesmo valor da prova)',
+  },
   { key: 'platform.name', value: '"Plataforma de Avaliação"', description: 'Nome da plataforma' },
   { key: 'platform.course_name', value: '"Informática Básica"', description: 'Nome do curso' },
   { key: 'platform.institution', value: '"Núcleo Assistencial Anita Briza"', description: 'Nome da instituição' },

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { mirroredAssessmentSettingKey } from '@/lib/settings/assessment'
 
 export async function GET() {
   try {
@@ -38,12 +39,22 @@ export async function PATCH(req: Request) {
     }
 
     const stringifiedValue = JSON.stringify(value)
+    const mirrorKey = mirroredAssessmentSettingKey(key)
 
     const setting = await prisma.systemSetting.upsert({
       where: { key },
       update: { value: stringifiedValue, updated_by: user.id },
       create: { key, value: stringifiedValue, updated_by: user.id },
     })
+
+    // Prova e simulado compartilham quantidade, tempo e nota mínima
+    if (mirrorKey) {
+      await prisma.systemSetting.upsert({
+        where: { key: mirrorKey },
+        update: { value: stringifiedValue, updated_by: user.id },
+        create: { key: mirrorKey, value: stringifiedValue, updated_by: user.id },
+      })
+    }
 
     return NextResponse.json({ setting: { ...setting, value } })
   } catch (error: unknown) {

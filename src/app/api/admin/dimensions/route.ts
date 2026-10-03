@@ -15,20 +15,43 @@ export async function GET() {
   }
 }
 
+function parsePercentage(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null
+  return n
+}
+
 export async function POST(req: Request) {
   try {
     await verifyAdmin()
     const body = await req.json()
     const { name, description, weight, target_percentage, display_order } = body
 
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'Nome do tema é obrigatório' }, { status: 400 })
+    }
+
+    const pct = parsePercentage(target_percentage)
+    if (target_percentage !== undefined && pct === null) {
+      return NextResponse.json({ error: 'Percentual deve ser entre 0 e 100' }, { status: 400 })
+    }
+
     const dimension = await prisma.dimension.create({
-      data: { name, description, weight, target_percentage, display_order }
+      data: {
+        name: name.trim(),
+        description,
+        weight,
+        target_percentage: pct ?? 0,
+        display_order,
+      },
     })
 
     return NextResponse.json({ dimension })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating dimension:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 })
+    const err = error as { message?: string; status?: number }
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: err.status || 500 })
   }
 }
 
@@ -42,11 +65,24 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Missing dimension id' }, { status: 400 })
     }
 
-    const data: any = {}
+    const data: {
+      name?: string
+      description?: string | null
+      weight?: number
+      target_percentage?: number
+      display_order?: number
+      active?: boolean
+    } = {}
     if (name !== undefined) data.name = name
     if (description !== undefined) data.description = description
     if (weight !== undefined) data.weight = weight
-    if (target_percentage !== undefined) data.target_percentage = target_percentage
+    if (target_percentage !== undefined) {
+      const pct = parsePercentage(target_percentage)
+      if (pct === null) {
+        return NextResponse.json({ error: 'Percentual deve ser entre 0 e 100' }, { status: 400 })
+      }
+      data.target_percentage = pct
+    }
     if (display_order !== undefined) data.display_order = display_order
     if (active !== undefined) data.active = active
 
@@ -56,9 +92,10 @@ export async function PATCH(req: Request) {
     })
 
     return NextResponse.json({ dimension })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating dimension:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 })
+    const err = error as { message?: string; status?: number }
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: err.status || 500 })
   }
 }
 

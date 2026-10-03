@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -20,19 +20,26 @@ type Dimension = {
   activeQuestions?: number
 }
 
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+
 const COLORS = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500', 'bg-pink-500']
 
 export default function AdminDimensoesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [dimensoes, setDimensoes] = useState<Dimension[]>([])
+  const [pctDrafts, setPctDrafts] = useState<Record<string, string>>({})
   const [form, setForm] = useState({
     name: '',
     description: '',
     weight: '1',
     target_percentage: '10',
   })
+
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const savedLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -47,12 +54,19 @@ export default function AdminDimensoesPage() {
       const dims = (dData.dimensions ?? []).map((d: Dimension) => ({
         ...d,
         activeQuestions: questions.filter(
-          (q: any) => q.dimension_id === d.id && q.active
+          (q: { dimension_id: string; active: boolean }) =>
+            q.dimension_id === d.id && q.active
         ).length,
       }))
       setDimensoes(dims)
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar temas')
+      const drafts: Record<string, string> = {}
+      for (const d of dims) {
+        drafts[d.id] = String(d.target_percentage ?? 0)
+      }
+      setPctDrafts(drafts)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Erro ao carregar temas'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -60,15 +74,94 @@ export default function AdminDimensoesPage() {
 
   useEffect(() => {
     load()
+    const timers = debounceTimers.current
+    return () => {
+      Object.values(timers).forEach(clearTimeout)
+      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+    }
   }, [load])
 
   const totalPct = dimensoes
     .filter((d) => d.active)
     .reduce((s, d) => s + (d.target_percentage || 0), 0)
 
+  const persistPercentage = useCallback(async (id: string, raw: string) => {
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      toast.error('Percentual deve ser entre 0 e 100')
+      setSaveStatus('error')
+      return
+    }
+
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/admin/dimensions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, target_percentage: n }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar percentual')
+
+      setDimensoes((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, target_percentage: n } : d))
+      )
+      setPctDrafts((prev) => ({ ...prev, [id]: String(n) }))
+      setSaveStatus('saved')
+      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+      savedLabelTimer.current = setTimeout(() => setSaveStatus('idle'), 1500)
+    } catch (e: unknown) {
+      setSaveStatus('error')
+      const message = e instanceof Error ? e.message : 'Erro ao salvar percentual'
+      toast.error(message)
+    }
+  }, [])
+
+  const handlePercentageChange = (id: string, value: string) => {
+    setPctDrafts((prev) => ({ ...prev, [id]: value }))
+    const n = Number(value)
+    if (Number.isFinite(n)) {
+      setDimensoes((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, target_percentage: n } : d))
+      )
+    }
+
+    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id])
+    debounceTimers.current[id] = setTimeout(() => {
+      void persistPercentage(id, value)
+    }, 500)
+  }
+
+  const toggleActive = async (d: Dimension) => {
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/admin/dimensions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: d.id, active: !d.active }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar status')
+      setDimensoes((prev) =>
+        prev.map((row) => (row.id === d.id ? { ...row, active: !d.active } : row))
+      )
+      setSaveStatus('saved')
+      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+      savedLabelTimer.current = setTimeout(() => setSaveStatus('idle'), 1500)
+    } catch (e: unknown) {
+      setSaveStatus('error')
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar status')
+    }
+  }
+
   const handleCreate = async () => {
     if (!form.name.trim()) {
       toast.error('Informe o nome do tema')
+      return
+    }
+    const pct = Number(form.target_percentage)
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+      toast.error('Percentual deve ser entre 0 e 100')
       return
     }
     setSaving(true)
@@ -80,7 +173,7 @@ export default function AdminDimensoesPage() {
           name: form.name.trim(),
           description: form.description.trim() || null,
           weight: Number(form.weight) || 1,
-          target_percentage: Number(form.target_percentage) || 0,
+          target_percentage: pct,
           display_order: dimensoes.length,
         }),
       })
@@ -91,17 +184,41 @@ export default function AdminDimensoesPage() {
       setForm({ name: '', description: '', weight: '1', target_percentage: '10' })
       setLoading(true)
       await load()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao criar tema')
     } finally {
       setSaving(false)
     }
   }
 
+  const statusLabel =
+    saveStatus === 'saving'
+      ? 'Salvando…'
+      : saveStatus === 'saved'
+        ? 'Salvo'
+        : saveStatus === 'error'
+          ? 'Erro ao salvar'
+          : 'Edite o % de cada tema — salva automaticamente'
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-secondary">Dimensões / Temas</h1>
+      <div className="flex flex-wrap justify-between items-end gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-secondary">Dimensões / Temas</h1>
+          <p
+            className={`text-sm mt-1 ${
+              saveStatus === 'error'
+                ? 'text-red-600'
+                : saveStatus === 'saving'
+                  ? 'text-amber-600'
+                  : saveStatus === 'saved'
+                    ? 'text-green-600'
+                    : 'text-slate-500'
+            }`}
+          >
+            {statusLabel}
+          </p>
+        </div>
         <Button variant="primary" onClick={() => setModalOpen(true)}>
           Novo Tema
         </Button>
@@ -121,7 +238,7 @@ export default function AdminDimensoesPage() {
                     <div
                       key={d.id}
                       className={COLORS[i % COLORS.length]}
-                      style={{ width: `${d.target_percentage}%` }}
+                      style={{ width: `${Math.min(100, Math.max(0, d.target_percentage))}%` }}
                       title={`${d.name}: ${d.target_percentage}%`}
                     />
                   ))}
@@ -143,14 +260,14 @@ export default function AdminDimensoesPage() {
         </div>
         <div
           className={`p-4 rounded-lg shadow-sm border flex flex-col justify-center ${
-            Math.abs(totalPct - 100) < 0.01 || dimensoes.length === 0
+            Math.abs(totalPct - 100) < 0.01 || dimensoes.filter((d) => d.active).length === 0
               ? 'bg-blue-50 border-blue-100'
               : 'bg-yellow-50 border-yellow-100'
           }`}
         >
-          <h3 className="font-semibold mb-1">Total: {totalPct.toFixed(0)}%</h3>
+          <h3 className="font-semibold mb-1">Total: {totalPct.toFixed(1)}%</h3>
           <p className="text-sm text-gray-600">
-            {dimensoes.length === 0
+            {dimensoes.filter((d) => d.active).length === 0
               ? 'Cadastre temas para montar a distribuição das provas.'
               : Math.abs(totalPct - 100) < 0.01
                 ? 'A distribuição soma 100%.'
@@ -170,8 +287,7 @@ export default function AdminDimensoesPage() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Peso</TableHead>
-                <TableHead>Alvo (%)</TableHead>
+                <TableHead className="w-36">Aplicação (%)</TableHead>
                 <TableHead>Perguntas Ativas</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -183,19 +299,45 @@ export default function AdminDimensoesPage() {
                   <TableCell className="text-sm text-gray-500">
                     {d.description || '—'}
                   </TableCell>
-                  <TableCell>{d.weight}</TableCell>
-                  <TableCell>{d.target_percentage}%</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 max-w-[7rem]">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        aria-label={`Percentual de aplicação de ${d.name}`}
+                        className="w-full px-2 py-1.5 border border-border rounded-lg text-foreground bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                        value={pctDrafts[d.id] ?? String(d.target_percentage)}
+                        onChange={(e) => handlePercentageChange(d.id, e.target.value)}
+                        onBlur={(e) => {
+                          if (debounceTimers.current[d.id]) {
+                            clearTimeout(debounceTimers.current[d.id])
+                          }
+                          void persistPercentage(d.id, e.target.value)
+                        }}
+                      />
+                      <span className="text-sm text-slate-500">%</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{d.activeQuestions ?? 0}</TableCell>
                   <TableCell>
-                    <Badge variant={d.active ? 'success' : 'default'}>
-                      {d.active ? 'Ativo' : 'Inativo'}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => void toggleActive(d)}
+                      className="focus:outline-none"
+                      title={d.active ? 'Desativar tema' : 'Ativar tema'}
+                    >
+                      <Badge variant={d.active ? 'success' : 'default'}>
+                        {d.active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </button>
                   </TableCell>
                 </TableRow>
               ))}
               {dimensoes.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                     Nenhum tema cadastrado.
                   </TableCell>
                 </TableRow>
@@ -235,10 +377,11 @@ export default function AdminDimensoesPage() {
               }
             />
             <Input
-              label="Percentual Alvo (%)"
+              label="Percentual de aplicação (%)"
               type="number"
               min="0"
               max="100"
+              step="0.5"
               value={form.target_percentage}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, target_percentage: e.target.value }))

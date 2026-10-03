@@ -34,7 +34,4 @@ jobs:
         env:
           DATABASE_URL: file:./prisma/dev.db
           JWT_SECRET: ci-build-secret
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
-          SUPABASE_SERVICE_ROLE_KEY: placeholder-key
           NEXT_PUBLIC_APP_URL: http://localhost:3000

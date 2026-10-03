@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
+import Card, { CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Spinner from '@/components/ui/Spinner'
@@ -213,7 +213,10 @@ export default function AdminConfiguracoesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Configurações da Prova Oficial</CardTitle>
+          <CardTitle>Configurações da Avaliação</CardTitle>
+          <CardDescription>
+            Valem para a prova oficial e para o simulado.
+          </CardDescription>
         </CardHeader>
         <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
@@ -238,38 +241,6 @@ export default function AdminConfiguracoesPage() {
             value={asString(settings['assessment.prova.passing_score'], '70')}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setField('assessment.prova.passing_score', e.target.value)
-            }
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações do Simulado</CardTitle>
-        </CardHeader>
-        <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Quantidade de perguntas"
-            type="number"
-            value={asString(settings['assessment.simulado.question_count'], '40')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.simulado.question_count', e.target.value)
-            }
-          />
-          <Input
-            label="Tempo limite (minutos)"
-            type="number"
-            value={asString(settings['assessment.simulado.time_limit_minutes'], '120')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.simulado.time_limit_minutes', e.target.value)
-            }
-          />
-          <Input
-            label="Nota mínima para aprovação (%)"
-            type="number"
-            value={asString(settings['assessment.simulado.passing_score'], '70')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.simulado.passing_score', e.target.value)
             }
           />
         </div>

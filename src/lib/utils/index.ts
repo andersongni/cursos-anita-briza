@@ -65,10 +65,6 @@ export function formatDuration(seconds: number): string {
   return `${minutes}min ${secs}s`
 }
 
-export function formatPercentage(value: number): string {
-  return `${value.toFixed(1)}%`
-}
-
 export function generateCertificateCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   const segments = []
@@ -80,12 +76,4 @@ export function generateCertificateCode(): string {
     segments.push(segment)
   }
   return segments.join('-')
-}
-
-export function usernameToEmail(username: string): string {
-  return `${username.toLowerCase()}@anita-briza.internal`
-}
-
-export function emailToUsername(email: string): string {
-  return email.replace('@anita-briza.internal', '')
 }
