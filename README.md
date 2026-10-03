@@ -158,13 +158,16 @@ avaliacao-anita-briza/
 
 ```powershell
 # Cole a mesma URL e token que estão na Vercel (Settings → Environment Variables)
-$env:DATABASE_URL="libsql://SEU-BANCO.turso.io"
-$env:TURSO_AUTH_TOKEN="SEU_TOKEN"
+# URL deve começar com libsql:// (não use aspas extras nem espaços)
+$env:DATABASE_URL="libsql://SEU-BANCO-ORG.turso.io"
+$env:TURSO_AUTH_TOKEN="eyJ..."
 
 npm run db:setup:remote
 ```
 
-Isso aplica o schema, cria as configurações, o admin (`admin` / `admin123`) e importa as perguntas.
+Isso gera o SQL do Prisma, aplica no Turso, cria as configurações, o admin (`admin` / `admin123`) e importa as perguntas.
+
+> `prisma db push` **não** aceita `libsql://` — por isso o script usa o client libSQL.
 
 4. Acesse a URL da Vercel e troque a senha do admin no primeiro login.
 
