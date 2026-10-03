@@ -37,7 +37,9 @@ function LoginForm() {
 
       toast.success('Login realizado com sucesso!')
 
-      if (data.status === 'PENDING') {
+      if (data.must_change_password) {
+        router.push('/alterar-senha')
+      } else if (data.status === 'PENDING') {
         router.push('/aguardando-aprovacao')
       } else if (data.role === 'ADMIN') {
         router.push('/admin/dashboard')

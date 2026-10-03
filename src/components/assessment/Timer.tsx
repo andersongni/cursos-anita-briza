@@ -12,7 +12,10 @@ export function Timer({ deadline, onTimeUp }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const firedRef = useRef(false)
   const onTimeUpRef = useRef(onTimeUp)
-  onTimeUpRef.current = onTimeUp
+
+  useEffect(() => {
+    onTimeUpRef.current = onTimeUp
+  }, [onTimeUp])
 
   useEffect(() => {
     firedRef.current = false

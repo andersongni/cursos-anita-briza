@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     await verifyAdmin()
     

@@ -63,7 +63,8 @@ async function main() {
         full_name: formatName(full_name),
         password_hash: hashedPassword,
         role: 'ADMIN',
-        status: 'APPROVED'
+        status: 'APPROVED',
+        must_change_password: true,
       }
     });
 

@@ -4,7 +4,7 @@ import { verifyAdmin } from '@/lib/auth/verify'
 
 export async function POST(req: Request) {
   try {
-    const user = await verifyAdmin()
+    const { user } = await verifyAdmin()
     const body = await req.json()
     const { source_ids, target_name, target_id } = body
 

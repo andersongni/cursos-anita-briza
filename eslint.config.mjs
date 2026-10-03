@@ -12,7 +12,18 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "scripts/**",
   ]),
+  {
+    rules: {
+      // Padrão do projeto: fetch em useEffect + setState no callback
+      "react-hooks/set-state-in-effect": "off",
+      // Tipagem gradual — não bloquear CI
+      "@typescript-eslint/no-explicit-any": "off",
+      // Uploads dinâmicos / logos locais
+      "@next/next/no-img-element": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

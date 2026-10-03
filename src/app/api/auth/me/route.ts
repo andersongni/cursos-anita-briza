@@ -26,6 +26,7 @@ export async function GET() {
         role: true,
         status: true,
         session_version: true,
+        must_change_password: true,
         last_login_at: true,
         created_at: true,
       },
@@ -45,8 +46,14 @@ export async function GET() {
       )
     }
 
-    // Sincroniza JWT quando o admin aprova/bloqueia (ex.: aluno na página de espera)
-    if (session.status !== profile.status || session.role !== profile.role) {
+    const mustChangePassword = Boolean(profile.must_change_password)
+    const sessionNeedsSync =
+      session.status !== profile.status ||
+      session.role !== profile.role ||
+      Boolean(session.mustChangePassword) !== mustChangePassword
+
+    // Sincroniza JWT (aprovação, bloqueio ou troca obrigatória de senha)
+    if (sessionNeedsSync) {
       if (profile.status === 'BLOCKED') {
         await clearSessionCookie()
         return NextResponse.json({ error: 'Conta bloqueada' }, { status: 403 })
@@ -58,12 +65,23 @@ export async function GET() {
         role: profile.role,
         status: profile.status,
         sessionVersion: profile.session_version ?? 0,
+        mustChangePassword,
       })
       await setSessionCookie(token)
     }
 
-    const { session_version: _sv, ...safe } = profile
-    return NextResponse.json(safe)
+    return NextResponse.json({
+      id: profile.id,
+      username: profile.username,
+      full_name: profile.full_name,
+      email: profile.email,
+      phone: profile.phone,
+      role: profile.role,
+      status: profile.status,
+      must_change_password: profile.must_change_password,
+      last_login_at: profile.last_login_at,
+      created_at: profile.created_at,
+    })
   } catch (error) {
     console.error('Me error:', error)
     return NextResponse.json(

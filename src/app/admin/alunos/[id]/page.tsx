@@ -67,8 +67,8 @@ export default function AlunoDetailPage() {
       if (!res.ok) throw new Error('Aluno não encontrado')
       const data = await res.json()
       setProfile(data.profile)
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar aluno')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar aluno')
     } finally {
       setLoading(false)
     }
@@ -91,8 +91,8 @@ export default function AlunoDetailPage() {
       setReleaseModal(false)
       setReason('')
       await load()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao liberar tentativa')
     }
   }
 
@@ -116,8 +116,8 @@ export default function AlunoDetailPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao resetar senha')
       setGeneratedPassword(data.temporary_password)
       toast.success('Senha redefinida com sucesso.')
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao resetar senha')
     } finally {
       setResetting(false)
     }

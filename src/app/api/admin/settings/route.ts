@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     await verifyAdmin()
     const settingsRaw = await prisma.systemSetting.findMany({
@@ -13,16 +13,17 @@ export async function GET(req: Request) {
       let parsedValue = s.value
       try {
         parsedValue = JSON.parse(s.value)
-      } catch (e) {
+      } catch {
         // use raw if unparseable
       }
       return { ...s, value: parsedValue }
     })
 
     return NextResponse.json({ settings })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching settings:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 })
+    const err = error as { message?: string; status?: number }
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: err.status || 500 })
   }
 }
 
@@ -45,8 +46,9 @@ export async function PATCH(req: Request) {
     })
 
     return NextResponse.json({ setting: { ...setting, value } })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating setting:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 })
+    const err = error as { message?: string; status?: number }
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: err.status || 500 })
   }
 }

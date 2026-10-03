@@ -38,8 +38,8 @@ export default function AdminAlunosPage() {
       if (!res.ok) throw new Error('Falha ao carregar alunos')
       const data = await res.json()
       setAlunos(data.profiles ?? [])
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar alunos')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar alunos')
     } finally {
       setLoading(false)
     }
@@ -95,8 +95,8 @@ export default function AdminAlunosPage() {
       )
       setConfirmModal({ isOpen: false, type: '', studentId: '', studentName: '' })
       await load()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar status')
     }
   }
 

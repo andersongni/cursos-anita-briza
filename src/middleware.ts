@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
   const authRoutes = ['/login', '/cadastro']
   const isAuthRoute = authRoutes.some((r) => pathname.startsWith(r))
   const isWaitingPage = pathname === '/aguardando-aprovacao'
+  const isChangePasswordPage = pathname === '/alterar-senha'
   const isApiRoute = pathname.startsWith('/api')
 
   if (isApiRoute) {
@@ -20,7 +21,7 @@ export async function middleware(request: NextRequest) {
     if (isAuthRoute) {
       return NextResponse.next()
     }
-    if (isWaitingPage) {
+    if (isWaitingPage || isChangePasswordPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
@@ -38,6 +39,22 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.redirect(url)
     response.cookies.delete('auth-token')
     return response
+  }
+
+  // Obrigatório trocar senha no primeiro acesso
+  if (session.mustChangePassword) {
+    if (!isChangePasswordPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/alterar-senha'
+      return NextResponse.redirect(url)
+    }
+    return NextResponse.next()
+  }
+
+  if (isChangePasswordPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = session.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   // Pendente: só pode ficar em /aguardando-aprovacao

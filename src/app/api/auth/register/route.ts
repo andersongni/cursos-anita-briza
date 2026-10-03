@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       role: profile.role,
       status: profile.status,
       sessionVersion: profile.session_version ?? 0,
+      mustChangePassword: false,
     });
     await setSessionCookie(token);
 

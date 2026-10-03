@@ -5,7 +5,6 @@ import { defineConfig } from 'prisma/config'
 const dbUrl = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
 
 export default defineConfig({
-  earlyAccess: true,
   schema: path.join('prisma', 'schema.prisma'),
   datasource: {
     url: dbUrl,

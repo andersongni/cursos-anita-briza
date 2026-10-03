@@ -16,6 +16,8 @@ export interface SessionPayload {
   status: string
   /** Incrementado ao resetar/alterar senha — invalida JWTs antigos */
   sessionVersion: number
+  /** Admin (ou usuário) deve trocar a senha antes de usar o sistema */
+  mustChangePassword?: boolean
 }
 
 // ── Create ──────────────────────────────────────────────────────────────────

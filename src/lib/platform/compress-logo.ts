@@ -40,7 +40,7 @@ export async function compressLogoImage(input: Buffer): Promise<CompressedLogo> 
   // Se já cabe e não precisa redimensionar, mantém (reencode leve só se > target)
   if (originalBytes <= LOGO_TARGET_BYTES && (meta.width ?? 0) <= LOGO_MAX_EDGE && (meta.height ?? 0) <= LOGO_MAX_EDGE) {
     const format = meta.format
-    if (format === 'jpeg' || format === 'jpg') {
+    if (format === 'jpeg') {
       return {
         buffer: input,
         ext: '.jpg',

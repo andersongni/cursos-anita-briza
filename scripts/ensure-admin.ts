@@ -46,6 +46,7 @@ async function main() {
       password_hash: hashedPassword,
       role: 'ADMIN',
       status: 'APPROVED',
+      must_change_password: true,
     },
   })
 

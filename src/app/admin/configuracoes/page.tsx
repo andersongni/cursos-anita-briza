@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -69,9 +70,11 @@ export default function AdminConfiguracoesPage() {
 
   useEffect(() => {
     load()
+    const timers = debounceTimers.current
+    const savedTimer = savedLabelTimer
     return () => {
-      Object.values(debounceTimers.current).forEach(clearTimeout)
-      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+      Object.values(timers).forEach(clearTimeout)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
     }
   }, [load])
 
@@ -294,10 +297,13 @@ export default function AdminConfiguracoesPage() {
           </div>
         </CardHeader>
         <div className="p-4 pt-0 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-          <img
+          <Image
             key={logoKey}
             src={logoUrl}
             alt="Logo atual"
+            width={112}
+            height={112}
+            unoptimized
             className="w-28 h-28 rounded-full object-cover border border-slate-200 shadow-sm bg-white"
           />
           <div className="text-sm text-slate-600 space-y-2">

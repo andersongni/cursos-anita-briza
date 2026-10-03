@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       where: { id: profile.id },
       data: {
         password_hash,
+        must_change_password: false,
         session_version: { increment: 1 },
       },
     })
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
       role: updated.role,
       status: updated.status,
       sessionVersion: updated.session_version,
+      mustChangePassword: false,
     })
     await setSessionCookie(token)
 

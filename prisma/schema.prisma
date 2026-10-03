@@ -16,6 +16,7 @@ model Profile {
   status        String    @default("PENDING")
   password_hash   String
   session_version Int       @default(0)
+  must_change_password Boolean  @default(false)
   last_login_at   DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
