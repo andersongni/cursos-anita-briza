@@ -5,13 +5,17 @@ export function getDatabaseUrl(): string {
   return (
     process.env.DATABASE_URL ||
     process.env.TURSO_DATABASE_URL ||
+    process.env.PROD_TURSO_DATABASE_URL ||
     'file:./prisma/dev.db'
   )
 }
 
 /** Token do Turso — só usado com URL remota libsql/https. */
 export function getDatabaseAuthToken(): string | undefined {
-  const token = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN
+  const token =
+    process.env.TURSO_AUTH_TOKEN ||
+    process.env.DATABASE_AUTH_TOKEN ||
+    process.env.PROD_TURSO_AUTH_TOKEN
   if (!token) return undefined
 
   const url = getDatabaseUrl()

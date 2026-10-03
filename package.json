@@ -14,6 +14,7 @@
     "ensure-admin": "npx tsx scripts/ensure-admin.ts",
     "db:push": "npx prisma db push",
     "db:setup": "npx prisma db push && npm run seed:settings && npm run ensure-admin",
+    "db:setup:remote": "npx tsx scripts/setup-remote.ts",
     "db:reset": "npx prisma db push --force-reset && npm run seed:settings && npm run ensure-admin",
     "db:clear": "npx tsx scripts/clear-data.ts && npm run seed:settings && npm run ensure-admin",
     "db:group-dimensions": "npx tsx scripts/group-dimensions.ts",

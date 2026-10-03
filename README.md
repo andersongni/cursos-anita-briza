@@ -154,16 +154,17 @@ avaliacao-anita-briza/
 | `JWT_SECRET` | string longa e aleatória |
 | `NEXT_PUBLIC_APP_URL` | URL do projeto na Vercel |
 
-3. Após o primeiro deploy, inicialize o banco (no seu PC, com as mesmas vars):
+3. **Obrigatório após o deploy:** criar as tabelas no Turso (senão o login falha com `no such table: Profile`):
 
 ```powershell
-$env:DATABASE_URL="libsql://...."
-$env:TURSO_AUTH_TOKEN="...."
-npx prisma db push
-npm run seed:settings
-npm run ensure-admin
-npm run seed
+# Cole a mesma URL e token que estão na Vercel (Settings → Environment Variables)
+$env:DATABASE_URL="libsql://SEU-BANCO.turso.io"
+$env:TURSO_AUTH_TOKEN="SEU_TOKEN"
+
+npm run db:setup:remote
 ```
+
+Isso aplica o schema, cria as configurações, o admin (`admin` / `admin123`) e importa as perguntas.
 
 4. Acesse a URL da Vercel e troque a senha do admin no primeiro login.
 
