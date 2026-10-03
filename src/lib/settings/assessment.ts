@@ -34,6 +34,7 @@ export function mirroredAssessmentSettingKey(key: string): string | null {
  * Prova e simulado compartilham os mesmos valores (lidos de assessment.prova.*).
  */
 export async function getAssessmentSettings(_type?: AssessmentTypeKey) {
+  void _type
   const prefix = 'assessment.prova'
   const [qCount, timeLimit, passing] = await Promise.all([
     prisma.systemSetting.findUnique({ where: { key: `${prefix}.question_count` } }),

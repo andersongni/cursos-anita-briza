@@ -66,7 +66,10 @@ export default function RecaptchaWidget({ siteKey, onChange, resetKey = 0 }: Pro
   const containerId = `recaptcha-${domId}`
   const widgetIdRef = useRef<number | null>(null)
   const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   useEffect(() => {
     let cancelled = false
