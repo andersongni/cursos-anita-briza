@@ -40,21 +40,11 @@ type Profile = {
     completion_date: string
     created_at: string
   }>
-  releases: Array<{
-    id: string
-    created_at: string
-    reason: string | null
-    used: boolean
-    cancelled: boolean
-    releasedBy: { full_name: string }
-  }>
 }
 
 export default function AlunoDetailPage() {
   const params = useParams<{ id: string }>()
-  const [releaseModal, setReleaseModal] = useState(false)
   const [resetModal, setResetModal] = useState(false)
-  const [reason, setReason] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
   const [resetting, setResetting] = useState(false)
@@ -66,7 +56,12 @@ export default function AlunoDetailPage() {
       const res = await fetch(`/api/admin/students/${params.id}`)
       if (!res.ok) throw new Error('Aluno não encontrado')
       const data = await res.json()
-      setProfile(data.profile)
+      const p = data.profile
+      setProfile({
+        ...p,
+        assessments: Array.isArray(p?.assessments) ? p.assessments : [],
+        certificates: Array.isArray(p?.certificates) ? p.certificates : [],
+      })
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao carregar aluno')
     } finally {
@@ -77,24 +72,6 @@ export default function AlunoDetailPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  const handleRelease = async () => {
-    try {
-      const res = await fetch(`/api/admin/students/${params.id}/release-attempt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: reason || undefined }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao liberar tentativa')
-      toast.success('Nova tentativa liberada com sucesso.')
-      setReleaseModal(false)
-      setReason('')
-      await load()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao liberar tentativa')
-    }
-  }
 
   const openResetModal = () => {
     setNewPassword('')
@@ -170,7 +147,7 @@ export default function AlunoDetailPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
-              <Badge variant={statusVariant as any}>{profile.status}</Badge>
+              <Badge variant={statusVariant as 'success' | 'error' | 'warning'}>{profile.status}</Badge>
             </div>
             <div>
               <p className="text-sm text-gray-500">Cadastro</p>
@@ -246,52 +223,15 @@ export default function AlunoDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row justify-between items-center">
-              <CardTitle>Liberação de Tentativa</CardTitle>
-              <Button size="sm" onClick={() => setReleaseModal(true)}>
-                Liberar Nova Tentativa
-              </Button>
-            </CardHeader>
-            <div className="p-4 pt-0">
-              {profile.releases.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data de Liberação</TableHead>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {profile.releases.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{formatDateTime(r.created_at)}</TableCell>
-                        <TableCell>{r.reason || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant={r.used ? 'default' : r.cancelled ? 'error' : 'success'}>
-                            {r.cancelled ? 'Cancelada' : r.used ? 'Utilizada' : 'Pendente'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-gray-500 text-sm">Nenhuma liberação extra registrada.</p>
-              )}
-            </div>
-          </Card>
-
-          <Card>
             <CardHeader>
               <CardTitle>Certificados</CardTitle>
             </CardHeader>
             <div className="p-4 pt-0">
-              {profile.certificates.length === 0 ? (
+              {(profile.certificates?.length ?? 0) === 0 ? (
                 <p className="text-gray-500 text-sm">Nenhum certificado emitido.</p>
               ) : (
                 <ul className="space-y-2">
-                  {profile.certificates.map((cert) => (
+                  {(profile.certificates ?? []).map((cert) => (
                     <li
                       key={cert.id}
                       className="flex justify-between items-center p-3 border rounded-md gap-3 flex-wrap"
@@ -302,7 +242,7 @@ export default function AlunoDetailPage() {
                         </p>
                         <p className="text-xs text-gray-500 font-mono">{cert.certificate_code}</p>
                         <p className="text-xs text-gray-500">
-                          Emitido em {formatDateTime(cert.completion_date || cert.created_at)}
+                          Emitido em {formatDateTime(cert.completion_date ?? cert.created_at)}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -334,31 +274,6 @@ export default function AlunoDetailPage() {
           </Card>
         </div>
       </div>
-
-      <Modal
-        isOpen={releaseModal}
-        onClose={() => setReleaseModal(false)}
-        title="Liberar Nova Tentativa"
-      >
-        <div className="space-y-4">
-          <p className="text-sm">
-            Isso permitirá que o aluno realize a prova novamente, ignorando o tempo de espera ou o
-            limite de tentativas.
-          </p>
-          <Input
-            label="Motivo (opcional)"
-            placeholder="Ex: Problemas de conexão relatados"
-            value={reason}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
-          />
-          <div className="flex justify-end space-x-2">
-            <Button variant="ghost" onClick={() => setReleaseModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleRelease}>Confirmar Liberação</Button>
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         isOpen={resetModal}

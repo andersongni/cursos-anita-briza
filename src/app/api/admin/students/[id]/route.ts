@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { getCertificateSettings } from '@/lib/certificate/settings'
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await verifyAdmin()
     const { id } = await params
@@ -30,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: 'Perfil não é de aluno' }, { status: 400 })
     }
 
-    const [assessments, certificates, releases] = await Promise.all([
+    const [assessments, certificates, settings] = await Promise.all([
       prisma.assessment.findMany({
         where: { student_id: id },
         orderBy: { created_at: 'desc' },
@@ -39,20 +40,25 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         where: { student_id: id },
         orderBy: { created_at: 'desc' },
       }),
-      prisma.attemptRelease.findMany({
-        where: { student_id: id },
-        include: {
-          releasedBy: { select: { full_name: true } },
-        },
-        orderBy: { created_at: 'desc' },
-      }),
+      getCertificateSettings(),
     ])
 
     return NextResponse.json({
-      profile: { ...profile, assessments, certificates, releases },
+      profile: {
+        ...profile,
+        assessments,
+        certificates: certificates.map((c) => ({
+          ...c,
+          course_name_snapshot: settings.courseName,
+        })),
+      },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching student detail:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: error.status || 500 })
+    const err = error as { message?: string; status?: number }
+    return NextResponse.json(
+      { error: err.message || 'Internal Server Error' },
+      { status: err.status || 500 }
+    )
   }
 }

@@ -19,7 +19,8 @@ function resolveDatabaseUrl(): string {
 
   // Vercel: sempre Turso (libsql/https)
   if (process.env.VERCEL) {
-    const remote = [primary, ...fallbacks].find(isRemoteLibsqlUrl)
+    const candidates = [primary, ...fallbacks].filter((value): value is string => Boolean(value))
+    const remote = candidates.find(isRemoteLibsqlUrl)
     if (!remote) {
       throw new Error(
         'DATABASE_URL no Vercel deve ser libsql://... (Turso). Arquivo SQLite local não persiste.'
