@@ -5,21 +5,9 @@
  *   $env:DATABASE_URL="libsql://...."
  *   $env:TURSO_AUTH_TOKEN="...."
  *   npm run db:setup:remote
- *
- * Nota: `prisma db push` não aceita libsql:// — geramos o SQL e aplicamos
- * com @libsql/client.
  */
 import { execSync } from 'node:child_process'
 import { createClient } from '@libsql/client'
-
-function requireEnv(name: string) {
-  const value = process.env[name]
-  if (!value) {
-    console.error(`Falta a variável ${name}.`)
-    process.exit(1)
-  }
-  return value
-}
 
 const url =
   process.env.DATABASE_URL ||
@@ -43,16 +31,36 @@ if (!authToken) {
   process.exit(1)
 }
 
-// Garante que os seeds usem a URL remota
 process.env.DATABASE_URL = url
 process.env.TURSO_AUTH_TOKEN = authToken
 
+function splitSqlStatements(sql: string): string[] {
+  return sql
+    .split(';')
+    .map((chunk) =>
+      chunk
+        .split('\n')
+        .map((line) => line.trimEnd())
+        // remove comentários de linha do Prisma (-- CreateTable etc.)
+        .filter((line) => {
+          const trimmed = line.trim()
+          return trimmed.length > 0 && !trimmed.startsWith('--')
+        })
+        .join('\n')
+        .trim()
+    )
+    .filter((statement) => statement.length > 0)
+}
+
 async function applySchema() {
   console.log('Gerando SQL do schema...')
-  // prisma.config força file: para o CLI; migrate diff só lê o schema
   const sql = execSync(
     'npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script',
-    { encoding: 'utf8', env: { ...process.env, DATABASE_URL: 'file:./prisma/dev.db' } }
+    {
+      encoding: 'utf8',
+      env: { ...process.env, DATABASE_URL: 'file:./prisma/dev.db' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
   ).trim()
 
   if (!sql) {
@@ -60,36 +68,39 @@ async function applySchema() {
     process.exit(1)
   }
 
-  console.log('Aplicando schema no Turso...')
-  const client = createClient({ url, authToken })
+  const statements = splitSqlStatements(sql)
+  console.log(`Aplicando ${statements.length} statements no Turso...`)
 
-  // Executa statement a statement (libSQL não aceita multi-statement em batch simples)
-  const statements = sql
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'))
+  const client = createClient({ url, authToken })
 
   for (const statement of statements) {
     try {
       await client.execute(statement)
+      const preview = statement.replace(/\s+/g, ' ').slice(0, 72)
+      console.log(`  OK  ${preview}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
-      // Idempotente: tabela/índice já existente
       if (/already exists/i.test(message)) {
-        console.log(`  (já existe) ${statement.slice(0, 60)}...`)
+        const preview = statement.replace(/\s+/g, ' ').slice(0, 72)
+        console.log(`  skip ${preview}`)
         continue
       }
-      console.error('Falha ao executar:', statement.slice(0, 120))
+      console.error('Falha ao executar:', statement.slice(0, 200))
       throw err
     }
   }
 
+  const tables = await client.execute(
+    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+  )
+  console.log(
+    'Tabelas no Turso:',
+    tables.rows.map((r) => r.name).join(', ')
+  )
   client.close()
-  console.log('Schema aplicado.')
 }
 
 async function main() {
-  requireEnv('TURSO_AUTH_TOKEN')
   await applySchema()
 
   console.log('Seed de configurações...')
