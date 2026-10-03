@@ -153,6 +153,10 @@ avaliacao-anita-briza/
 | `TURSO_AUTH_TOKEN` | token do Turso |
 | `JWT_SECRET` | string longa e aleatória |
 | `NEXT_PUBLIC_APP_URL` | URL do projeto na Vercel |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | site key do reCAPTCHA v2 (opcional) |
+| `RECAPTCHA_SECRET_KEY` | secret key do reCAPTCHA v2 (opcional) |
+
+Para o captcha “Não sou um robô” (com desafio de imagens do Google), cadastre o domínio em [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) no tipo **reCAPTCHA v2 → Checkbox**. Sem as chaves, após 3 falhas o login usa um captcha matemático local.
 
 3. **Obrigatório após o deploy:** criar as tabelas no Turso (senão o login falha com `no such table: Profile`):
 

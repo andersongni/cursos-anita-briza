@@ -11,15 +11,15 @@ function isRemoteLibsqlUrl(url: string): boolean {
 }
 
 function resolveDatabaseUrl(): string {
-  const candidates = [
-    cleanEnv(process.env.DATABASE_URL),
+  const primary = cleanEnv(process.env.DATABASE_URL)
+  const fallbacks = [
     cleanEnv(process.env.TURSO_DATABASE_URL),
     cleanEnv(process.env.PROD_TURSO_DATABASE_URL),
   ].filter((value): value is string => Boolean(value))
 
-  // Em produção serverless, prioriza Turso mesmo se DATABASE_URL estiver como file:
-  const remote = candidates.find(isRemoteLibsqlUrl)
+  // Vercel: sempre Turso (libsql/https)
   if (process.env.VERCEL) {
+    const remote = [primary, ...fallbacks].find(isRemoteLibsqlUrl)
     if (!remote) {
       throw new Error(
         'DATABASE_URL no Vercel deve ser libsql://... (Turso). Arquivo SQLite local não persiste.'
@@ -28,12 +28,22 @@ function resolveDatabaseUrl(): string {
     return remote
   }
 
-  return remote || candidates[0] || 'file:./prisma/dev.db'
+  // Local: DATABASE_URL explícito tem prioridade (não sobrescrever file: com PROD_TURSO_*)
+  if (primary) return primary
+
+  const remote = fallbacks.find(isRemoteLibsqlUrl)
+  return remote || 'file:./prisma/dev.db'
 }
 
 /** URL do banco: Turso (`libsql://...`) ou SQLite local (`file:./prisma/dev.db`). */
 export function getDatabaseUrl(): string {
-  return resolveDatabaseUrl()
+  const url = resolveDatabaseUrl()
+  // Caminho absoluto evita o Next/adapter abrir outro .db conforme o cwd
+  if (url.startsWith('file:') && !url.startsWith('file:/') && !/^file:[A-Za-z]:/.test(url)) {
+    const relative = url.replace(/^file:/, '')
+    return `file:${path.resolve(process.cwd(), relative)}`
+  }
+  return url
 }
 
 /** Token do Turso — só usado com URL remota libsql/https. */

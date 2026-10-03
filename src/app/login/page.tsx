@@ -1,13 +1,16 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
 import PlatformLogo from '@/components/ui/PlatformLogo'
+import RecaptchaWidget from '@/components/auth/RecaptchaWidget'
 import toast from 'react-hot-toast'
+
+type CaptchaProvider = 'recaptcha' | 'math'
 
 function LoginForm() {
   const router = useRouter()
@@ -15,26 +18,116 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false)
+  const [captchaProvider, setCaptchaProvider] = useState<CaptchaProvider>('math')
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState('')
+  const [recaptchaToken, setRecaptchaToken] = useState('')
+  const [recaptchaResetKey, setRecaptchaResetKey] = useState(0)
+  const [captchaQuestion, setCaptchaQuestion] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaAnswer, setCaptchaAnswer] = useState('')
 
   const blocked = searchParams.get('blocked')
 
+  const clearCaptchaUi = () => {
+    setRequiresCaptcha(false)
+    setCaptchaProvider('math')
+    setRecaptchaSiteKey('')
+    setRecaptchaToken('')
+    setCaptchaQuestion('')
+    setCaptchaToken('')
+    setCaptchaAnswer('')
+  }
+
+  const applyCaptcha = (data: {
+    requiresCaptcha?: boolean
+    captchaProvider?: CaptchaProvider
+    recaptchaSiteKey?: string
+    captchaQuestion?: string
+    captchaToken?: string
+  }) => {
+    if (!data.requiresCaptcha) return
+
+    setRequiresCaptcha(true)
+    const provider = data.captchaProvider === 'recaptcha' ? 'recaptcha' : 'math'
+    setCaptchaProvider(provider)
+
+    if (provider === 'recaptcha' && data.recaptchaSiteKey) {
+      setRecaptchaSiteKey(data.recaptchaSiteKey)
+      setRecaptchaToken('')
+      setRecaptchaResetKey((k) => k + 1)
+      return
+    }
+
+    if (data.captchaQuestion && data.captchaToken) {
+      setCaptchaQuestion(data.captchaQuestion)
+      setCaptchaToken(data.captchaToken)
+      setCaptchaAnswer('')
+    }
+  }
+
+  const refreshCaptchaState = async (user = username) => {
+    const key = user.trim().toLowerCase()
+    if (!key) return
+    try {
+      const res = await fetch(`/api/auth/captcha?username=${encodeURIComponent(key)}`, {
+        cache: 'no-store',
+      })
+      const data = await res.json()
+      if (data.requiresCaptcha) {
+        applyCaptcha(data)
+      } else {
+        clearCaptchaUi()
+      }
+    } catch {
+      // o próximo login trará o desafio se necessário
+    }
+  }
+
+  useEffect(() => {
+    const key = username.trim().toLowerCase()
+    if (key.length < 2) return
+    const t = setTimeout(() => {
+      void refreshCaptchaState(key)
+    }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage ao username
+  }, [username])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (requiresCaptcha && captchaProvider === 'recaptcha' && !recaptchaToken) {
+      toast.error('Marque “Não sou um robô” para continuar.')
+      return
+    }
+
     setLoading(true)
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          ...(requiresCaptcha && captchaProvider === 'recaptcha'
+            ? { recaptchaToken }
+            : {}),
+          ...(requiresCaptcha && captchaProvider === 'math'
+            ? { captchaToken, captchaAnswer }
+            : {}),
+        }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
+        applyCaptcha(data)
         throw new Error(data.error || 'Erro ao fazer login')
       }
 
+      clearCaptchaUi()
       toast.success('Login realizado com sucesso!')
 
       if (data.must_change_password) {
@@ -46,8 +139,9 @@ function LoginForm() {
       } else {
         router.push('/dashboard')
       }
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao fazer login'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -67,6 +161,7 @@ function LoginForm() {
             label="Usuário"
             type="text"
             required
+            autoComplete="username"
             value={username}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
           />
@@ -75,9 +170,38 @@ function LoginForm() {
             label="Senha"
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
           />
+
+          {requiresCaptcha && (
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm text-amber-900">
+                Muitas tentativas incorretas. Confirme que você não é um robô.
+              </p>
+
+              {captchaProvider === 'recaptcha' && recaptchaSiteKey ? (
+                <RecaptchaWidget
+                  siteKey={recaptchaSiteKey}
+                  onChange={setRecaptchaToken}
+                  resetKey={recaptchaResetKey}
+                />
+              ) : (
+                <Input
+                  label={`Quanto é ${captchaQuestion}?`}
+                  type="number"
+                  required
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={captchaAnswer}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setCaptchaAnswer(e.target.value)
+                  }
+                />
+              )}
+            </div>
+          )}
 
           <Button
             type="submit"
@@ -119,7 +243,6 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Suspense required because LoginForm uses useSearchParams() */}
         <Suspense fallback={<div className="text-center text-gray-500">Carregando...</div>}>
           <LoginForm />
         </Suspense>

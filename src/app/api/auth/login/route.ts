@@ -1,12 +1,51 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getDatabaseUrl } from '@/lib/db-url'
 import bcrypt from 'bcryptjs'
 import { createToken, setSessionCookie } from '@/lib/auth/session'
+import {
+  LOGIN_FAIL_THRESHOLD,
+  captchaResponseFields,
+  clearLoginFailCount,
+  getLoginFailCount,
+  incrementLoginFailCount,
+  verifyMathCaptchaAnswer,
+} from '@/lib/auth/login-captcha'
+import { isRecaptchaConfigured, verifyRecaptchaToken } from '@/lib/auth/recaptcha'
+
+async function failedLoginResponse(username: string, message = 'Usuário ou senha incorretos') {
+  const failedAttempts = await incrementLoginFailCount(username)
+  const body: Record<string, unknown> = {
+    error: message,
+    failedAttempts,
+    requiresCaptcha: failedAttempts >= LOGIN_FAIL_THRESHOLD,
+  }
+
+  if (failedAttempts >= LOGIN_FAIL_THRESHOLD) {
+    Object.assign(body, await captchaResponseFields())
+  }
+
+  return NextResponse.json(body, { status: 401 })
+}
+
+async function verifyRequiredCaptcha(body: {
+  recaptchaToken?: unknown
+  captchaToken?: unknown
+  captchaAnswer?: unknown
+}): Promise<boolean> {
+  if (isRecaptchaConfigured()) {
+    return verifyRecaptchaToken(body.recaptchaToken)
+  }
+  return verifyMathCaptchaAnswer(
+    typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+    body.captchaAnswer
+  )
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { username, password } = body
+    const { username, password, captchaToken, captchaAnswer, recaptchaToken } = body
 
     if (!username || !password) {
       return NextResponse.json(
@@ -15,24 +54,52 @@ export async function POST(req: Request) {
       )
     }
 
+    const normalizedUsername = String(username).toLowerCase().trim()
+    const failCount = await getLoginFailCount(normalizedUsername)
+
+    if (failCount >= LOGIN_FAIL_THRESHOLD) {
+      const captchaOk = await verifyRequiredCaptcha({
+        recaptchaToken,
+        captchaToken,
+        captchaAnswer,
+      })
+      if (!captchaOk) {
+        return NextResponse.json(
+          {
+            error: 'Complete o captcha para continuar.',
+            failedAttempts: failCount,
+            ...(await captchaResponseFields()),
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     const profile = await prisma.profile.findUnique({
-      where: { username: username.toLowerCase() },
+      where: { username: normalizedUsername },
     })
 
     if (!profile) {
-      return NextResponse.json(
-        { error: 'Usuário ou senha incorretos' },
-        { status: 401 }
-      )
+      if (process.env.NODE_ENV === 'development') {
+        console.info(`[login] user=${normalizedUsername} → not found`)
+      }
+      return failedLoginResponse(normalizedUsername)
     }
 
     const isPasswordValid = await bcrypt.compare(password, profile.password_hash)
 
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Usuário ou senha incorretos' },
-        { status: 401 }
-      )
+      if (process.env.NODE_ENV === 'development') {
+        const db = getDatabaseUrl()
+        console.info(
+          `[login] user=${normalizedUsername} → password mismatch | db=${db.startsWith('file:') ? 'sqlite' : 'turso'}`
+        )
+      }
+      return failedLoginResponse(normalizedUsername)
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[login] user=${normalizedUsername} → ok`)
     }
 
     if (profile.status === 'BLOCKED') {
@@ -41,6 +108,8 @@ export async function POST(req: Request) {
         { status: 403 }
       )
     }
+
+    await clearLoginFailCount()
 
     await prisma.profile.update({
       where: { id: profile.id },
