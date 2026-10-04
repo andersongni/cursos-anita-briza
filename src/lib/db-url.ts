@@ -10,6 +10,14 @@ function isRemoteLibsqlUrl(url: string): boolean {
   return url.startsWith('libsql://') || url.startsWith('https://')
 }
 
+/**
+ * Deploy real na Vercel (build/runtime na nuvem).
+ * `vercel env pull` grava VERCEL=1 e VERCEL_ENV no PC, mas VERCEL_URL fica vazio.
+ */
+function isVercelDeployment(): boolean {
+  return process.env.VERCEL === '1' && Boolean(cleanEnv(process.env.VERCEL_URL))
+}
+
 function resolveDatabaseUrl(): string {
   const primary = cleanEnv(process.env.DATABASE_URL)
   const fallbacks = [
@@ -17,8 +25,8 @@ function resolveDatabaseUrl(): string {
     cleanEnv(process.env.PROD_TURSO_DATABASE_URL),
   ].filter((value): value is string => Boolean(value))
 
-  // Vercel: sempre Turso (libsql/https)
-  if (process.env.VERCEL) {
+  // Deploy Vercel: sempre Turso (libsql/https)
+  if (isVercelDeployment()) {
     const candidates = [primary, ...fallbacks].filter((value): value is string => Boolean(value))
     const remote = candidates.find(isRemoteLibsqlUrl)
     if (!remote) {
@@ -36,15 +44,29 @@ function resolveDatabaseUrl(): string {
   return remote || 'file:./prisma/dev.db'
 }
 
+/**
+ * Absolute file: URL for local SQLite.
+ * Scoped under prisma/ + turbopackIgnore so Next does not trace the whole repo.
+ */
+function toAbsoluteSqliteUrl(url: string): string {
+  if (!url.startsWith('file:')) return url
+  if (url.startsWith('file:/') || /^file:[A-Za-z]:/.test(url)) return url
+
+  const relative = url.replace(/^file:/, '').replace(/^\.\//, '').replace(/\\/g, '/')
+  const parts = relative.split('/').filter(Boolean)
+
+  // Prefer the usual prisma/*.db layout (static folder segment for Turbopack)
+  if (parts[0] === 'prisma' && parts.length >= 2) {
+    const fileName = parts.slice(1).join('/')
+    return `file:${path.join(/* turbopackIgnore: true */ process.cwd(), 'prisma', fileName)}`
+  }
+
+  return `file:${path.join(/* turbopackIgnore: true */ process.cwd(), ...parts)}`
+}
+
 /** URL do banco: Turso (`libsql://...`) ou SQLite local (`file:./prisma/dev.db`). */
 export function getDatabaseUrl(): string {
-  const url = resolveDatabaseUrl()
-  // Caminho absoluto evita o Next/adapter abrir outro .db conforme o cwd
-  if (url.startsWith('file:') && !url.startsWith('file:/') && !/^file:[A-Za-z]:/.test(url)) {
-    const relative = url.replace(/^file:/, '')
-    return `file:${path.resolve(process.cwd(), relative)}`
-  }
-  return url
+  return toAbsoluteSqliteUrl(resolveDatabaseUrl())
 }
 
 /** Token do Turso — só usado com URL remota libsql/https. */
@@ -57,7 +79,7 @@ export function getDatabaseAuthToken(): string | undefined {
   const url = getDatabaseUrl()
   if (!isRemoteLibsqlUrl(url)) return undefined
 
-  if (process.env.VERCEL && !token) {
+  if (isVercelDeployment() && !token) {
     throw new Error('TURSO_AUTH_TOKEN é obrigatório no Vercel.')
   }
 
@@ -67,6 +89,5 @@ export function getDatabaseAuthToken(): string | undefined {
 /** Caminho absoluto do arquivo .db (útil para logs/debug local). */
 export function getDatabasePath(): string {
   const url = getDatabaseUrl()
-  const relative = url.replace(/^file:/, '')
-  return path.resolve(relative)
+  return url.replace(/^file:/, '')
 }
