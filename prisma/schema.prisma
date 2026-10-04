@@ -32,6 +32,7 @@ model Profile {
   auditLogs        AuditLog[]
   settingsUpdated  SystemSetting[]
   feedbacks        Feedback[]
+  typingAttempts   TypingAttempt[]
 }
 
 model Dimension {
@@ -203,4 +204,37 @@ model Feedback {
   created_at DateTime @default(now())
 
   user Profile @relation(fields: [user_id], references: [id])
+}
+
+/** Textos para o exercício de digitação (CRUD só admin). */
+model TypingPassage {
+  id         String   @id @default(cuid())
+  title      String
+  content    String
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  attempts TypingAttempt[]
+}
+
+/** Tentativa concluída de digitação por um aluno. */
+model TypingAttempt {
+  id            String   @id @default(cuid())
+  student_id    String
+  passage_id    String
+  duration_ms   Int
+  error_count   Int
+  chars_total   Int
+  wpm           Float
+  accuracy      Float
+  score         Float
+  completed_at  DateTime @default(now())
+  created_at    DateTime @default(now())
+
+  student Profile       @relation(fields: [student_id], references: [id])
+  passage TypingPassage @relation(fields: [passage_id], references: [id])
+
+  @@index([passage_id, duration_ms])
+  @@index([student_id, passage_id])
 }

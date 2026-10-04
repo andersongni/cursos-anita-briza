@@ -13,6 +13,7 @@ import {
   History,
   Award,
   MessageSquare,
+  Dumbbell,
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import PlatformLogo from '@/components/ui/PlatformLogo'
@@ -36,6 +37,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   const navItems = [
     { name: 'Início', href: '/dashboard', icon: Home },
+    { name: 'Exercícios', href: '/student/exercicios', icon: Dumbbell },
     { name: 'Simulado', href: '/student/simulado', icon: PlayCircle },
     { name: 'Prova', href: '/student/prova', icon: FileText },
     { name: 'Histórico', href: '/student/historico', icon: History },

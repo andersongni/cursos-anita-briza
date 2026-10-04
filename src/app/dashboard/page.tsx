@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth/session'
 import { prisma } from '@/lib/db'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
-import { PlayCircle, FileText, History, Award } from 'lucide-react'
+import { PlayCircle, FileText, History, Award, Dumbbell } from 'lucide-react'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
 
 export const dynamic = 'force-dynamic'
@@ -50,6 +50,30 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
+          <Card className="border-t-4 border-t-brand-gold hover:shadow-lg transition-shadow">
+            <div className="p-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 bg-amber-50 p-3 rounded-full">
+                  <Dumbbell className="w-8 h-8 text-brand-gold-dark" />
+                </div>
+                <div className="ml-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Exercícios</h2>
+                  <p className="text-gray-600 mb-6">
+                    Pratique digitação em português e acompanhe seu tempo, erros, nota e ranking.
+                  </p>
+                  <Link href="/student/exercicios">
+                    <Button
+                      variant="outline"
+                      className="w-full sm:w-auto text-secondary border-secondary hover:bg-secondary hover:text-white"
+                    >
+                      Ver exercícios
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card className="border-t-4 border-t-accent hover:shadow-lg transition-shadow">
             <div className="p-6">
               <div className="flex items-start">

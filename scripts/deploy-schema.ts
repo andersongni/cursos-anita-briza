@@ -3,11 +3,14 @@
  * Rodado no `npm run build` (inclui deploy Vercel) para o Turso
  * receber colunas novas antes do app subir.
  *
+ * Também garante os textos padrão do exercício de digitação.
+ *
  * Local com SQLite: também aplica (idempotente).
  * Sem URL de banco válida: avisa e segue (não quebra build de preview sem env).
  */
 import { ensureSchemaColumns } from '../src/lib/ensure-schema'
 import { getDatabaseUrl } from '../src/lib/db-url'
+import { ensureTypingPassagesSeeded } from '../src/lib/exercises/ensure-typing-passages'
 
 function isRemote(url: string): boolean {
   return url.startsWith('libsql://') || url.startsWith('https://')
@@ -43,6 +46,16 @@ async function main() {
       console.log('[deploy-schema] já existiam:', result.skipped.join(', '))
     }
     console.log('[deploy-schema] Profile.deleted_at =', result.deleted_at)
+
+    try {
+      const seed = await ensureTypingPassagesSeeded({ force: true })
+      console.log(
+        `[deploy-schema] digitação: criados=${seed.created} reativados=${seed.reactivated} total=${seed.total}`
+      )
+    } catch (seedErr) {
+      const seedMessage = seedErr instanceof Error ? seedErr.message : String(seedErr)
+      console.warn('[deploy-schema] seed digitação falhou (não bloqueia):', seedMessage)
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[deploy-schema] FALHA:', message)

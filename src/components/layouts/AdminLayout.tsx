@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, HelpCircle, BookOpen, ClipboardList, Award, Settings, Menu, X, LogOut, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Users, HelpCircle, BookOpen, ClipboardList, Award, Settings, Menu, X, LogOut, MessageSquare, Dumbbell } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import PlatformLogo from '@/components/ui/PlatformLogo'
 import { useSessionGuard } from '@/hooks/useSessionGuard'
@@ -31,6 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Avaliações', href: '/admin/avaliacoes', icon: ClipboardList },
     { name: 'Certificados', href: '/admin/certificados', icon: Award },
     { name: 'Feedbacks', href: '/admin/feedback', icon: MessageSquare },
+    { name: 'Exercícios', href: '/admin/exercicios', icon: Dumbbell },
     { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
   ]
 
