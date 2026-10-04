@@ -18,7 +18,9 @@ model Profile {
   session_version Int       @default(0)
   must_change_password Boolean  @default(false)
   last_login_at   DateTime?
-  /** Soft-delete: preenchido quando o admin exclui o aluno (restaurável). */
+  /** Soft-delete: preenchido quando o admin exclui o aluno (restaurável).
+   *  Ao adicionar campos novos, registre o ALTER em src/lib/schema-migrations.ts
+   *  (aplicado automaticamente no `npm run build` / deploy Vercel). */
   deleted_at      DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt

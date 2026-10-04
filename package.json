@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node scripts/run-dev.mjs",
     "dev:raw": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && npx tsx scripts/deploy-schema.ts && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint",
@@ -16,6 +16,7 @@
     "db:push": "npx prisma db push",
     "db:setup": "npx prisma db push && npm run seed:settings && npm run ensure-admin",
     "db:setup:remote": "npx tsx scripts/setup-remote.ts",
+    "db:migrate": "npx tsx scripts/deploy-schema.ts",
     "db:migrate:remote": "npx tsx scripts/migrate-remote-columns.ts",
     "db:check:remote": "npx tsx scripts/check-remote.ts",
     "db:info": "npx tsx scripts/debug-login-db.ts",

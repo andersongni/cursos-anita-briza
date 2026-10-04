@@ -90,16 +90,19 @@ async function applySchema() {
     }
   }
 
-  // Colunas adicionadas depois do schema inicial
-  try {
-    await client.execute('ALTER TABLE Profile ADD COLUMN deleted_at DATETIME')
-    console.log('  OK  ALTER TABLE Profile ADD COLUMN deleted_at')
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (/duplicate column|already exists/i.test(message)) {
-      console.log('  skip ALTER TABLE Profile ADD COLUMN deleted_at')
-    } else {
-      throw err
+  // Migrações aditivas (mesma lista do deploy)
+  const { SCHEMA_MIGRATIONS } = await import('../src/lib/schema-migrations')
+  for (const migration of SCHEMA_MIGRATIONS) {
+    try {
+      await client.execute(migration.sql)
+      console.log(`  OK  ${migration.id}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (/duplicate column|already exists|duplicate table/i.test(message)) {
+        console.log(`  skip ${migration.id}`)
+      } else {
+        throw err
+      }
     }
   }
 

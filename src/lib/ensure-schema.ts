@@ -1,11 +1,41 @@
-import { createClient } from '@libsql/client'
+import { createClient, type Client } from '@libsql/client'
 import { getDatabaseAuthToken, getDatabaseUrl } from '@/lib/db-url'
+import { SCHEMA_MIGRATIONS } from '@/lib/schema-migrations'
 
-const ALTERS = ['ALTER TABLE Profile ADD COLUMN deleted_at DATETIME'] as const
+function isAlreadyExistsError(message: string): boolean {
+  return /duplicate column|already exists|duplicate table/i.test(message)
+}
+
+async function applyMigrations(client: Client): Promise<{
+  applied: string[]
+  skipped: string[]
+}> {
+  const applied: string[] = []
+  const skipped: string[] = []
+
+  for (const migration of SCHEMA_MIGRATIONS) {
+    try {
+      await client.execute(migration.sql)
+      applied.push(migration.id)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (isAlreadyExistsError(message)) {
+        skipped.push(migration.id)
+        continue
+      }
+      throw Object.assign(
+        new Error(`Migração ${migration.id} falhou: ${message}`),
+        { cause: err }
+      )
+    }
+  }
+
+  return { applied, skipped }
+}
 
 /**
- * Garante colunas aditivas no SQLite/Turso (idempotente).
- * Usa libsql direto para não depender do Prisma Client.
+ * Garante schema aditivo no SQLite/Turso (idempotente).
+ * Usa libsql direto — não depende do Prisma Client.
  */
 export async function ensureSchemaColumns(): Promise<{
   applied: string[]
@@ -16,24 +46,8 @@ export async function ensureSchemaColumns(): Promise<{
   const authToken = getDatabaseAuthToken()
   const client = createClient(authToken ? { url, authToken } : { url })
 
-  const applied: string[] = []
-  const skipped: string[] = []
-
   try {
-    for (const sql of ALTERS) {
-      try {
-        await client.execute(sql)
-        applied.push(sql)
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err)
-        if (/duplicate column|already exists/i.test(message)) {
-          skipped.push(sql)
-          continue
-        }
-        throw err
-      }
-    }
-
+    const { applied, skipped } = await applyMigrations(client)
     const cols = await client.execute('PRAGMA table_info(Profile)')
     const deleted_at = cols.rows.some((r) => String(r.name) === 'deleted_at')
     return { applied, skipped, deleted_at }

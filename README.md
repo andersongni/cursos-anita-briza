@@ -158,22 +158,30 @@ avaliacao-anita-briza/
 
 Para o captcha “Não sou um robô” (com desafio de imagens do Google), cadastre o domínio em [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin) no tipo **reCAPTCHA v2 → Checkbox**. Sem as chaves, após 3 falhas o login usa um captcha matemático local.
 
-3. **Obrigatório após o deploy:** criar as tabelas no Turso (senão o login falha com `no such table: Profile`):
+3. **Primeiro deploy (banco vazio):** criar tabelas + seed no Turso:
 
 ```powershell
-# Cole a mesma URL e token que estão na Vercel (Settings → Environment Variables)
-# URL deve começar com libsql:// (não use aspas extras nem espaços)
 $env:DATABASE_URL="libsql://SEU-BANCO-ORG.turso.io"
 $env:TURSO_AUTH_TOKEN="eyJ..."
 
 npm run db:setup:remote
 ```
 
-Isso gera o SQL do Prisma, aplica no Turso, cria as configurações, o admin (`admin` / `admin123`) e importa as perguntas.
-
-> `prisma db push` **não** aceita `libsql://` — por isso o script usa o client libSQL.
+> `prisma db push` **não** aceita `libsql://` — o script usa o client libSQL.
 
 4. Acesse a URL da Vercel e troque a senha do admin no primeiro login.
+
+### Alterações de schema (local → produção)
+
+O `npm run build` na Vercel **já aplica** migrações aditivas no Turso antes de publicar o app.
+
+1. Altere `prisma/schema.prisma`
+2. Local: `npm run db:push` (SQLite)
+3. **Obrigatório:** acrescente o SQL em `src/lib/schema-migrations.ts` (ex.: `ALTER TABLE ... ADD COLUMN ...`)
+4. Commit + push — o build da Vercel roda `deploy-schema.ts` e atualiza o Turso
+
+Sem o passo 3, o código sobe e a produção quebra com `no such column`.
+Migrações só devem ser **aditivas** (nunca `DROP` nesse arquivo).
 
 > Upload de logo customizado usa disco local e **não persiste** na Vercel; o logo padrão continua funcionando.
 
