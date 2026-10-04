@@ -18,4 +18,16 @@ export const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     id: '2026-04-03_profile_deleted_at',
     sql: 'ALTER TABLE Profile ADD COLUMN deleted_at DATETIME',
   },
+  {
+    id: '2026-10-03_create_feedback',
+    sql: `CREATE TABLE IF NOT EXISTS Feedback (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      subject TEXT,
+      message TEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES Profile(id)
+    )`,
+  },
 ]

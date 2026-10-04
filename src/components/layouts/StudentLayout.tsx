@@ -3,7 +3,17 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, LogOut, Home, PlayCircle, FileText, History, Award } from 'lucide-react'
+import {
+  Menu,
+  X,
+  LogOut,
+  Home,
+  PlayCircle,
+  FileText,
+  History,
+  Award,
+  MessageSquare,
+} from 'lucide-react'
 import Button from '@/components/ui/Button'
 import PlatformLogo from '@/components/ui/PlatformLogo'
 import FontSizeControl from '@/components/accessibility/FontSizeControl'
@@ -30,10 +40,13 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     { name: 'Prova', href: '/student/prova', icon: FileText },
     { name: 'Histórico', href: '/student/historico', icon: History },
     { name: 'Certificados', href: '/student/certificados', icon: Award },
+    { name: 'Feedback', href: '/student/feedback', icon: MessageSquare },
   ]
 
-  // Modo foco: execução da prova/simulado (sem /resumo)
-  // Execução da prova/simulado (página da avaliação, com ou sem barra final)
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+
+  // Modo foco: execução da prova/simulado
   const isAssessmentFocus = /^\/student\/avaliacao\/[^/]+\/?$/.test(pathname)
 
   if (isAssessmentFocus) {
@@ -50,114 +63,134 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <Link href="/dashboard" className="flex items-center gap-3">
-                  <PlatformLogo width={40} height={40} className="rounded-full" />
-                  <span className="font-bold text-secondary text-lg hidden sm:block">
-                    Plataforma de Avaliação
+      <header className="bg-white shadow-sm sticky top-0 z-20">
+        {/* Linha 1: marca + acessibilidade + conta */}
+        <div className="border-b border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex h-14 sm:h-16 items-center justify-between gap-3">
+              <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0 shrink">
+                <PlatformLogo width={40} height={40} className="rounded-full shrink-0" />
+                <span className="font-bold text-secondary text-base sm:text-lg truncate">
+                  Plataforma de Avaliação
+                </span>
+              </Link>
+
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div className="hidden sm:flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-2 py-1">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Texto</span>
+                  <FontSizeControl compact />
+                </div>
+                <div className="sm:hidden">
+                  <FontSizeControl compact />
+                </div>
+
+                <div className="hidden md:flex items-center gap-2 pl-2 border-l border-slate-200">
+                  <span className="text-sm text-gray-700 max-w-[10rem] lg:max-w-[14rem] truncate">
+                    {profile?.full_name}
                   </span>
-                </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-gray-500 hover:text-primary"
+                  >
+                    <LogOut className="w-4 h-4 mr-1.5" />
+                    Sair
+                  </Button>
+                </div>
+
+                <button
+                  type="button"
+                  className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen((open) => !open)}
+                  aria-expanded={isMobileMenuOpen}
+                  aria-controls="student-mobile-menu"
+                >
+                  <span className="sr-only">Abrir menu</span>
+                  {isMobileMenuOpen ? (
+                    <X className="block h-6 w-6" />
+                  ) : (
+                    <Menu className="block h-6 w-6" />
+                  )}
+                </button>
               </div>
-              <nav className="hidden sm:ml-8 sm:flex sm:space-x-8">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                        isActive
-                          ? 'border-primary text-secondary'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
-
-            <div className="hidden sm:ml-6 sm:flex sm:items-center gap-3">
-              <FontSizeControl />
-              <span className="text-sm text-gray-700">
-                {profile?.full_name}
-              </span>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-500 hover:text-primary">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-1 sm:hidden">
-              <FontSizeControl compact />
-              <button
-                type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                <span className="sr-only">Abrir menu</span>
-                {isMobileMenuOpen ? <X className="block h-6 w-6" /> : <Menu className="block h-6 w-6" />}
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        {isMobileMenuOpen && (
-          <div className="sm:hidden border-t border-gray-200">
-            <div className="pt-2 pb-3 space-y-1">
+        {/* Linha 2: navegação (só desktop/tablet largo) — sem disputa com acessibilidade */}
+        <nav className="hidden md:block" aria-label="Menu do aluno">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ul className="flex flex-wrap gap-x-1 gap-y-0">
               {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                const active = isActive(item.href)
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                        active
+                          ? 'border-primary text-secondary'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 opacity-70" aria-hidden />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
+
+        {/* Menu colapsável (mobile / tablet) */}
+        {isMobileMenuOpen && (
+          <div
+            id="student-mobile-menu"
+            className="md:hidden border-t border-gray-200 bg-white"
+          >
+            <div className="pt-2 pb-2 space-y-0.5">
+              {navItems.map((item) => {
+                const active = isActive(item.href)
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                      isActive
+                    className={`flex items-center gap-3 pl-4 pr-4 py-3 border-l-4 text-base font-medium ${
+                      active
                         ? 'bg-red-50 border-primary text-primary'
                         : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <div className="flex items-center">
-                      <item.icon className="w-5 h-5 mr-3 text-gray-400" />
-                      {item.name}
-                    </div>
+                    <item.icon className="w-5 h-5 text-gray-400 shrink-0" />
+                    {item.name}
                   </Link>
                 )
               })}
             </div>
-            <div className="pt-4 pb-3 border-t border-gray-200">
-              <div className="flex items-center px-4">
-                <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">{profile?.full_name}</div>
-                </div>
+            <div className="pt-3 pb-4 border-t border-gray-200 px-4 space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                <span className="text-sm font-medium text-slate-600">Tamanho do texto</span>
+                <FontSizeControl compact />
               </div>
-              <div className="mt-3 space-y-1">
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                >
-                  Sair
-                </button>
-              </div>
+              <div className="text-base font-medium text-gray-800">{profile?.full_name}</div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-base font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              >
+                <LogOut className="w-5 h-5" />
+                Sair
+              </button>
             </div>
           </div>
         )}
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 w-full">
-        {children}
-      </main>
+      <main className="flex-1 w-full">{children}</main>
 
-      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
           <p>Núcleo Assistencial Anita Briza — O Futuro Depende de Nós</p>

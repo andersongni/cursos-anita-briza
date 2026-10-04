@@ -31,6 +31,7 @@ model Profile {
   certificates     Certificate[]
   auditLogs        AuditLog[]
   settingsUpdated  SystemSetting[]
+  feedbacks        Feedback[]
 }
 
 model Dimension {
@@ -191,4 +192,15 @@ model AuditLog {
   created_at  DateTime @default(now())
 
   user Profile? @relation(fields: [user_id], references: [id])
+}
+
+model Feedback {
+  id         String   @id @default(cuid())
+  user_id    String
+  role       String
+  subject    String?
+  message    String
+  created_at DateTime @default(now())
+
+  user Profile @relation(fields: [user_id], references: [id])
 }
