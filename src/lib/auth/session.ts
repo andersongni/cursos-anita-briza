@@ -1,13 +1,18 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? 'dev-secret-anita-briza-change-in-production'
 )
 
-const COOKIE_NAME = 'auth-token'
+export const COOKIE_NAME = 'auth-token'
+/** Teto absoluto da sessão (mesmo com uso contínuo). */
 const EXPIRES_IN = '7d'
+/** Logout após este período sem atividade do usuário. */
+export const IDLE_TIMEOUT_SECONDS = 60 * 60 * 24
+/** Evita reescrever o cookie/JWT a cada request. */
+export const ACTIVITY_REFRESH_THROTTLE_SECONDS = 5 * 60
 
 export interface SessionPayload {
   userId: string
@@ -18,15 +23,73 @@ export interface SessionPayload {
   sessionVersion: number
   /** Admin (ou usuário) deve trocar a senha antes de usar o sistema */
   mustChangePassword?: boolean
+  /** Unix seconds — última atividade do usuário (não inclui polling silencioso) */
+  lastActivityAt?: number
+  /** Presente no JWT padrão do jose */
+  iat?: number
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000)
+}
+
+export function getLastActivityAt(session: SessionPayload): number | null {
+  if (typeof session.lastActivityAt === 'number' && Number.isFinite(session.lastActivityAt)) {
+    return session.lastActivityAt
+  }
+  if (typeof session.iat === 'number' && Number.isFinite(session.iat)) {
+    return session.iat
+  }
+  return null
+}
+
+export function isSessionIdle(session: SessionPayload): boolean {
+  const last = getLastActivityAt(session)
+  if (last == null) return true
+  return nowSeconds() - last > IDLE_TIMEOUT_SECONDS
+}
+
+export function shouldRefreshActivity(session: SessionPayload): boolean {
+  const last = getLastActivityAt(session)
+  if (last == null) return true
+  return nowSeconds() - last >= ACTIVITY_REFRESH_THROTTLE_SECONDS
+}
+
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    // Alinha com o idle: sem Set-Cookie por 24h o browser descarta a sessão
+    maxAge: IDLE_TIMEOUT_SECONDS,
+    path: '/',
+  }
 }
 
 // ── Create ──────────────────────────────────────────────────────────────────
 export async function createToken(payload: SessionPayload): Promise<string> {
-  return new SignJWT(payload as unknown as Record<string, unknown>)
+  const lastActivityAt = payload.lastActivityAt ?? nowSeconds()
+  const { iat: _iat, ...rest } = payload
+  void _iat
+
+  return new SignJWT({ ...rest, lastActivityAt } as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(EXPIRES_IN)
     .sign(SECRET)
+}
+
+/** Reemite o JWT com lastActivityAt atualizado (throttle no chamador). */
+export async function refreshSessionActivity(session: SessionPayload): Promise<string> {
+  return createToken({
+    userId: session.userId,
+    username: session.username,
+    role: session.role,
+    status: session.status,
+    sessionVersion: session.sessionVersion,
+    mustChangePassword: session.mustChangePassword,
+    lastActivityAt: nowSeconds(),
+  })
 }
 
 // ── Verify ───────────────────────────────────────────────────────────────────
@@ -57,13 +120,15 @@ export async function getSessionFromRequest(req: NextRequest): Promise<SessionPa
 // ── Set session cookie ─────────────────────────────────────────────────────────
 export async function setSessionCookie(token: string): Promise<void> {
   const store = await cookies()
-  store.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-  })
+  store.set(COOKIE_NAME, token, sessionCookieOptions())
+}
+
+export function setSessionCookieOnResponse(response: NextResponse, token: string): void {
+  response.cookies.set(COOKIE_NAME, token, sessionCookieOptions())
+}
+
+export function clearSessionCookieOnResponse(response: NextResponse): void {
+  response.cookies.delete(COOKIE_NAME)
 }
 
 // ── Clear session cookie ───────────────────────────────────────────────────────

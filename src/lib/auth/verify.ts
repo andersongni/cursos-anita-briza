@@ -1,4 +1,4 @@
-import { clearSessionCookie, getSession } from '@/lib/auth/session'
+import { clearSessionCookie, getSession, isSessionIdle } from '@/lib/auth/session'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
@@ -26,6 +26,13 @@ export async function verifyAuth() {
   const session = await getSession()
   if (!session) {
     throw Object.assign(new Error('Não autenticado'), { status: 401 })
+  }
+
+  if (isSessionIdle(session)) {
+    await clearSessionCookie()
+    throw Object.assign(new Error('Sessão expirada por inatividade. Faça login novamente.'), {
+      status: 401,
+    })
   }
 
   const profile = await loadProfile(session.userId)

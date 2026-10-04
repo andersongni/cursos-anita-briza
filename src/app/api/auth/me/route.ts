@@ -1,19 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import {
   clearSessionCookie,
   createToken,
   getSession,
+  isSessionIdle,
+  refreshSessionActivity,
   setSessionCookie,
+  shouldRefreshActivity,
 } from '@/lib/auth/session'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
 
     if (!session) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
+
+    if (isSessionIdle(session)) {
+      await clearSessionCookie()
+      return NextResponse.json(
+        { error: 'Sessão expirada por inatividade. Faça login novamente.', code: 'IDLE' },
+        { status: 401 }
+      )
+    }
+
+    const touch = request.nextUrl.searchParams.get('touch') === '1'
 
     const profile = await prisma.profile.findUnique({
       where: { id: session.userId },
@@ -62,6 +75,18 @@ export async function GET() {
       const token = await createToken({
         userId: profile.id,
         username: profile.username,
+        role: profile.role,
+        status: profile.status,
+        sessionVersion: profile.session_version ?? 0,
+        mustChangePassword,
+        // Sync de perfil não conta como atividade; touch renova abaixo
+        lastActivityAt: session.lastActivityAt,
+      })
+      await setSessionCookie(token)
+    } else if (touch && shouldRefreshActivity(session)) {
+      // Só renova idle com sinal explícito de interação do usuário
+      const token = await refreshSessionActivity({
+        ...session,
         role: profile.role,
         status: profile.status,
         sessionVersion: profile.session_version ?? 0,

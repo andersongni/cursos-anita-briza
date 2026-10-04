@@ -28,6 +28,7 @@ function LoginForm() {
   const [captchaAnswer, setCaptchaAnswer] = useState('')
 
   const blocked = searchParams.get('blocked')
+  const idle = searchParams.get('idle')
 
   const clearCaptchaUi = () => {
     setRequiresCaptcha(false)
@@ -153,6 +154,12 @@ function LoginForm() {
         {blocked && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             Sua conta foi bloqueada. Entre em contato com o administrador.
+          </div>
+        )}
+
+        {idle && !blocked && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded">
+            Sua sessão expirou por inatividade. Faça login novamente.
           </div>
         )}
 
