@@ -18,6 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         phone: true,
         role: true,
         status: true,
+        deleted_at: true,
         last_login_at: true,
         created_at: true,
         updated_at: true,

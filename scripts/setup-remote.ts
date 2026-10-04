@@ -90,6 +90,19 @@ async function applySchema() {
     }
   }
 
+  // Colunas adicionadas depois do schema inicial
+  try {
+    await client.execute('ALTER TABLE Profile ADD COLUMN deleted_at DATETIME')
+    console.log('  OK  ALTER TABLE Profile ADD COLUMN deleted_at')
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (/duplicate column|already exists/i.test(message)) {
+      console.log('  skip ALTER TABLE Profile ADD COLUMN deleted_at')
+    } else {
+      throw err
+    }
+  }
+
   const tables = await client.execute(
     "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
   )

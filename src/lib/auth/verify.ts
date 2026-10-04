@@ -13,6 +13,7 @@ async function loadProfile(userId: string) {
       phone: true,
       role: true,
       status: true,
+      deleted_at: true,
       session_version: true,
       last_login_at: true,
       created_at: true,
@@ -46,6 +47,11 @@ export async function verifyAuth() {
   if (tokenVersion !== profile.session_version) {
     await clearSessionCookie()
     throw Object.assign(new Error('Sessão expirada. Faça login novamente.'), { status: 401 })
+  }
+
+  if (profile.deleted_at) {
+    await clearSessionCookie()
+    throw Object.assign(new Error('Conta excluída'), { status: 403 })
   }
 
   if (profile.status === 'BLOCKED') {

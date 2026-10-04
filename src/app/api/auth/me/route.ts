@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         phone: true,
         role: true,
         status: true,
+        deleted_at: true,
         session_version: true,
         must_change_password: true,
         last_login_at: true,
@@ -57,6 +58,11 @@ export async function GET(request: NextRequest) {
         { error: 'Sessão invalidada. Faça login novamente.' },
         { status: 401 }
       )
+    }
+
+    if (profile.deleted_at) {
+      await clearSessionCookie()
+      return NextResponse.json({ error: 'Conta excluída', code: 'DELETED' }, { status: 401 })
     }
 
     const mustChangePassword = Boolean(profile.must_change_password)

@@ -23,7 +23,7 @@ export async function POST(
 
     const student = await prisma.profile.findUnique({
       where: { id },
-      select: { id: true, username: true, role: true, full_name: true },
+      select: { id: true, username: true, role: true, full_name: true, deleted_at: true },
     })
 
     if (!student) {
@@ -33,6 +33,13 @@ export async function POST(
     if (student.role !== 'STUDENT') {
       return NextResponse.json(
         { error: 'Só é possível resetar senha de alunos por esta tela' },
+        { status: 400 }
+      )
+    }
+
+    if (student.deleted_at) {
+      return NextResponse.json(
+        { error: 'Restaure o aluno antes de resetar a senha' },
         { status: 400 }
       )
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { notDeleted, ofActiveStudent } from '@/lib/students/soft-delete'
 
 export async function GET() {
   try {
@@ -20,14 +21,22 @@ export async function GET() {
       activeQuestions,
       inactiveQuestions,
     ] = await Promise.all([
-      prisma.profile.count({ where: { role: 'STUDENT' } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'PENDING' } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'APPROVED' } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'BLOCKED' } }),
-      prisma.assessment.count({ where: { status: 'COMPLETED', type: 'PROVA' } }),
-      prisma.assessment.count({ where: { status: 'COMPLETED', type: 'PROVA', passed: true } }),
-      prisma.assessment.count({ where: { status: 'COMPLETED', type: 'PROVA', passed: false } }),
-      prisma.assessment.count({ where: { status: 'COMPLETED', type: 'SIMULADO' } }),
+      prisma.profile.count({ where: { role: 'STUDENT', ...notDeleted } }),
+      prisma.profile.count({ where: { role: 'STUDENT', status: 'PENDING', ...notDeleted } }),
+      prisma.profile.count({ where: { role: 'STUDENT', status: 'APPROVED', ...notDeleted } }),
+      prisma.profile.count({ where: { role: 'STUDENT', status: 'BLOCKED', ...notDeleted } }),
+      prisma.assessment.count({
+        where: { status: 'COMPLETED', type: 'PROVA', ...ofActiveStudent },
+      }),
+      prisma.assessment.count({
+        where: { status: 'COMPLETED', type: 'PROVA', passed: true, ...ofActiveStudent },
+      }),
+      prisma.assessment.count({
+        where: { status: 'COMPLETED', type: 'PROVA', passed: false, ...ofActiveStudent },
+      }),
+      prisma.assessment.count({
+        where: { status: 'COMPLETED', type: 'SIMULADO', ...ofActiveStudent },
+      }),
       prisma.question.count({ where: { type: 'PROVA' } }),
       prisma.question.count({ where: { type: 'SIMULADO' } }),
       prisma.question.count({ where: { active: true } }),
@@ -35,7 +44,12 @@ export async function GET() {
     ])
 
     const avg = await prisma.assessment.aggregate({
-      where: { status: 'COMPLETED', type: 'PROVA', score: { not: null } },
+      where: {
+        status: 'COMPLETED',
+        type: 'PROVA',
+        score: { not: null },
+        ...ofActiveStudent,
+      },
       _avg: { score: true },
     })
 

@@ -21,6 +21,7 @@ type Profile = {
   email: string | null
   phone: string | null
   status: string
+  deleted_at: string | null
   created_at: string
   last_login_at: string | null
   assessments: Array<{
@@ -50,6 +51,9 @@ export default function AlunoDetailPage() {
   const [resetting, setResetting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [deleteModal, setDeleteModal] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -100,6 +104,45 @@ export default function AlunoDetailPage() {
     }
   }
 
+  const handleSoftDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: params.id, action: 'DELETE' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir aluno')
+      toast.success('Aluno excluído com sucesso.')
+      setDeleteModal(false)
+      await load()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir aluno')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    setRestoring(true)
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: params.id, action: 'RESTORE' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao restaurar aluno')
+      toast.success('Aluno restaurado com sucesso.')
+      await load()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao restaurar aluno')
+    } finally {
+      setRestoring(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center p-12">
@@ -119,8 +162,14 @@ export default function AlunoDetailPage() {
     )
   }
 
-  const statusVariant =
-    profile.status === 'APPROVED' ? 'success' : profile.status === 'BLOCKED' ? 'error' : 'warning'
+  const isDeleted = profile.deleted_at != null
+  const statusVariant = isDeleted
+    ? 'outline'
+    : profile.status === 'APPROVED'
+      ? 'success'
+      : profile.status === 'BLOCKED'
+        ? 'error'
+        : 'warning'
 
   return (
     <div className="space-y-6">
@@ -147,8 +196,19 @@ export default function AlunoDetailPage() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
-              <Badge variant={statusVariant as 'success' | 'error' | 'warning'}>{profile.status}</Badge>
+              <div className="flex flex-wrap gap-2">
+                {isDeleted && <Badge variant="outline">Excluído</Badge>}
+                <Badge variant={statusVariant as 'success' | 'error' | 'warning' | 'outline'}>
+                  {profile.status}
+                </Badge>
+              </div>
             </div>
+            {isDeleted && (
+              <div>
+                <p className="text-sm text-gray-500">Excluído em</p>
+                <p>{formatDateTime(profile.deleted_at!)}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm text-gray-500">Cadastro</p>
               <p>{formatDateTime(profile.created_at)}</p>
@@ -157,10 +217,27 @@ export default function AlunoDetailPage() {
               <p className="text-sm text-gray-500">Último Acesso</p>
               <p>{profile.last_login_at ? formatDateTime(profile.last_login_at) : '—'}</p>
             </div>
-            <div className="pt-2">
-              <Button variant="outline" className="w-full" onClick={openResetModal}>
-                Resetar senha
-              </Button>
+            <div className="pt-2 space-y-2">
+              {!isDeleted && (
+                <>
+                  <Button variant="outline" className="w-full" onClick={openResetModal}>
+                    Resetar senha
+                  </Button>
+                  <Button variant="danger" className="w-full" onClick={() => setDeleteModal(true)}>
+                    Excluir aluno
+                  </Button>
+                </>
+              )}
+              {isDeleted && (
+                <Button
+                  variant="success"
+                  className="w-full"
+                  loading={restoring}
+                  onClick={() => void handleRestore()}
+                >
+                  Restaurar aluno
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -274,6 +351,30 @@ export default function AlunoDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        isOpen={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        title="Excluir aluno"
+      >
+        <div className="space-y-4">
+          <p>
+            Tem certeza que deseja excluir <strong>{profile.full_name}</strong>?
+          </p>
+          <p className="text-sm text-gray-500">
+            A exclusão é lógica: o aluno sai das métricas e não consegue mais entrar. O histórico
+            permanece e a conta pode ser restaurada depois.
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="ghost" onClick={() => setDeleteModal(false)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" loading={deleting} onClick={() => void handleSoftDelete()}>
+              Confirmar exclusão
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={resetModal}

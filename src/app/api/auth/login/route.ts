@@ -102,6 +102,13 @@ export async function POST(req: Request) {
       console.info(`[login] user=${normalizedUsername} → ok`)
     }
 
+    if (profile.deleted_at) {
+      return NextResponse.json(
+        { error: 'Conta excluída. Entre em contato com o administrador.' },
+        { status: 403 }
+      )
+    }
+
     if (profile.status === 'BLOCKED') {
       return NextResponse.json(
         { error: 'Conta bloqueada. Entre em contato com o administrador.' },
