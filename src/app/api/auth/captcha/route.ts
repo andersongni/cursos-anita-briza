@@ -9,6 +9,13 @@ import {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
+    const purpose = (searchParams.get('for') || searchParams.get('purpose') || '').toLowerCase()
+
+    // Cadastro: captcha sempre obrigatório
+    if (purpose === 'register' || purpose === 'cadastro') {
+      return NextResponse.json(await captchaResponseFields())
+    }
+
     const username = (searchParams.get('username') || '').toLowerCase().trim()
     if (!username) {
       return NextResponse.json({ requiresCaptcha: false })

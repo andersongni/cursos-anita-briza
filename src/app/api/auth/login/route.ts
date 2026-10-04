@@ -9,9 +9,8 @@ import {
   clearLoginFailCount,
   getLoginFailCount,
   incrementLoginFailCount,
-  verifyMathCaptchaAnswer,
+  verifyCaptchaFromBody,
 } from '@/lib/auth/login-captcha'
-import { isRecaptchaConfigured, verifyRecaptchaToken } from '@/lib/auth/recaptcha'
 
 async function failedLoginResponse(username: string, message = 'Usuário ou senha incorretos') {
   const failedAttempts = await incrementLoginFailCount(username)
@@ -26,20 +25,6 @@ async function failedLoginResponse(username: string, message = 'Usuário ou senh
   }
 
   return NextResponse.json(body, { status: 401 })
-}
-
-async function verifyRequiredCaptcha(body: {
-  recaptchaToken?: unknown
-  captchaToken?: unknown
-  captchaAnswer?: unknown
-}): Promise<boolean> {
-  if (isRecaptchaConfigured()) {
-    return verifyRecaptchaToken(body.recaptchaToken)
-  }
-  return verifyMathCaptchaAnswer(
-    typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
-    body.captchaAnswer
-  )
 }
 
 export async function POST(req: Request) {
@@ -58,7 +43,7 @@ export async function POST(req: Request) {
     const failCount = await getLoginFailCount(normalizedUsername)
 
     if (failCount >= LOGIN_FAIL_THRESHOLD) {
-      const captchaOk = await verifyRequiredCaptcha({
+      const captchaOk = await verifyCaptchaFromBody({
         recaptchaToken,
         captchaToken,
         captchaAnswer,

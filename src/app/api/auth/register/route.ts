@@ -1,62 +1,139 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import bcrypt from 'bcryptjs';
-import { createToken, setSessionCookie } from '@/lib/auth/session';
-import { formatFullName, isValidUsername } from '@/lib/utils';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import bcrypt from 'bcryptjs'
+import { createToken, setSessionCookie } from '@/lib/auth/session'
+import {
+  formatFullName,
+  formatPhoneMask,
+  isValidBrazilianMobile,
+  isValidEmail,
+  isValidFullName,
+  isValidUsername,
+  phoneDigits,
+} from '@/lib/utils'
+import {
+  captchaResponseFields,
+  verifyCaptchaFromBody,
+} from '@/lib/auth/login-captcha'
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { username, password, full_name, email, phone } = body;
-    const normalizedFullName = typeof full_name === 'string' ? formatFullName(full_name) : '';
+    const body = await req.json()
+    const {
+      username,
+      password,
+      full_name,
+      email,
+      phone,
+      captchaToken,
+      captchaAnswer,
+      recaptchaToken,
+    } = body
+
+    const captchaOk = await verifyCaptchaFromBody({
+      recaptchaToken,
+      captchaToken,
+      captchaAnswer,
+    })
+    if (!captchaOk) {
+      return NextResponse.json(
+        {
+          error: 'Complete o captcha para continuar.',
+          ...(await captchaResponseFields()),
+        },
+        { status: 400 }
+      )
+    }
+
+    const normalizedFullName = typeof full_name === 'string' ? formatFullName(full_name) : ''
 
     if (!username || !password || !normalizedFullName) {
       return NextResponse.json(
         { error: 'Nome de usuário, senha e nome completo são obrigatórios' },
         { status: 400 }
-      );
+      )
+    }
+
+    if (!isValidFullName(normalizedFullName)) {
+      return NextResponse.json(
+        {
+          error: 'Informe nome e sobrenome (pelo menos duas palavras)',
+          ...(await captchaResponseFields()),
+        },
+        { status: 400 }
+      )
     }
 
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'A senha deve ter pelo menos 6 caracteres' },
         { status: 400 }
-      );
+      )
     }
 
-    const normalizedUsername = typeof username === 'string' ? username.trim().toLowerCase() : '';
+    const normalizedUsername = typeof username === 'string' ? username.trim().toLowerCase() : ''
 
     if (!isValidUsername(normalizedUsername)) {
       return NextResponse.json(
         { error: 'O nome de usuário deve conter apenas letras minúsculas, números e pontos' },
         { status: 400 }
-      );
+      )
+    }
+
+    const normalizedEmail =
+      typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      return NextResponse.json(
+        {
+          error: 'Informe um e-mail válido (ex.: maria.silva@email.com)',
+          ...(await captchaResponseFields()),
+        },
+        { status: 400 }
+      )
+    }
+
+    const rawPhone = typeof phone === 'string' ? phone.trim() : ''
+    let normalizedPhone: string | null = null
+    if (rawPhone) {
+      if (!isValidBrazilianMobile(rawPhone)) {
+        return NextResponse.json(
+          {
+            error: 'Informe um telefone válido no formato (XX) XXXXX-XXXX',
+            ...(await captchaResponseFields()),
+          },
+          { status: 400 }
+        )
+      }
+      normalizedPhone = formatPhoneMask(phoneDigits(rawPhone))
     }
 
     const existingUser = await prisma.profile.findUnique({
       where: { username: normalizedUsername },
-    });
+    })
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Nome de usuário já está em uso' },
+        {
+          error: 'Nome de usuário já está em uso',
+          ...(await captchaResponseFields()),
+        },
         { status: 409 }
-      );
+      )
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     const profile = await prisma.profile.create({
       data: {
         username: normalizedUsername,
         full_name: normalizedFullName,
-        email: email || null,
-        phone: phone || null,
+        email: normalizedEmail,
+        phone: normalizedPhone,
         role: 'STUDENT',
         status: 'PENDING',
         password_hash: hashedPassword,
       },
-    });
+    })
 
     // Sessão PENDING para acessar /aguardando-aprovacao
     const token = await createToken({
@@ -66,15 +143,15 @@ export async function POST(req: Request) {
       status: profile.status,
       sessionVersion: profile.session_version ?? 0,
       mustChangePassword: false,
-    });
-    await setSessionCookie(token);
+    })
+    await setSessionCookie(token)
 
-    return NextResponse.json({ success: true, status: profile.status });
+    return NextResponse.json({ success: true, status: profile.status })
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error:', error)
     return NextResponse.json(
       { error: 'Ocorreu um erro ao registrar o usuário' },
       { status: 500 }
-    );
+    )
   }
 }

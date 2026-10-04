@@ -137,3 +137,19 @@ export async function captchaResponseFields() {
     captchaToken: challenge.token,
   }
 }
+
+/** Valida reCAPTCHA (se configurado) ou desafio matemático. */
+export async function verifyCaptchaFromBody(body: {
+  recaptchaToken?: unknown
+  captchaToken?: unknown
+  captchaAnswer?: unknown
+}): Promise<boolean> {
+  if (isRecaptchaConfigured()) {
+    const { verifyRecaptchaToken } = await import('@/lib/auth/recaptcha')
+    return verifyRecaptchaToken(body.recaptchaToken)
+  }
+  return verifyMathCaptchaAnswer(
+    typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+    body.captchaAnswer
+  )
+}
