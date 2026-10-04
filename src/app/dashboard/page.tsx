@@ -53,7 +53,7 @@ export default async function DashboardPage() {
           <Card className="border-t-4 border-t-accent hover:shadow-lg transition-shadow">
             <div className="p-6">
               <div className="flex items-start">
-                <div className="flex-shrink-0 bg-blue-100 p-3 rounded-full">
+                <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
                   <PlayCircle className="w-8 h-8 text-accent" />
                 </div>
                 <div className="ml-6">
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           <Card className="border-t-4 border-t-primary hover:shadow-lg transition-shadow">
             <div className="p-6">
               <div className="flex items-start">
-                <div className="flex-shrink-0 bg-red-100 p-3 rounded-full">
+                <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
                   <FileText className="w-8 h-8 text-primary" />
                 </div>
                 <div className="ml-6">

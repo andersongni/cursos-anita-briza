@@ -261,7 +261,11 @@ export default function AdminConfiguracoesPage() {
               variant="ghost"
               loading={uploadingLogo}
               onClick={handleLogoReset}
-              disabled={logoUrl === DEFAULT_LOGO_URL || logoUrl.startsWith('/logo.jpg')}
+              disabled={
+                logoUrl === DEFAULT_LOGO_URL ||
+                logoUrl.startsWith('/logo.png') ||
+                logoUrl.startsWith('/logo.jpg')
+              }
             >
               Restaurar padrão
             </Button>

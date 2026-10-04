@@ -51,7 +51,7 @@ export function QuestionGrid({ questions, currentIndex, onSelect, compact = fals
                 compact ? 'aspect-square text-xs' : 'aspect-square text-sm',
                 isCurrent && 'ring-2 ring-blue-500 ring-offset-1 scale-105',
                 !q.isAnswered && !q.isFlagged && 'bg-slate-100 text-slate-500 hover:bg-slate-200',
-                q.isAnswered && !q.isFlagged && 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+                q.isAnswered && !q.isFlagged && 'bg-sky-100 text-primary hover:bg-sky-200',
                 q.isFlagged && 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-300'
               )}
               title={
@@ -78,7 +78,7 @@ export function QuestionGrid({ questions, currentIndex, onSelect, compact = fals
           <span>Vazia</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-blue-100" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-sky-100" />
           <span>Respondida</span>
         </div>
         <div className="flex items-center gap-1.5">

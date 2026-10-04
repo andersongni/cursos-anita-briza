@@ -1,4 +1,4 @@
-export const DEFAULT_LOGO_URL = '/logo.jpg'
+export const DEFAULT_LOGO_URL = '/logo.png'
 export const PLATFORM_LOGO_SETTING_KEY = 'platform.logo_url'
 
 export function normalizeLogoUrl(value: unknown): string {

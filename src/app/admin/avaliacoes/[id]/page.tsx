@@ -210,8 +210,8 @@ export default function AvaliacaoDetalhePage() {
                   })}
                 </div>
                 {explicacao && (
-                  <div className="bg-blue-50 p-3 rounded-md text-sm">
-                    <span className="font-semibold text-blue-800">Explicação:</span> {explicacao}
+                  <div className="bg-sky-50 p-3 rounded-md text-sm">
+                    <span className="font-semibold text-secondary">Explicação:</span> {explicacao}
                   </div>
                 )}
               </div>

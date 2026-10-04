@@ -69,10 +69,10 @@ export default function SimuladoStartPage() {
     <div className="max-w-2xl mx-auto py-8 px-4">
       <Card className="border-2 border-slate-200 shadow-md">
         <CardHeader className="text-center pb-8 border-b border-slate-100">
-          <div className="mx-auto bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <FileText className="w-8 h-8 text-blue-600" />
+          <div className="mx-auto bg-sky-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+            <FileText className="w-8 h-8 text-accent" />
           </div>
-          <CardTitle className="text-3xl font-bold text-slate-800">Simulado</CardTitle>
+          <CardTitle className="text-3xl font-bold text-secondary">Simulado</CardTitle>
           <CardDescription className="text-lg mt-2 text-slate-600">
             Prepare-se para a prova oficial testando seus conhecimentos.
           </CardDescription>
@@ -81,7 +81,7 @@ export default function SimuladoStartPage() {
         <CardContent className="py-8 space-y-6">
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <HelpCircle className="w-6 h-6 text-blue-500" />
+              <HelpCircle className="w-6 h-6 text-accent" />
               <div>
                 <div className="font-semibold text-slate-800">
                   {questionCount != null ? `${questionCount} Questões` : '… Questões'}
@@ -91,7 +91,7 @@ export default function SimuladoStartPage() {
             </div>
 
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <Clock className="w-6 h-6 text-blue-500" />
+              <Clock className="w-6 h-6 text-accent" />
               <div>
                 <div className="font-semibold text-slate-800">Duração</div>
                 <div className="text-sm text-slate-500">
@@ -101,9 +101,9 @@ export default function SimuladoStartPage() {
             </div>
           </div>
 
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 mt-6 text-center">
-            <h3 className="font-semibold text-blue-800 mb-2">Instruções</h3>
-            <p className="text-blue-700">
+          <div className="bg-sky-50 p-6 rounded-lg border border-sky-100 mt-6 text-center">
+            <h3 className="font-semibold text-secondary mb-2">Instruções</h3>
+            <p className="text-slate-700">
               O simulado é uma ferramenta de estudo. Após finalizar, você poderá revisar suas
               respostas e ver as explicações detalhadas para cada questão. O resultado não afeta sua
               nota final.

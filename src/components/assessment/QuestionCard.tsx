@@ -140,7 +140,7 @@ export function QuestionCard({
                 className={cn(
                   'w-full flex items-center text-left transition-all duration-200 border-2 rounded-lg p-4',
                   !readOnly && 'hover:bg-slate-50 cursor-pointer',
-                  isSelected && !showResult && 'border-blue-500 bg-blue-50',
+                  isSelected && !showResult && 'border-primary bg-sky-50',
                   !isSelected && !showResult && 'border-slate-200',
                   isCorrect && 'border-green-500 bg-green-50',
                   isWrongSelection && 'border-red-500 bg-red-50',
@@ -150,7 +150,7 @@ export function QuestionCard({
                 <div
                   className={cn(
                     'rounded-full flex items-center justify-center font-bold shrink-0 border-2 mr-4',
-                    isSelected && !showResult && 'border-blue-500 text-blue-500',
+                    isSelected && !showResult && 'border-primary text-primary',
                     !isSelected && !showResult && 'border-slate-300 text-slate-500',
                     isCorrect && 'border-green-500 text-green-500 bg-green-100',
                     isWrongSelection && 'border-red-500 text-red-500 bg-red-100'
@@ -174,12 +174,12 @@ export function QuestionCard({
           })}
         </div>
         {showResult && explanation && (
-          <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <h3 className="font-semibold text-blue-900 mb-2" style={{ fontSize: `${titlePx}px` }}>
+          <div className="mt-6 p-4 rounded-lg bg-sky-50 border border-sky-200">
+            <h3 className="font-semibold text-secondary mb-2" style={{ fontSize: `${titlePx}px` }}>
               Explicação:
             </h3>
             <p
-              className="text-blue-800 whitespace-pre-wrap"
+              className="text-slate-700 whitespace-pre-wrap"
               style={{ fontSize: `${optionPx}px`, lineHeight: 1.45 }}
             >
               {explanation}
@@ -255,7 +255,7 @@ export function QuestionCard({
                 'w-full flex-1 min-h-0 flex items-center text-left transition-all duration-150 border-2 rounded-lg overflow-hidden',
                 dense ? 'px-2 py-1' : 'px-2.5 py-1.5',
                 !readOnly && 'hover:bg-slate-50 cursor-pointer',
-                isSelected && !showResult && 'border-blue-500 bg-blue-50',
+                isSelected && !showResult && 'border-primary bg-sky-50',
                 !isSelected && !showResult && 'border-slate-200',
                 isCorrect && 'border-green-500 bg-green-50',
                 isWrongSelection && 'border-red-500 bg-red-50',
@@ -265,7 +265,7 @@ export function QuestionCard({
               <div
                 className={cn(
                   'rounded-full flex items-center justify-center font-bold shrink-0 border-2 mr-2',
-                  isSelected && !showResult && 'border-blue-500 text-blue-500',
+                  isSelected && !showResult && 'border-primary text-primary',
                   !isSelected && !showResult && 'border-slate-300 text-slate-500',
                   isCorrect && 'border-green-500 text-green-500 bg-green-100',
                   isWrongSelection && 'border-red-500 text-red-500 bg-red-100',

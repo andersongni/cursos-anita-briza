@@ -79,10 +79,10 @@ export default function ProvaStartPage() {
     <div className="max-w-2xl mx-auto py-8 px-4">
       <Card className="border-2 border-slate-200 shadow-md">
         <CardHeader className="text-center pb-8 border-b border-slate-100">
-          <div className="mx-auto bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 className="w-8 h-8 text-red-600" />
+          <div className="mx-auto bg-sky-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold text-slate-800">Prova Oficial</CardTitle>
+          <CardTitle className="text-3xl font-bold text-secondary">Prova Oficial</CardTitle>
           <CardDescription className="text-lg mt-2 text-slate-600">
             {inProgressId
               ? 'Você tem uma prova em andamento.'
@@ -93,7 +93,7 @@ export default function ProvaStartPage() {
         <CardContent className="py-8 space-y-6">
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <HelpCircle className="w-6 h-6 text-red-500" />
+              <HelpCircle className="w-6 h-6 text-primary" />
               <div>
                 <div className="font-semibold text-slate-800">{questionCount} Questões</div>
                 <div className="text-sm text-slate-500">
@@ -104,7 +104,7 @@ export default function ProvaStartPage() {
             </div>
 
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <Clock className="w-6 h-6 text-red-500" />
+              <Clock className="w-6 h-6 text-primary" />
               <div>
                 <div className="font-semibold text-slate-800">Duração</div>
                 <div className="text-sm text-slate-500">
@@ -114,12 +114,12 @@ export default function ProvaStartPage() {
             </div>
           </div>
 
-          <div className="bg-red-50 p-6 rounded-lg border border-red-100 mt-6">
-            <h3 className="font-semibold text-red-800 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
+          <div className="bg-amber-50 p-6 rounded-lg border border-brand-gold/40 mt-6">
+            <h3 className="font-semibold text-amber-950 mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-brand-gold-dark" />
               Avisos Importantes
             </h3>
-            <ul className="space-y-3 text-red-700">
+            <ul className="space-y-3 text-amber-950/90">
               <li className="flex items-start gap-2">
                 <span className="font-bold mt-0.5">•</span>
                 <span>
@@ -146,7 +146,8 @@ export default function ProvaStartPage() {
         <CardFooter className="flex justify-center pt-2 pb-8 border-t border-slate-100">
           <Button
             size="lg"
-            className="w-full sm:w-auto px-12 py-6 text-lg rounded-full bg-red-600 hover:bg-red-700 text-white"
+            variant="primary"
+            className="w-full sm:w-auto px-12 py-6 text-lg rounded-full"
             onClick={handleStart}
             disabled={loading}
           >

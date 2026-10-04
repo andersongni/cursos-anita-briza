@@ -159,7 +159,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                     href={item.href}
                     className={`flex items-center gap-3 pl-4 pr-4 py-3 border-l-4 text-base font-medium ${
                       active
-                        ? 'bg-red-50 border-primary text-primary'
+                        ? 'bg-sky-50 border-primary text-primary'
                         : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
                     }`}
                     onClick={() => setIsMobileMenuOpen(false)}

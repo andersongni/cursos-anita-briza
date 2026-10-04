@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                     isActive
                       ? 'bg-primary text-white'
-                      : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                      : 'text-slate-200 hover:bg-secondary-light hover:text-white'
                   }`}
                 >
                   <item.icon className="mr-3 flex-shrink-0 h-5 w-5" />
@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors ${
                         isActive
                           ? 'bg-primary text-white'
-                          : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                          : 'text-slate-200 hover:bg-secondary-light hover:text-white'
                       }`}
                     >
                       <item.icon className="mr-4 flex-shrink-0 h-6 w-6" />

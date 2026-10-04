@@ -24,9 +24,10 @@ export interface CertificateData {
   logoUrl?: string
 }
 
-const RED: [number, number, number] = [227, 30, 36]
-const BLUE: [number, number, number] = [29, 66, 138]
-const BLUE_SOFT: [number, number, number] = [55, 95, 160]
+/** Identidade visual do logo: azul, ciano e dourado */
+const GOLD: [number, number, number] = [227, 193, 59]
+const BLUE: [number, number, number] = [0, 120, 168]
+const BLUE_SOFT: [number, number, number] = [12, 164, 227]
 const CREAM: [number, number, number] = [255, 255, 255]
 
 function resolvePublicFile(urlPath: string): string | null {
@@ -75,7 +76,7 @@ function hasFont(doc: jsPDF, name: string): boolean {
 }
 
 function drawTopWaves(doc: jsPDF) {
-  doc.setFillColor(...RED)
+  doc.setFillColor(...GOLD)
   doc.lines(
     [
       [60, -10],
@@ -134,7 +135,7 @@ function drawBottomWaves(doc: jsPDF, pageWidth: number, pageHeight: number) {
     true
   )
 
-  doc.setFillColor(...RED)
+  doc.setFillColor(...GOLD)
   doc.lines(
     [
       [-52, 8],
@@ -201,6 +202,11 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
   const templatePath = resolvePublicFile('/certificate-template.png')
   const template = templatePath ? loadImageAsDataUrl(templatePath) : null
 
+  const logoPath =
+    resolvePublicFile(data.logoUrl || DEFAULT_LOGO_URL) ||
+    resolvePublicFile(DEFAULT_LOGO_URL)
+  const logo = logoPath ? loadImageAsDataUrl(logoPath) : null
+
   if (template) {
     doc.addImage(template.dataUrl, template.format, 0, 0, pageWidth, pageHeight)
   } else {
@@ -209,31 +215,31 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
     drawTopWaves(doc)
     drawBottomWaves(doc, pageWidth, pageHeight)
 
-    const logoPath =
-      resolvePublicFile(data.logoUrl || DEFAULT_LOGO_URL) ||
-      resolvePublicFile(DEFAULT_LOGO_URL)
-    const logo = logoPath ? loadImageAsDataUrl(logoPath) : null
-
-    if (logo) {
-      try {
-        const GState = (doc as unknown as { GState: new (opts: { opacity: number }) => unknown }).GState
-        doc.setGState(new GState({ opacity: 0.08 }) as never)
-        doc.addImage(logo.dataUrl, logo.format, pageWidth - 115, 45, 95, 95)
-        doc.setGState(new GState({ opacity: 1 }) as never)
-      } catch {
-        // marca d'água opcional
-      }
-      doc.addImage(logo.dataUrl, logo.format, 18, 16, 38, 38)
-    }
-
     doc.setFont(bodyFont, 'bold')
     doc.setFontSize(34)
     doc.setTextColor(...BLUE)
     doc.text(applyPlaceholders(data.title, vars), pageWidth - 22, 38, { align: 'right' })
 
     doc.setFontSize(13)
-    doc.setTextColor(...RED)
+    doc.setTextColor(...GOLD)
     doc.text(applyPlaceholders(data.subtitle, vars), pageWidth - 22, 48, { align: 'right' })
+  }
+
+  // Sempre aplica o logo atual (cobre o logo antigo embutido no template)
+  if (logo) {
+    try {
+      const GState = (doc as unknown as { GState: new (opts: { opacity: number }) => unknown }).GState
+      doc.setGState(new GState({ opacity: 0.08 }) as never)
+      doc.addImage(logo.dataUrl, logo.format, pageWidth - 115, 45, 95, 95)
+      doc.setGState(new GState({ opacity: 1 }) as never)
+    } catch {
+      // marca d'água opcional
+    }
+
+    // Cobre o card do logo antigo (incluindo slogan embutido no template)
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(10, 8, 54, 58, 4, 4, 'F')
+    doc.addImage(logo.dataUrl, logo.format, 14, 11, 46, 46)
   }
 
   const intro = applyPlaceholders(data.introText, vars)
@@ -274,7 +280,7 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
 
   doc.setFont(bodyFont, 'bold')
   doc.setFontSize(24)
-  doc.setTextColor(...RED)
+  doc.setTextColor(...GOLD)
   doc.text(courseName.toUpperCase(), pageWidth / 2, 126, { align: 'center' })
 
   doc.setFont(bodyFont, 'normal')
