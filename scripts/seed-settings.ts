@@ -22,6 +22,11 @@ const defaultSettings = [
     description: 'Nota mínima para aprovação % (prova e simulado)',
   },
   { key: 'assessment.prova.retry_interval_hours', value: '24', description: 'Intervalo entre tentativas (horas)' },
+  {
+    key: 'assessment.prova.unlock_until',
+    value: '""',
+    description: 'ISO até quando a prova oficial pode ser iniciada (vazio = bloqueada)',
+  },
   // Espelho do simulado — mantido em sync com assessment.prova.*
   {
     key: 'assessment.simulado.question_count',

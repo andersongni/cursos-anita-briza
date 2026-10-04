@@ -153,6 +153,11 @@ async function main() {
     },
     { key: 'assessment.prova.retry_interval_hours', value: '24', description: 'Intervalo entre tentativas (horas)' },
     {
+      key: 'assessment.prova.unlock_until',
+      value: '""',
+      description: 'ISO até quando a prova oficial pode ser iniciada (vazio = bloqueada)',
+    },
+    {
       key: 'assessment.simulado.question_count',
       value: '40',
       description: 'Espelho: questões (mesmo valor da prova)',

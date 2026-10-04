@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
-import { getAssessmentSettings } from '@/lib/settings/assessment'
+import { getAssessmentSettings, getProvaUnlockState } from '@/lib/settings/assessment'
 
 /**
  * Distribui N questões pelos temas conforme target_percentage.
@@ -118,6 +118,21 @@ export async function POST(req: Request) {
           deadline_at: inProgress.deadline_at,
           resumed: true,
         })
+      }
+    }
+
+    // Nova prova só pode ser iniciada na janela liberada pelo admin (padrão: bloqueada)
+    if (type === 'PROVA') {
+      const unlock = await getProvaUnlockState()
+      if (!unlock.open) {
+        return NextResponse.json(
+          {
+            error:
+              'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.',
+            unlockUntil: unlock.unlockUntil,
+          },
+          { status: 403 }
+        )
       }
     }
 

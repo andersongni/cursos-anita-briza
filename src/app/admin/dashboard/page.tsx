@@ -1,17 +1,48 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
+import { useState, useEffect, useCallback } from 'react'
+import Card, { CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
-import { Users, ClipboardList, BarChart3, HelpCircle, AlertTriangle } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
+import {
+  Users,
+  ClipboardList,
+  BarChart3,
+  HelpCircle,
+  AlertTriangle,
+  Lock,
+  Unlock,
+} from 'lucide-react'
+import {
+  PROVA_UNLOCK_UNTIL_KEY,
+  PROVA_UNLOCK_WINDOW_HOURS,
+} from '@/lib/settings/assessment-constants'
 import toast from 'react-hot-toast'
+
+type ThemeStat = {
+  total: number
+  correct: number
+  wrong: number
+  pct: number | null
+}
+
+type ThemePerformance = {
+  dimensionId: string | null
+  name: string
+  active: boolean
+  prova: ThemeStat
+  simulado: ThemeStat
+}
 
 type DashboardStats = {
   alunos: { total: number; pendentes: number; aprovados: number; bloqueados: number }
   avaliacoes: { realizadas: number; aprovados: number; reprovados: number; simulados: number }
   desempenho: { media: number; taxaAprovacao: number }
+  desempenhoPorTema: ThemePerformance[]
   perguntas: { totalProva: number; totalSimulado: number; ativas: number; inativas: number }
+  prova?: { unlocked: boolean; unlockUntil: string | null; remainingMs: number }
   alertas: string[]
 }
 
@@ -19,28 +50,127 @@ const emptyStats: DashboardStats = {
   alunos: { total: 0, pendentes: 0, aprovados: 0, bloqueados: 0 },
   avaliacoes: { realizadas: 0, aprovados: 0, reprovados: 0, simulados: 0 },
   desempenho: { media: 0, taxaAprovacao: 0 },
+  desempenhoPorTema: [],
   perguntas: { totalProva: 0, totalSimulado: 0, ativas: 0, inativas: 0 },
+  prova: { unlocked: false, unlockUntil: null, remainingMs: 0 },
   alertas: [],
+}
+
+function formatUnlockUntil(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function pctClass(pct: number | null) {
+  if (pct == null) return 'text-slate-400'
+  if (pct >= 70) return 'text-green-700'
+  if (pct >= 50) return 'text-amber-700'
+  return 'text-red-700'
+}
+
+function ThemeMetric({ stat }: { stat: ThemeStat }) {
+  if (stat.total === 0) {
+    return <span className="text-slate-400">—</span>
+  }
+  return (
+    <div className="space-y-1.5 min-w-[140px]">
+      <div className={`text-lg font-semibold tabular-nums ${pctClass(stat.pct)}`}>
+        {stat.pct}%
+      </div>
+      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${
+            (stat.pct ?? 0) >= 70
+              ? 'bg-green-500'
+              : (stat.pct ?? 0) >= 50
+                ? 'bg-amber-500'
+                : 'bg-red-500'
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, stat.pct ?? 0))}%` }}
+        />
+      </div>
+      <div className="text-xs text-slate-500">
+        {stat.correct}/{stat.total} acertos
+      </div>
+    </div>
+  )
 }
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
+  const [unlocking, setUnlocking] = useState(false)
   const [stats, setStats] = useState<DashboardStats>(emptyStats)
+  const [nowTick, setNowTick] = useState(() => Date.now())
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/dashboard', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Falha ao carregar dashboard')
+      setStats(await res.json())
+      setNowTick(Date.now())
+    } catch {
+      toast.error('Erro ao carregar os dados do dashboard.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch('/api/admin/dashboard')
-        if (!res.ok) throw new Error('Falha ao carregar dashboard')
-        setStats(await res.json())
-      } catch {
-        toast.error('Erro ao carregar os dados do dashboard.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchStats()
+    void fetchStats()
+  }, [fetchStats])
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 30_000)
+    return () => clearInterval(id)
   }, [])
+
+  const unlockUntil = stats.prova?.unlockUntil ?? null
+  const unlocked =
+    Boolean(unlockUntil) &&
+    new Date(unlockUntil as string).getTime() > nowTick
+
+  const setProvaUnlockUntil = async (untilIso: string | null) => {
+    setUnlocking(true)
+    try {
+      const value = untilIso ?? ''
+      const res = await fetch('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: PROVA_UNLOCK_UNTIL_KEY, value }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Erro ao atualizar liberação da prova')
+      }
+      setStats((prev) => ({
+        ...prev,
+        prova: {
+          unlocked: Boolean(untilIso),
+          unlockUntil: untilIso,
+          remainingMs: untilIso
+            ? Math.max(0, new Date(untilIso).getTime() - Date.now())
+            : 0,
+        },
+      }))
+      setNowTick(Date.now())
+      toast.success(
+        untilIso
+          ? `Prova liberada por ${PROVA_UNLOCK_WINDOW_HOURS} horas.`
+          : 'Prova bloqueada novamente.'
+      )
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar liberação da prova')
+    } finally {
+      setUnlocking(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -53,6 +183,49 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-secondary">Dashboard Admin</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-secondary">
+            {unlocked ? <Unlock size={20} /> : <Lock size={20} />}
+            Liberação da Prova Oficial
+          </CardTitle>
+          <CardDescription>
+            Por padrão a prova fica bloqueada. Ao liberar, os alunos podem iniciá-la nas próximas{' '}
+            {PROVA_UNLOCK_WINDOW_HOURS} horas. Quem já tiver prova em andamento pode continuar mesmo
+            depois.
+          </CardDescription>
+        </CardHeader>
+        <div className="p-4 pt-0 space-y-4">
+          <p className={`text-sm font-medium ${unlocked ? 'text-green-700' : 'text-red-700'}`}>
+            {unlocked && unlockUntil
+              ? `Liberada até ${formatUnlockUntil(unlockUntil)}.`
+              : 'Bloqueada — alunos não podem iniciar a prova.'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="primary"
+              loading={unlocking}
+              onClick={() => {
+                const until = new Date(
+                  Date.now() + PROVA_UNLOCK_WINDOW_HOURS * 60 * 60 * 1000
+                )
+                void setProvaUnlockUntil(until.toISOString())
+              }}
+            >
+              Liberar prova por {PROVA_UNLOCK_WINDOW_HOURS}h
+            </Button>
+            <Button
+              variant="outline"
+              loading={unlocking}
+              disabled={!unlocked}
+              onClick={() => void setProvaUnlockUntil(null)}
+            >
+              Bloquear agora
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {stats.alertas.length > 0 && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
@@ -151,6 +324,53 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-secondary">
+            <BarChart3 className="mr-2" size={20} />
+            Desempenho por tema
+          </CardTitle>
+          <CardDescription>
+            Percentual de acertos nas avaliações concluídas, separado por prova oficial e simulado.
+          </CardDescription>
+        </CardHeader>
+        <div className="p-4 pt-0">
+          {stats.desempenhoPorTema.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              Ainda não há temas cadastrados nem respostas concluídas para calcular o desempenho.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tema</TableHead>
+                  <TableHead>Prova</TableHead>
+                  <TableHead>Simulado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.desempenhoPorTema.map((tema) => (
+                  <TableRow key={tema.dimensionId ?? tema.name}>
+                    <TableCell>
+                      <div className="font-medium text-slate-800">{tema.name}</div>
+                      {!tema.active && (
+                        <div className="text-xs text-slate-400 mt-0.5">Tema inativo / histórico</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <ThemeMetric stat={tema.prova} />
+                    </TableCell>
+                    <TableCell>
+                      <ThemeMetric stat={tema.simulado} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </Card>
     </div>
   )
 }
