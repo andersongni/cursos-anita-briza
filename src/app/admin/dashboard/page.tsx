@@ -417,152 +417,143 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
-      <Card className={hasPendencias ? 'border-amber-300 border-2' : undefined}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-secondary">
-            <AlertTriangle
-              size={20}
-              className={hasPendencias ? 'text-amber-500' : 'text-slate-400'}
-            />
-            Pendências
-            {hasPendencias && (
+      {hasPendencias && (
+        <Card className="border-amber-300 border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-secondary">
+              <AlertTriangle size={20} className="text-amber-500" />
+              Pendências
               <Badge variant="warning">
                 {pendingAccounts.length + pendingEnrollments.length}
               </Badge>
+            </CardTitle>
+            <CardDescription>
+              Apenas solicitações do curso{' '}
+              <strong>{stats.course?.name ?? activeCourse?.name ?? 'ativo'}</strong>.
+            </CardDescription>
+          </CardHeader>
+          <div className="p-4 pt-0 space-y-6">
+            {pendingAccounts.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Aprovação de conta ({pendingAccounts.length})
+                </h3>
+                <ul className="space-y-2">
+                  {pendingAccounts.map((aluno) => (
+                    <li
+                      key={aluno.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{aluno.fullName}</p>
+                        <p className="text-sm text-slate-600">
+                          @{aluno.username}
+                          {aluno.email ? ` · ${aluno.email}` : ''}
+                          {aluno.phone ? ` · ${aluno.phone}` : ''}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Cadastro: {formatPendingDate(aluno.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          loading={actingKey === `account-approve-${aluno.id}`}
+                          disabled={actingKey != null}
+                          onClick={() => void approveAccount(aluno.id)}
+                        >
+                          Aprovar conta
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={actingKey === `account-block-${aluno.id}`}
+                          disabled={actingKey != null}
+                          onClick={() => void blockAccount(aluno.id)}
+                        >
+                          Bloquear
+                        </Button>
+                        <Link href={`/admin/alunos/${aluno.id}`}>
+                          <Button size="sm" variant="ghost">
+                            Detalhes
+                          </Button>
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </CardTitle>
-          <CardDescription>
-            Apenas solicitações do curso{' '}
-            <strong>{stats.course?.name ?? activeCourse?.name ?? 'ativo'}</strong>.
-          </CardDescription>
-        </CardHeader>
-        <div className="p-4 pt-0 space-y-6">
-          {!hasPendencias ? (
-            <p className="text-sm text-slate-500">Nenhuma pendência no momento.</p>
-          ) : (
-            <>
-              {pendingAccounts.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-800">
-                    Aprovação de conta ({pendingAccounts.length})
-                  </h3>
-                  <ul className="space-y-2">
-                    {pendingAccounts.map((aluno) => (
-                      <li
-                        key={aluno.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900 truncate">{aluno.fullName}</p>
-                          <p className="text-sm text-slate-600">
-                            @{aluno.username}
-                            {aluno.email ? ` · ${aluno.email}` : ''}
-                            {aluno.phone ? ` · ${aluno.phone}` : ''}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Cadastro: {formatPendingDate(aluno.createdAt)}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            loading={actingKey === `account-approve-${aluno.id}`}
-                            disabled={actingKey != null}
-                            onClick={() => void approveAccount(aluno.id)}
-                          >
-                            Aprovar conta
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={actingKey === `account-block-${aluno.id}`}
-                            disabled={actingKey != null}
-                            onClick={() => void blockAccount(aluno.id)}
-                          >
-                            Bloquear
-                          </Button>
-                          <Link href={`/admin/alunos/${aluno.id}`}>
-                            <Button size="sm" variant="ghost">
-                              Detalhes
-                            </Button>
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
-              {pendingEnrollments.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-800">
-                    Solicitação de matrícula ({pendingEnrollments.length})
-                  </h3>
-                  <ul className="space-y-2">
-                    {pendingEnrollments.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50/40 p-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900 truncate">
-                            {item.studentName}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            @{item.studentUsername}
-                            {item.studentStatus === 'PENDING' && (
-                              <Badge variant="warning" className="ml-2">
-                                Conta também pendente
-                              </Badge>
-                            )}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Solicitado em: {formatPendingDate(item.requestedAt)}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            loading={
-                              actingKey === `enroll-APPROVE-${item.studentId}-${item.courseId}`
-                            }
-                            disabled={actingKey != null}
-                            onClick={() =>
-                              void decideEnrollment(item.studentId, item.courseId, 'APPROVE')
-                            }
-                          >
-                            Aprovar matrícula
+            {pendingEnrollments.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Solicitação de matrícula ({pendingEnrollments.length})
+                </h3>
+                <ul className="space-y-2">
+                  {pendingEnrollments.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50/40 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">
+                          {item.studentName}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          @{item.studentUsername}
+                          {item.studentStatus === 'PENDING' && (
+                            <Badge variant="warning" className="ml-2">
+                              Conta também pendente
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Solicitado em: {formatPendingDate(item.requestedAt)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          loading={
+                            actingKey === `enroll-APPROVE-${item.studentId}-${item.courseId}`
+                          }
+                          disabled={actingKey != null}
+                          onClick={() =>
+                            void decideEnrollment(item.studentId, item.courseId, 'APPROVE')
+                          }
+                        >
+                          Aprovar matrícula
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={
+                            actingKey === `enroll-REJECT-${item.studentId}-${item.courseId}`
+                          }
+                          disabled={actingKey != null}
+                          onClick={() =>
+                            void decideEnrollment(item.studentId, item.courseId, 'REJECT')
+                          }
+                        >
+                          Rejeitar
+                        </Button>
+                        <Link href={`/admin/alunos/${item.studentId}`}>
+                          <Button size="sm" variant="ghost">
+                            Detalhes
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={
-                              actingKey === `enroll-REJECT-${item.studentId}-${item.courseId}`
-                            }
-                            disabled={actingKey != null}
-                            onClick={() =>
-                              void decideEnrollment(item.studentId, item.courseId, 'REJECT')
-                            }
-                          >
-                            Rejeitar
-                          </Button>
-                          <Link href={`/admin/alunos/${item.studentId}`}>
-                            <Button size="sm" variant="ghost">
-                              Detalhes
-                            </Button>
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </Card>
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -65,18 +65,17 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   )
 
   const courseNav = useMemo(
-    () => [
-      ...(showExercises
-        ? [{ name: 'Exercícios', href: '/student/exercicios', icon: Dumbbell }]
-        : []),
-      ...(hasActiveEnrollment
+    () =>
+      hasActiveEnrollment
         ? [
+            ...(showExercises
+              ? [{ name: 'Exercícios', href: '/student/exercicios', icon: Dumbbell }]
+              : []),
             { name: 'Simulado', href: '/student/simulado', icon: PlayCircle },
             { name: 'Prova', href: '/student/prova', icon: FileText },
+            { name: 'Histórico', href: '/student/historico', icon: History },
           ]
-        : []),
-      { name: 'Histórico', href: '/student/historico', icon: History },
-    ],
+        : [],
     [showExercises, hasActiveEnrollment]
   )
 

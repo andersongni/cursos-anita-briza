@@ -218,10 +218,12 @@ export default async function DashboardPage() {
               <h3 className="text-lg font-semibold text-secondary mb-4 border-b pb-2">Seu Progresso</h3>
 
               <div className="space-y-4">
-                <Link href="/student/historico" className="flex items-center p-3 rounded-lg hover:bg-slate-50 transition-colors group">
-                  <History className="w-5 h-5 text-gray-400 group-hover:text-accent mr-3" />
-                  <span className="text-gray-700 font-medium group-hover:text-secondary">Meu Histórico</span>
-                </Link>
+                {hasActiveCourse ? (
+                  <Link href="/student/historico" className="flex items-center p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+                    <History className="w-5 h-5 text-gray-400 group-hover:text-accent mr-3" />
+                    <span className="text-gray-700 font-medium group-hover:text-secondary">Meu Histórico</span>
+                  </Link>
+                ) : null}
 
                 <Link href="/student/certificados" className="flex items-center p-3 rounded-lg hover:bg-slate-50 transition-colors group">
                   <Award className="w-5 h-5 text-gray-400 group-hover:text-primary mr-3" />
@@ -229,20 +231,22 @@ export default async function DashboardPage() {
                 </Link>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <span className="block text-sm text-gray-500">Tentativas</span>
-                    <span className="block text-xl font-bold text-secondary">{totalAssessments}</span>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <span className="block text-sm text-gray-500">Melhor Nota</span>
-                    <span className="block text-xl font-bold text-secondary">
-                      {bestScore?.score != null ? `${bestScore.score.toFixed(0)}%` : '--'}
-                    </span>
+              {hasActiveCourse ? (
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <span className="block text-sm text-gray-500">Tentativas</span>
+                      <span className="block text-xl font-bold text-secondary">{totalAssessments}</span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <span className="block text-sm text-gray-500">Melhor Nota</span>
+                      <span className="block text-xl font-bold text-secondary">
+                        {bestScore?.score != null ? `${bestScore.score.toFixed(0)}%` : '--'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </Card>
         </div>

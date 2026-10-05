@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Card, { CardContent } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -25,24 +26,45 @@ export default function HistoricoPage() {
   const router = useRouter()
   const [assessments, setAssessments] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [blocked, setBlocked] = useState(false)
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        const coursesRes = await fetch('/api/student/courses', { cache: 'no-store' })
+        if (coursesRes.ok) {
+          const coursesData = await coursesRes.json()
+          const active = coursesData.active ?? coursesData.courses ?? []
+          if (!Array.isArray(active) || active.length === 0) {
+            setBlocked(true)
+            return
+          }
+        }
+
         const res = await fetch('/api/student/history')
+        if (res.status === 403) {
+          setBlocked(true)
+          return
+        }
         if (!res.ok) throw new Error('Falha ao carregar histórico')
         const data = await res.json()
         setAssessments(data.assessments ?? [])
-      } catch (e: any) {
-        toast.error(e.message || 'Erro ao carregar histórico')
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao carregar histórico')
       } finally {
         setLoading(false)
       }
     }
-    fetchHistory()
+    void fetchHistory()
   }, [])
 
-  if (loading) {
+  useEffect(() => {
+    if (blocked) {
+      router.replace('/student/matriculas')
+    }
+  }, [blocked, router])
+
+  if (loading || blocked) {
     return (
       <div className="flex justify-center p-12">
         <Spinner size="lg" />
@@ -120,7 +142,10 @@ export default function HistoricoPage() {
                 {assessments.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                      Nenhuma avaliação encontrada.
+                      Nenhuma avaliação encontrada.{' '}
+                      <Link href="/student/matriculas" className="text-secondary underline">
+                        Ver matrículas
+                      </Link>
                     </td>
                   </tr>
                 )}
