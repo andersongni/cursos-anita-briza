@@ -57,27 +57,6 @@ export const CERTIFICATE_SETTING_DEFAULTS = {
   logoUrl: DEFAULT_LOGO_URL,
 } as const
 
-export const CERTIFICATE_SETTING_KEYS = [
-  'platform.course_name',
-  'platform.institution',
-  'platform.logo_url',
-  'certificate.title',
-  'certificate.subtitle',
-  'certificate.intro_text',
-  'certificate.middle_text',
-  'certificate.course_hours',
-  'certificate.course_description',
-  'certificate.location',
-  'certificate.date_line',
-  'certificate.date_label',
-  'certificate.signature_title',
-  'certificate.signature_subtitle',
-  'certificate.code_label',
-  CERTIFICATE_EDITABLE_VARIABLES_KEY,
-  CERTIFICATE_LAYOUT_KEY,
-  CERTIFICATE_BACKGROUND_KEY,
-] as const
-
 async function upsertSettingValue(
   key: string,
   value: unknown,
@@ -167,11 +146,6 @@ export async function saveCertificateEditableVariables(
   }
 
   return normalized
-}
-
-function textFromLayout(layout: CertificateLayout, id: string, fallback: string) {
-  const el = layout.elements.find((e) => e.id === id)
-  return el?.text?.trim() ? el.text : fallback
 }
 
 export async function getCertificateLayout(): Promise<CertificateLayout> {
@@ -264,18 +238,8 @@ export async function getCertificateSettings() {
             'platform.course_name',
             'platform.institution',
             'platform.logo_url',
-            'certificate.title',
-            'certificate.subtitle',
-            'certificate.intro_text',
-            'certificate.middle_text',
             'certificate.course_hours',
-            'certificate.course_description',
             'certificate.location',
-            'certificate.date_line',
-            'certificate.date_label',
-            'certificate.signature_title',
-            'certificate.signature_subtitle',
-            'certificate.code_label',
           ],
         },
       },
@@ -288,16 +252,6 @@ export async function getCertificateSettings() {
   const varMap = editableVariablesToMap(editableVariables)
 
   return {
-    title: textFromLayout(
-      layout,
-      'title',
-      parseSettingValue(map['certificate.title'] ?? '', CERTIFICATE_SETTING_DEFAULTS.title)
-    ),
-    subtitle: textFromLayout(
-      layout,
-      'subtitle',
-      parseSettingValue(map['certificate.subtitle'] ?? '', CERTIFICATE_SETTING_DEFAULTS.subtitle)
-    ),
     courseName:
       varMap['{course_name}'] ??
       parseSettingValue(map['platform.course_name'] ?? '', CERTIFICATE_SETTING_DEFAULTS.courseName),
@@ -307,16 +261,6 @@ export async function getCertificateSettings() {
         map['platform.institution'] ?? '',
         CERTIFICATE_SETTING_DEFAULTS.institutionName
       ),
-    introText: textFromLayout(
-      layout,
-      'intro',
-      parseSettingValue(map['certificate.intro_text'] ?? '', CERTIFICATE_SETTING_DEFAULTS.introText)
-    ),
-    middleText: textFromLayout(
-      layout,
-      'middle',
-      parseSettingValue(map['certificate.middle_text'] ?? '', CERTIFICATE_SETTING_DEFAULTS.middleText)
-    ),
     courseHours: (() => {
       if (varMap['{course_hours}'] != null && varMap['{course_hours}'] !== '') {
         const n = Number(varMap['{course_hours}'])
@@ -327,48 +271,9 @@ export async function getCertificateSettings() {
         CERTIFICATE_SETTING_DEFAULTS.courseHours
       )
     })(),
-    courseDescription: textFromLayout(
-      layout,
-      'description',
-      parseSettingValue(
-        map['certificate.course_description'] ?? '',
-        CERTIFICATE_SETTING_DEFAULTS.courseDescription
-      )
-    ),
     location:
       varMap['{location}'] ??
       parseSettingValue(map['certificate.location'] ?? '', CERTIFICATE_SETTING_DEFAULTS.location),
-    dateLine: textFromLayout(
-      layout,
-      'date_line',
-      parseSettingValue(map['certificate.date_line'] ?? '', CERTIFICATE_SETTING_DEFAULTS.dateLine)
-    ),
-    dateLabel: textFromLayout(
-      layout,
-      'date_label',
-      parseSettingValue(map['certificate.date_label'] ?? '', CERTIFICATE_SETTING_DEFAULTS.dateLabel)
-    ),
-    signatureTitle: textFromLayout(
-      layout,
-      'signature_title',
-      parseSettingValue(
-        map['certificate.signature_title'] ?? '',
-        CERTIFICATE_SETTING_DEFAULTS.signatureTitle
-      )
-    ),
-    signatureSubtitle: textFromLayout(
-      layout,
-      'signature_subtitle',
-      parseSettingValue(
-        map['certificate.signature_subtitle'] ?? '',
-        CERTIFICATE_SETTING_DEFAULTS.signatureSubtitle
-      )
-    ),
-    codeLabel: textFromLayout(
-      layout,
-      'code_label',
-      parseSettingValue(map['certificate.code_label'] ?? '', CERTIFICATE_SETTING_DEFAULTS.codeLabel)
-    ),
     logoUrl: normalizeLogoUrl(
       parseSettingValue(map['platform.logo_url'] ?? '', CERTIFICATE_SETTING_DEFAULTS.logoUrl)
     ),

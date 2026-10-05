@@ -94,9 +94,6 @@ export const READONLY_CERTIFICATE_PLACEHOLDERS = [
   },
 ] as const
 
-/** @deprecated Use READONLY_CERTIFICATE_PLACEHOLDERS + variáveis editáveis dinâmicas. */
-export const CERTIFICATE_PLACEHOLDERS = READONLY_CERTIFICATE_PLACEHOLDERS
-
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
 }

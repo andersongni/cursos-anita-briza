@@ -7,22 +7,9 @@ import {
   createDefaultCertificateLayout,
   normalizeCertificateLayout,
 } from '@/lib/certificate/layout'
-import { getCertificateLayout, getCertificateSettings } from '@/lib/certificate/settings'
+import { getCertificateSettings } from '@/lib/certificate/settings'
 
 export const runtime = 'nodejs'
-
-const LEGACY_TEXT_KEYS: Record<string, string> = {
-  title: 'certificate.title',
-  subtitle: 'certificate.subtitle',
-  intro: 'certificate.intro_text',
-  middle: 'certificate.middle_text',
-  description: 'certificate.course_description',
-  date_line: 'certificate.date_line',
-  date_label: 'certificate.date_label',
-  code_label: 'certificate.code_label',
-  signature_title: 'certificate.signature_title',
-  signature_subtitle: 'certificate.signature_subtitle',
-}
 
 async function upsertSetting(key: string, value: unknown, userId: string, description?: string) {
   const stringified = JSON.stringify(value)
@@ -41,12 +28,9 @@ async function upsertSetting(key: string, value: unknown, userId: string, descri
 export async function GET() {
   try {
     await verifyAdmin()
-    const [layout, settings] = await Promise.all([
-      getCertificateLayout(),
-      getCertificateSettings(),
-    ])
+    const settings = await getCertificateSettings()
     return NextResponse.json({
-      layout,
+      layout: settings.layout,
       editableVariables: settings.editableVariables,
       meta: {
         courseName: settings.courseName,
@@ -83,14 +67,6 @@ export async function PUT(req: Request) {
       user.id,
       'Imagem de fundo do certificado'
     )
-
-    // Mantém chaves legadas em sync com os textos do layout
-    for (const el of layout.elements) {
-      if (el.type === 'image') continue
-      const key = LEGACY_TEXT_KEYS[el.id]
-      if (!key) continue
-      await upsertSetting(key, el.text, user.id)
-    }
 
     return NextResponse.json({ success: true, layout })
   } catch (error: unknown) {

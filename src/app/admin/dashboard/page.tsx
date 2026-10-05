@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import Card, { CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
+import Modal from '@/components/ui/Modal'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
 import {
   Users,
@@ -34,6 +36,33 @@ type ThemePerformance = {
   active: boolean
   prova: ThemeStat
   simulado: ThemeStat
+}
+
+type ThemeDetailTypeFilter = 'ALL' | 'PROVA' | 'SIMULADO'
+type ThemeDetailResultFilter = 'ALL' | 'CORRECT' | 'WRONG' | 'BLANK'
+
+type ThemeAnswerRow = {
+  id: string
+  studentId: string
+  studentName: string
+  studentUsername: string
+  assessmentId: string
+  assessmentType: 'PROVA' | 'SIMULADO'
+  questionText: string
+  selectedOption: string | null
+  selectedText: string
+  correctOption: string | null
+  correctText: string
+  isBlank: boolean
+  isCorrect: boolean
+  answeredAt: string | null
+}
+
+type ThemeDetailsResponse = {
+  theme: { dimensionId: string | null; name: string }
+  summary: { total: number; correct: number; wrong: number; blank: number }
+  answers: ThemeAnswerRow[]
+  truncated?: boolean
 }
 
 type DashboardStats = {
@@ -109,6 +138,12 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(emptyStats)
   const [nowTick, setNowTick] = useState(() => Date.now())
 
+  const [themeDetail, setThemeDetail] = useState<ThemePerformance | null>(null)
+  const [themeTypeFilter, setThemeTypeFilter] = useState<ThemeDetailTypeFilter>('ALL')
+  const [themeResultFilter, setThemeResultFilter] = useState<ThemeDetailResultFilter>('ALL')
+  const [themeDetailsLoading, setThemeDetailsLoading] = useState(false)
+  const [themeDetails, setThemeDetails] = useState<ThemeDetailsResponse | null>(null)
+
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/dashboard', { cache: 'no-store' })
@@ -125,6 +160,53 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     void fetchStats()
   }, [fetchStats])
+
+  const fetchThemeDetails = useCallback(
+    async (
+      tema: ThemePerformance,
+      type: ThemeDetailTypeFilter,
+      result: ThemeDetailResultFilter
+    ) => {
+      setThemeDetailsLoading(true)
+      try {
+        const params = new URLSearchParams()
+        if (tema.dimensionId) params.set('dimensionId', tema.dimensionId)
+        params.set('name', tema.name)
+        params.set('type', type)
+        params.set('result', result)
+
+        const res = await fetch(`/api/admin/dashboard/theme-details?${params}`, {
+          cache: 'no-store',
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Falha ao carregar detalhes')
+        setThemeDetails(data as ThemeDetailsResponse)
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : 'Erro ao carregar detalhes do tema')
+        setThemeDetails(null)
+      } finally {
+        setThemeDetailsLoading(false)
+      }
+    },
+    []
+  )
+
+  const openThemeDetails = (tema: ThemePerformance) => {
+    setThemeDetails(null)
+    setThemeTypeFilter('ALL')
+    setThemeResultFilter('ALL')
+    setThemeDetail(tema)
+  }
+
+  const closeThemeDetails = () => {
+    setThemeDetail(null)
+    setThemeDetails(null)
+  }
+
+  useEffect(() => {
+    if (!themeDetail) return
+    void fetchThemeDetails(themeDetail, themeTypeFilter, themeResultFilter)
+  }, [themeDetail, themeTypeFilter, themeResultFilter, fetchThemeDetails])
 
   useEffect(() => {
     const id = setInterval(() => setNowTick(Date.now()), 30_000)
@@ -333,6 +415,7 @@ export default function AdminDashboardPage() {
           </CardTitle>
           <CardDescription>
             Percentual de acertos nas avaliações concluídas, separado por prova oficial e simulado.
+            Clique em Detalhes para ver as respostas por aluno.
           </CardDescription>
         </CardHeader>
         <div className="p-4 pt-0">
@@ -347,30 +430,195 @@ export default function AdminDashboardPage() {
                   <TableHead>Tema</TableHead>
                   <TableHead>Prova</TableHead>
                   <TableHead>Simulado</TableHead>
+                  <TableHead className="text-right w-[1%]"> </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.desempenhoPorTema.map((tema) => (
-                  <TableRow key={tema.dimensionId ?? tema.name}>
-                    <TableCell>
-                      <div className="font-medium text-slate-800">{tema.name}</div>
-                      {!tema.active && (
-                        <div className="text-xs text-slate-400 mt-0.5">Tema inativo / histórico</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <ThemeMetric stat={tema.prova} />
-                    </TableCell>
-                    <TableCell>
-                      <ThemeMetric stat={tema.simulado} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {stats.desempenhoPorTema.map((tema) => {
+                  const hasAnswers = tema.prova.total > 0 || tema.simulado.total > 0
+                  return (
+                    <TableRow key={tema.dimensionId ?? tema.name}>
+                      <TableCell>
+                        <div className="font-medium text-slate-800">{tema.name}</div>
+                        {!tema.active && (
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            Tema inativo / histórico
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <ThemeMetric stat={tema.prova} />
+                      </TableCell>
+                      <TableCell>
+                        <ThemeMetric stat={tema.simulado} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!hasAnswers}
+                          onClick={() => openThemeDetails(tema)}
+                          title={
+                            hasAnswers
+                              ? 'Ver respostas deste tema'
+                              : 'Ainda não há respostas neste tema'
+                          }
+                        >
+                          Detalhes
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
         </div>
       </Card>
+
+      <Modal
+        isOpen={Boolean(themeDetail)}
+        onClose={closeThemeDetails}
+        title={themeDetail ? `Respostas — ${themeDetail.name}` : 'Respostas do tema'}
+        size="full"
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Tipo</label>
+              <select
+                className="border border-border rounded-lg px-3 py-2 text-sm bg-white"
+                value={themeTypeFilter}
+                onChange={(e) =>
+                  setThemeTypeFilter(e.target.value as ThemeDetailTypeFilter)
+                }
+              >
+                <option value="ALL">Prova e simulado</option>
+                <option value="PROVA">Somente prova</option>
+                <option value="SIMULADO">Somente simulado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Resultado</label>
+              <select
+                className="border border-border rounded-lg px-3 py-2 text-sm bg-white"
+                value={themeResultFilter}
+                onChange={(e) =>
+                  setThemeResultFilter(e.target.value as ThemeDetailResultFilter)
+                }
+              >
+                <option value="ALL">Todos</option>
+                <option value="CORRECT">Certas</option>
+                <option value="WRONG">Erradas</option>
+                <option value="BLANK">Em branco</option>
+              </select>
+            </div>
+            {themeDetails && (
+              <div className="text-xs text-slate-500 pb-2 ml-auto">
+                {themeDetails.summary.total} resposta(s)
+                {themeResultFilter === 'ALL' && (
+                  <>
+                    {' '}
+                    · {themeDetails.summary.correct} certa(s) · {themeDetails.summary.wrong}{' '}
+                    errada(s)
+                    {(themeDetails.summary.blank ?? 0) > 0 && (
+                      <> · {themeDetails.summary.blank} em branco</>
+                    )}
+                  </>
+                )}
+                {themeDetails.truncated && ' · mostrando as 500 mais recentes'}
+              </div>
+            )}
+          </div>
+
+          {themeDetailsLoading ? (
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          ) : !themeDetails || themeDetails.answers.length === 0 ? (
+            <p className="text-sm text-slate-500 py-6 text-center">
+              Nenhuma resposta encontrada com os filtros atuais.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Aluno</TableHead>
+                    <TableHead>Data/hora</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Pergunta</TableHead>
+                    <TableHead>Resposta</TableHead>
+                    <TableHead>Gabarito</TableHead>
+                    <TableHead>Resultado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {themeDetails.answers.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="align-top">
+                        <Link
+                          href={`/admin/alunos/${row.studentId}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {row.studentName}
+                        </Link>
+                        <div className="text-xs text-slate-400">@{row.studentUsername}</div>
+                      </TableCell>
+                      <TableCell className="align-top whitespace-nowrap text-sm text-slate-600">
+                        {row.answeredAt
+                          ? new Date(row.answeredAt).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Badge variant={row.assessmentType === 'PROVA' ? 'success' : 'default'}>
+                          {row.assessmentType === 'PROVA' ? 'Prova' : 'Simulado'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="align-top min-w-[220px] max-w-[360px]">
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                          {row.questionText}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top min-w-[160px] max-w-[280px]">
+                        <div className="text-xs font-mono text-slate-500 mb-0.5">
+                          {row.selectedOption ?? '—'}
+                        </div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                          {row.selectedText}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top min-w-[160px] max-w-[280px]">
+                        <div className="text-xs font-mono text-slate-500 mb-0.5">
+                          {row.correctOption ?? '—'}
+                        </div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                          {row.correctText}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        {row.isBlank ? (
+                          <span className="text-sm text-slate-400">—</span>
+                        ) : (
+                          <Badge variant={row.isCorrect ? 'success' : 'error'}>
+                            {row.isCorrect ? 'Certa' : 'Errada'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -24,24 +24,13 @@ export interface CertificateData {
   completionDateLabel: string
   certificateCode: string
   courseHours: number
-  title: string
-  subtitle: string
-  introText: string
-  middleText: string
-  courseDescription: string
   location: string
-  dateLine: string
-  dateLabel: string
-  signatureTitle: string
-  signatureSubtitle: string
-  codeLabel: string
   logoUrl?: string
   layout?: CertificateLayout
-  /** Variáveis editáveis do modelo (chave/valor customizados). */
   editableVariables?: CertificateEditableVariable[]
 }
 
-/** Identidade visual do logo: azul, ciano e dourado */
+/** Fallback visual se a imagem de fundo não existir */
 const GOLD: [number, number, number] = [227, 193, 59]
 const BLUE: [number, number, number] = [0, 120, 168]
 const CREAM: [number, number, number] = [255, 255, 255]
@@ -173,7 +162,6 @@ function drawBottomWaves(doc: jsPDF, pageWidth: number, pageHeight: number) {
 
 function applyPlaceholders(text: string, vars: Record<string, string>) {
   let out = text
-  // Substitui chaves mais longas primeiro para evitar colisões parciais
   const tokens = Object.keys(vars)
     .map((k) => (k.startsWith('{') ? k : `{${stripVariableBraces(k)}}`))
     .filter((k, i, arr) => arr.indexOf(k) === i)
@@ -203,14 +191,12 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
   const custom = editableVariablesToMap(data.editableVariables ?? [])
   const vars: Record<string, string> = {
     ...custom,
-    // Campos do aluno/emissão sempre prevalecem
     '{student_name}': data.studentName,
     student_name: data.studentName,
     '{certificate_code}': data.certificateCode,
     certificate_code: data.certificateCode,
     '{date}': data.completionDateLabel,
     date: data.completionDateLabel,
-    // Fallbacks das chaves clássicas (se não vierem nas variáveis editáveis)
     '{course_name}': custom['{course_name}'] ?? data.courseName,
     course_name: custom['{course_name}'] ?? data.courseName,
     '{institution}': custom['{institution}'] ?? data.institutionName,
@@ -284,7 +270,6 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
     const [r, g, b] = hexToRgb(el.color)
 
     doc.setFont(bodyFont, el.bold ? 'bold' : 'normal')
-    // setFontSize é sempre em pontos (pt), não em mm
     doc.setFontSize(el.fontSize)
     doc.setTextColor(r, g, b)
 

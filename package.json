@@ -19,13 +19,9 @@
     "db:setup": "npx prisma db push && npm run seed:settings && npm run seed:typing && npm run ensure-admin",
     "db:setup:remote": "npx tsx scripts/setup-remote.ts",
     "db:migrate": "npx tsx scripts/deploy-schema.ts",
-    "db:migrate:remote": "npx tsx scripts/migrate-remote-columns.ts",
-    "db:check:remote": "npx tsx scripts/check-remote.ts",
-    "db:info": "npx tsx scripts/debug-login-db.ts",
     "db:reset-password": "npx tsx scripts/reset-local-password.ts",
     "db:reset": "npx prisma db push --force-reset && npm run seed:settings && npm run ensure-admin",
     "db:clear": "npx tsx scripts/clear-data.ts && npm run seed:settings && npm run ensure-admin",
-    "db:group-dimensions": "npx tsx scripts/group-dimensions.ts",
     "db:studio": "npx prisma studio",
     "setup": "npm run db:setup"
   },

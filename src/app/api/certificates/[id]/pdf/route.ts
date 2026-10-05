@@ -31,23 +31,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const doc = generateCertificatePDF({
       studentName: formatFullName(certificate.student_name_snapshot),
-      // Sempre o nome atual das configurações (não o snapshot da emissão)
       courseName: settings.courseName,
       institutionName: settings.institutionName,
       completionDateLabel: formatCertificateDate(certificate.completion_date),
       certificateCode: certificate.certificate_code,
       courseHours: settings.courseHours,
-      title: settings.title,
-      subtitle: settings.subtitle,
-      introText: settings.introText,
-      middleText: settings.middleText,
-      courseDescription: settings.courseDescription,
       location: settings.location,
-      dateLine: settings.dateLine,
-      dateLabel: settings.dateLabel,
-      signatureTitle: settings.signatureTitle,
-      signatureSubtitle: settings.signatureSubtitle,
-      codeLabel: settings.codeLabel,
       logoUrl: settings.logoUrl,
       layout: settings.layout,
       editableVariables: settings.editableVariables,
