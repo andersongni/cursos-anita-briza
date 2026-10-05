@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { assertAdminTypingExerciseAccess } from '@/lib/courses'
 import { listTypingRanking } from '@/lib/exercises/typing-ranking'
 
 export async function GET(req: Request) {
   try {
     await verifyAdmin()
+    await assertAdminTypingExerciseAccess()
     const { searchParams } = new URL(req.url)
     const q = (searchParams.get('q') || '').trim().toLowerCase()
 

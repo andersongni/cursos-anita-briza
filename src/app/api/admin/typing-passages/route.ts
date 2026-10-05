@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { assertAdminTypingExerciseAccess } from '@/lib/courses'
 import { normalizePassageContent } from '@/lib/exercises/typing'
 import { ensureTypingPassagesSeeded } from '@/lib/exercises/ensure-typing-passages'
 
 export async function GET(req: Request) {
   try {
     await verifyAdmin()
+    await assertAdminTypingExerciseAccess()
     await ensureTypingPassagesSeeded()
     const { searchParams } = new URL(req.url)
     const q = (searchParams.get('q') || '').trim()
@@ -47,6 +49,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await verifyAdmin()
+    await assertAdminTypingExerciseAccess()
     const body = await req.json()
 
     // Atalho: carregar/reativar textos padrão

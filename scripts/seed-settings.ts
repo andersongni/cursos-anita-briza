@@ -50,7 +50,7 @@ const defaultSettings = [
     value: '70',
     description: 'Espelho: nota mínima (mesmo valor da prova)',
   },
-  { key: 'platform.name', value: '"Plataforma de Avaliação"', description: 'Nome da plataforma' },
+  { key: 'platform.name', value: '"Plataforma de Estudos"', description: 'Nome da plataforma' },
   { key: 'platform.course_name', value: '"Informática Básica"', description: 'Nome do curso' },
   { key: 'platform.institution', value: '"Núcleo Assistencial Anita Briza"', description: 'Nome da instituição' },
   { key: 'platform.logo_url', value: '"/logo.jpg"', description: 'URL do logo da plataforma' },

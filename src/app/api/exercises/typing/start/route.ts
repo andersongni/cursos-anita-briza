@@ -2,16 +2,20 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
 import { ensureTypingPassagesSeeded } from '@/lib/exercises/ensure-typing-passages'
+import { assertTypingExerciseAccess } from '@/lib/courses'
 
 /** Sorteia um texto ativo para a prática de digitação. */
 export async function GET() {
   try {
-    const { profile } = await verifyAuth()
+    const { user, profile } = await verifyAuth()
     if (profile.role !== 'STUDENT' && profile.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
     if (profile.status !== 'APPROVED' && profile.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Conta não aprovada' }, { status: 403 })
+    }
+    if (profile.role === 'STUDENT') {
+      await assertTypingExerciseAccess(user.id)
     }
 
     await ensureTypingPassagesSeeded({ force: true })

@@ -2,30 +2,33 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
 import { getAssessmentSettings, getProvaUnlockState } from '@/lib/settings/assessment'
+import {
+  assertStudentEnrolled,
+  resolveStudentCourseId,
+} from '@/lib/courses'
 
 /**
  * Distribui N questões pelos temas conforme target_percentage.
  * Temas podem ficar com 0 quando N < quantidade de temas (evita loop infinito).
  */
 function calculateDistribution(
-  dimensions: { id: string; name: string; target_percentage: number; weight: number }[],
+  dimensions: { id: string; name: string; target_percentage: number }[],
   totalQuestions: number
 ) {
   if (dimensions.length === 0 || totalQuestions <= 0) return []
 
   const n = Math.floor(totalQuestions)
-  const weightSum = dimensions.reduce((s, d) => s + (d.target_percentage || 0), 0)
-  const useEqual = weightSum <= 0
+  const pctSum = dimensions.reduce((s, d) => s + (d.target_percentage || 0), 0)
+  const useEqual = pctSum <= 0
 
   const raw = dimensions.map((d) => {
     const share = useEqual
       ? 1 / dimensions.length
-      : (d.target_percentage || 0) / weightSum
+      : (d.target_percentage || 0) / pctSum
     const exact = share * n
     return {
       dimension_id: d.id,
       dimension_name: d.name,
-      weight: d.weight || 1,
       exact,
       count: Math.floor(exact),
       frac: exact - Math.floor(exact),
@@ -33,9 +36,9 @@ function calculateDistribution(
   })
 
   let currentTotal = raw.reduce((s, d) => s + d.count, 0)
-  // Método dos maiores restos: completa até N
+  // Método dos maiores restos: completa até N (todos os temas com o mesmo peso)
   const byFrac = [...raw].sort(
-    (a, b) => b.frac - a.frac || (b.weight || 1) - (a.weight || 1)
+    (a, b) => b.frac - a.frac || a.dimension_name.localeCompare(b.dimension_name)
   )
   let i = 0
   while (currentTotal < n && byFrac.length > 0) {
@@ -46,7 +49,10 @@ function calculateDistribution(
 
   // Segurança: nunca ultrapassar N
   while (currentTotal > n) {
-    const sortable = [...raw].sort((a, b) => b.count - a.count || (a.weight || 1) - (b.weight || 1))
+    const sortable = [...raw].sort(
+      (a, b) =>
+        b.count - a.count || a.dimension_name.localeCompare(b.dimension_name)
+    )
     const victim = sortable.find((d) => d.count > 0)
     if (!victim) break
     victim.count--
@@ -86,8 +92,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
     }
 
+    let courseId: string
+    try {
+      courseId = await resolveStudentCourseId(
+        user.id,
+        typeof body.courseId === 'string' ? body.courseId : null
+      )
+    } catch (e: unknown) {
+      const err = e as { message?: string; status?: number }
+      return NextResponse.json(
+        {
+          error:
+            err.message ||
+            'Você não possui matrícula ativa neste curso. Solicite a matrícula e aguarde a aprovação do administrador.',
+        },
+        { status: err.status || 403 }
+      )
+    }
+
+    try {
+      await assertStudentEnrolled(user.id, courseId)
+    } catch (e: unknown) {
+      const err = e as { message?: string; status?: number }
+      return NextResponse.json(
+        {
+          error:
+            err.message ||
+            'Você não possui matrícula ativa neste curso. Solicite a matrícula e aguarde a aprovação do administrador.',
+        },
+        { status: err.status || 403 }
+      )
+    }
+
     const inProgress = await prisma.assessment.findFirst({
-      where: { student_id: user.id, type, status: 'IN_PROGRESS' },
+      where: {
+        student_id: user.id,
+        course_id: courseId,
+        type,
+        status: 'IN_PROGRESS',
+      },
     })
 
     if (inProgress) {
@@ -116,6 +159,7 @@ export async function POST(req: Request) {
           total_questions: inProgress.total_questions,
           started_at: inProgress.started_at,
           deadline_at: inProgress.deadline_at,
+          course_id: inProgress.course_id,
           resumed: true,
         })
       }
@@ -123,7 +167,7 @@ export async function POST(req: Request) {
 
     // Nova prova só pode ser iniciada na janela liberada pelo admin (padrão: bloqueada)
     if (type === 'PROVA') {
-      const unlock = await getProvaUnlockState()
+      const unlock = await getProvaUnlockState(courseId)
       if (!unlock.open) {
         return NextResponse.json(
           {
@@ -142,6 +186,7 @@ export async function POST(req: Request) {
       const lastProva = await prisma.assessment.findFirst({
         where: {
           student_id: user.id,
+          course_id: courseId,
           type: 'PROVA',
           status: { in: ['COMPLETED', 'EXPIRED'] },
         },
@@ -154,12 +199,12 @@ export async function POST(req: Request) {
     }
 
     const typeKey = type === 'PROVA' ? 'prova' : 'simulado'
-    const settings = await getAssessmentSettings(typeKey)
+    const settings = await getAssessmentSettings(typeKey, courseId)
     const totalQuestions = settings.questionCount
     const timeLimitMins = settings.timeLimitMinutes
 
     const dimensions = await prisma.dimension.findMany({
-      where: { active: true },
+      where: { active: true, course_id: courseId },
       orderBy: { display_order: 'asc' },
     })
 
@@ -173,14 +218,19 @@ export async function POST(req: Request) {
       const dist = calculateDistribution(dimensions, totalQuestions)
       for (const d of dist) {
         const qs = await prisma.question.findMany({
-          where: { dimension_id: d.dimension_id, type, active: true },
+          where: {
+            course_id: courseId,
+            dimension_id: d.dimension_id,
+            type,
+            active: true,
+          },
           include: { options: true, dimension: true },
         })
         selectedQuestions.push(...shuffle(qs).slice(0, d.count))
       }
     } else {
       const qs = await prisma.question.findMany({
-        where: { type, active: true },
+        where: { course_id: courseId, type, active: true },
         include: { options: true, dimension: true },
       })
       selectedQuestions = shuffle(qs).slice(0, totalQuestions)
@@ -211,6 +261,7 @@ export async function POST(req: Request) {
     const assessment = await prisma.assessment.create({
       data: {
         student_id: user.id,
+        course_id: courseId,
         type,
         status: 'IN_PROGRESS',
         attempt_number: type === 'PROVA' ? attempt_number : 1,

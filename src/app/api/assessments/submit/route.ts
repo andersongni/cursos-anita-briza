@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     const score = (correctCount / assessment.total_questions) * 100;
 
     const typeKey = assessment.type.toLowerCase() === 'prova' ? 'prova' : 'simulado'
-    const { passingScore } = await getAssessmentSettings(typeKey)
+    const { passingScore } = await getAssessmentSettings(typeKey, assessment.course_id)
 
     const passed = score >= passingScore;
     const completedAt = new Date();

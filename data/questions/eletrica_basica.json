@@ -1,0 +1,112 @@
+[
+  {
+    "dimension": "Segurança elétrica",
+    "question_text": "Qual é a primeira atitude recomendada antes de trabalhar em uma instalação elétrica residencial?",
+    "options": [
+      { "key": "A", "text": "Testar a tensão com a mão", "is_correct": false, "explanation": "Nunca se deve testar energia com o corpo." },
+      { "key": "B", "text": "Desligar a energia no disjuntor e confirmar ausência de tensão", "is_correct": true, "explanation": "Desenergizar e verificar com instrumento adequado reduz o risco de choque." },
+      { "key": "C", "text": "Molhar as mãos para melhorar o contato", "is_correct": false, "explanation": "Mãos molhadas aumentam o risco de choque." },
+      { "key": "D", "text": "Remover todos os EPIs para ter mais agilidade", "is_correct": false, "explanation": "EPIs são essenciais para proteção." },
+      { "key": "E", "text": "Aumentar a tensão do quadro", "is_correct": false, "explanation": "Isso não faz parte do procedimento de segurança." }
+    ]
+  },
+  {
+    "dimension": "Segurança elétrica",
+    "question_text": "O que é um EPI usado em trabalhos elétricos?",
+    "options": [
+      { "key": "A", "text": "Equipamento de Produção Industrial", "is_correct": false, "explanation": "Essa não é a definição correta." },
+      { "key": "B", "text": "Equipamento de Proteção Individual", "is_correct": true, "explanation": "EPI protege o trabalhador, como luvas isolantes e óculos." },
+      { "key": "C", "text": "Equipamento de Potência Interna", "is_correct": false, "explanation": "Termo incorreto." },
+      { "key": "D", "text": "Escala de Potência Instantânea", "is_correct": false, "explanation": "Não se refere a proteção." },
+      { "key": "E", "text": "Entrada de Quadro Principal", "is_correct": false, "explanation": "Não é um equipamento de proteção." }
+    ]
+  },
+  {
+    "dimension": "Conceitos básicos",
+    "question_text": "Na Lei de Ohm, a relação entre tensão (V), corrente (I) e resistência (R) é:",
+    "options": [
+      { "key": "A", "text": "V = I × R", "is_correct": true, "explanation": "A tensão é igual à corrente multiplicada pela resistência." },
+      { "key": "B", "text": "V = I + R", "is_correct": false, "explanation": "Não se somam tensão e resistência dessa forma." },
+      { "key": "C", "text": "V = I − R", "is_correct": false, "explanation": "A operação correta é multiplicação." },
+      { "key": "D", "text": "V = R ÷ I", "is_correct": false, "explanation": "A fórmula correta é V = I × R (ou I = V ÷ R)." },
+      { "key": "E", "text": "V = I² × R", "is_correct": false, "explanation": "Essa expressão aparece em potência dissipada, não na Lei de Ohm básica." }
+    ]
+  },
+  {
+    "dimension": "Conceitos básicos",
+    "question_text": "A unidade de medida da corrente elétrica no Sistema Internacional é:",
+    "options": [
+      { "key": "A", "text": "Volt (V)", "is_correct": false, "explanation": "Volt mede tensão." },
+      { "key": "B", "text": "Ohm (Ω)", "is_correct": false, "explanation": "Ohm mede resistência." },
+      { "key": "C", "text": "Ampere (A)", "is_correct": true, "explanation": "Corrente elétrica é medida em ampere." },
+      { "key": "D", "text": "Watt (W)", "is_correct": false, "explanation": "Watt mede potência." },
+      { "key": "E", "text": "Hertz (Hz)", "is_correct": false, "explanation": "Hertz mede frequência." }
+    ]
+  },
+  {
+    "dimension": "Circuitos e componentes",
+    "question_text": "Em um circuito em série, a corrente elétrica:",
+    "options": [
+      { "key": "A", "text": "É a mesma em todos os componentes", "is_correct": true, "explanation": "No circuito série há um único caminho; a corrente é igual em todos." },
+      { "key": "B", "text": "É diferente em cada componente, mas a tensão é sempre zero", "is_correct": false, "explanation": "A tensão se divide; a corrente permanece a mesma." },
+      { "key": "C", "text": "Só existe se houver dois caminhos paralelos", "is_correct": false, "explanation": "Paralelo é outro tipo de associação." },
+      { "key": "D", "text": "Não depende da resistência", "is_correct": false, "explanation": "A corrente depende da tensão e da resistência total." },
+      { "key": "E", "text": "Só circula em corrente contínua", "is_correct": false, "explanation": "Há circuitos série em CA e CC." }
+    ]
+  },
+  {
+    "dimension": "Circuitos e componentes",
+    "question_text": "Para que serve um interruptor simples em uma instalação residencial?",
+    "options": [
+      { "key": "A", "text": "Medir a corrente do circuito", "is_correct": false, "explanation": "Quem mede é o amperímetro/multímetro." },
+      { "key": "B", "text": "Abrir ou fechar o circuito para ligar/desligar uma carga (ex.: lâmpada)", "is_correct": true, "explanation": "O interruptor controla a passagem da corrente para a carga." },
+      { "key": "C", "text": "Proteger o circuito contra curto-circuito", "is_correct": false, "explanation": "Essa é função do disjuntor ou fusível." },
+      { "key": "D", "text": "Transformar tensão de 220 V para 110 V", "is_correct": false, "explanation": "Isso seria função de um transformador." },
+      { "key": "E", "text": "Armazenar energia elétrica", "is_correct": false, "explanation": "Interruptores não armazenam energia." }
+    ]
+  },
+  {
+    "dimension": "Instalações residenciais",
+    "question_text": "Qual é a função principal de um disjuntor no quadro de distribuição?",
+    "options": [
+      { "key": "A", "text": "Aumentar a tensão da rede", "is_correct": false, "explanation": "Disjuntor não eleva tensão." },
+      { "key": "B", "text": "Proteger o circuito contra sobrecarga e curto-circuito", "is_correct": true, "explanation": "O disjuntor interrompe a corrente em condições anormais." },
+      { "key": "C", "text": "Melhorar o sinal de Wi-Fi", "is_correct": false, "explanation": "Não tem relação com internet." },
+      { "key": "D", "text": "Substituir o fio terra", "is_correct": false, "explanation": "Aterramento e proteção por disjuntor são funções distintas." },
+      { "key": "E", "text": "Medir o consumo de energia da residência", "is_correct": false, "explanation": "Quem mede consumo é o medidor da concessionária." }
+    ]
+  },
+  {
+    "dimension": "Instalações residenciais",
+    "question_text": "O condutor de proteção (fio terra) em uma instalação tem como objetivo principal:",
+    "options": [
+      { "key": "A", "text": "Alimentar lâmpadas de 12 V", "is_correct": false, "explanation": "Não é função do terra." },
+      { "key": "B", "text": "Oferecer caminho de baixa resistência para correntes de falha, aumentando a segurança", "is_correct": true, "explanation": "O terra ajuda a desviar correntes de falha e a atuar dispositivos de proteção." },
+      { "key": "C", "text": "Substituir o disjuntor geral", "is_correct": false, "explanation": "Terra e disjuntor atuam de formas diferentes." },
+      { "key": "D", "text": "Aumentar a potência dos aparelhos", "is_correct": false, "explanation": "Não aumenta potência." },
+      { "key": "E", "text": "Servir apenas como decoração do cabo", "is_correct": false, "explanation": "É um elemento de segurança obrigatório em muitas instalações." }
+    ]
+  },
+  {
+    "dimension": "Medições e diagnóstico",
+    "question_text": "Para medir tensão em uma tomada com multímetro, a ponta de prova deve ser conectada:",
+    "options": [
+      { "key": "A", "text": "Em série com a carga", "is_correct": false, "explanation": "Tensão se mede em paralelo; corrente se mede em série." },
+      { "key": "B", "text": "Em paralelo com o ponto a medir, na escala adequada de volts", "is_correct": true, "explanation": "A tensão é medida em paralelo, selecionando a escala de tensão correta." },
+      { "key": "C", "text": "Somente no fio terra", "is_correct": false, "explanation": "Depende do que se deseja medir; o procedimento padrão usa fase/neutro conforme o caso." },
+      { "key": "D", "text": "Com o aparelho na escala de ampere", "is_correct": false, "explanation": "Escala de ampere é para corrente." },
+      { "key": "E", "text": "Com as pontas em curto entre si na tomada", "is_correct": false, "explanation": "Isso pode causar curto-circuito e é perigoso." }
+    ]
+  },
+  {
+    "dimension": "Medições e diagnóstico",
+    "question_text": "Uma lâmpada não acende, o disjuntor está ligado e há tensão na tomada do circuito. Qual hipótese é a mais razoável para investigação inicial?",
+    "options": [
+      { "key": "A", "text": "A concessionária cortou a energia de todo o bairro", "is_correct": false, "explanation": "Se há tensão na tomada do circuito, a falta não é geral." },
+      { "key": "B", "text": "A lâmpada pode estar queimada ou o soquete/interruptor com mau contato", "is_correct": true, "explanation": "Com tensão presente, o problema costuma estar na lâmpada, soquete, interruptor ou conexão local." },
+      { "key": "C", "text": "O multímetro está sempre com defeito", "is_correct": false, "explanation": "Não se assume defeito do instrumento sem verificar." },
+      { "key": "D", "text": "É obrigatório trocar todo o quadro elétrico", "is_correct": false, "explanation": "Troca total do quadro não é o primeiro passo." },
+      { "key": "E", "text": "O fio terra está com excesso de tensão útil", "is_correct": false, "explanation": "Hipótese incorreta e confusa para o sintoma descrito." }
+    ]
+  }
+]

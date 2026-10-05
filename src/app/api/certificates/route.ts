@@ -1,36 +1,40 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
-import { getCertificateSettings } from '@/lib/certificate/settings'
+import { listStudentCourseIds } from '@/lib/courses'
 
-/** Lista certificados do aluno logado (+ elegibilidade para emitir). */
+/** Lista todos os certificados do aluno (+ elegibilidade para emitir em algum curso). */
 export async function GET() {
   try {
     const { user } = await verifyAuth()
 
-    const [certificates, passedProva, settings] = await Promise.all([
+    const enrolledIds = await listStudentCourseIds(user.id).catch(() => [] as string[])
+
+    const [certificates, passedProva] = await Promise.all([
       prisma.certificate.findMany({
         where: { student_id: user.id },
         orderBy: { created_at: 'desc' },
-      }),
-      prisma.assessment.findFirst({
-        where: {
-          student_id: user.id,
-          type: 'PROVA',
-          status: 'COMPLETED',
-          passed: true,
-          certificate: null,
+        include: {
+          course: { select: { id: true, name: true } },
         },
-        orderBy: { completed_at: 'desc' },
       }),
-      getCertificateSettings(),
+      enrolledIds.length > 0
+        ? prisma.assessment.findFirst({
+            where: {
+              student_id: user.id,
+              course_id: { in: enrolledIds },
+              type: 'PROVA',
+              status: 'COMPLETED',
+              passed: true,
+              certificate: null,
+            },
+            orderBy: { completed_at: 'desc' },
+          })
+        : Promise.resolve(null),
     ])
 
     return NextResponse.json({
-      certificates: certificates.map((c) => ({
-        ...c,
-        course_name_snapshot: settings.courseName,
-      })),
+      certificates,
       eligibleAssessmentId: passedProva?.id ?? null,
     })
   } catch (err: unknown) {

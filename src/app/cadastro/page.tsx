@@ -42,6 +42,9 @@ export default function CadastroPage() {
     email: '',
     phone: '',
   })
+  const [courses, setCourses] = useState<Array<{ id: string; name: string; description: string | null }>>([])
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([])
+  const [courseError, setCourseError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({})
 
   const [captchaProvider, setCaptchaProvider] = useState<CaptchaProvider>('math')
@@ -109,6 +112,27 @@ export default function CadastroPage() {
   useEffect(() => {
     void loadCaptcha()
   }, [loadCaptcha])
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const res = await fetch('/api/courses', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        setCourses(Array.isArray(data.courses) ? data.courses : [])
+      } catch {
+        // ignore
+      }
+    }
+    void loadCourses()
+  }, [])
+
+  const toggleCourse = (courseId: string) => {
+    setSelectedCourseIds((prev) =>
+      prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]
+    )
+    setCourseError(null)
+  }
 
   const validateFullName = useCallback(
     (value: string) => {
@@ -289,7 +313,11 @@ export default function CadastroPage() {
     const confirmOk = validateConfirmPassword(formData.password, formData.confirmPassword)
     const emailOk = validateEmail(formData.email)
     const phoneOk = validatePhone(formData.phone)
-    return nameOk && userOk && passOk && confirmOk && emailOk && phoneOk
+    const coursesOk = selectedCourseIds.length > 0
+    if (!coursesOk) {
+      setCourseError('Selecione ao menos um curso para solicitar matrícula')
+    }
+    return nameOk && userOk && passOk && confirmOk && emailOk && phoneOk && coursesOk
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -325,6 +353,7 @@ export default function CadastroPage() {
           full_name: formData.fullName,
           email: formData.email || undefined,
           phone: formData.phone || undefined,
+          courseIds: selectedCourseIds,
           ...(captchaProvider === 'recaptcha' ? { recaptchaToken } : {}),
           ...(captchaProvider === 'math' ? { captchaToken, captchaAnswer } : {}),
         }),
@@ -378,6 +407,45 @@ export default function CadastroPage() {
                 onBlur={(e) => void handleBlur(e)}
                 error={errors.fullName}
               />
+
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-slate-700">
+                  Curso(s) desejado(s) <span className="text-red-500">*</span>
+                </legend>
+                <p className="text-xs text-slate-500">
+                  A matrícula fica pendente até o administrador aprovar (além da aprovação da conta).
+                </p>
+                <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+                  {courses.length === 0 ? (
+                    <p className="text-sm text-slate-500">Carregando cursos…</p>
+                  ) : (
+                    courses.map((course) => (
+                      <label
+                        key={course.id}
+                        className="flex items-start gap-3 cursor-pointer rounded-md px-1 py-1.5 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={selectedCourseIds.includes(course.id)}
+                          onChange={() => toggleCourse(course.id)}
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-slate-800">
+                            {course.name}
+                          </span>
+                          {course.description && (
+                            <span className="block text-xs text-slate-500 mt-0.5">
+                              {course.description}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {courseError && <p className="text-sm text-red-600">{courseError}</p>}
+              </fieldset>
 
               <Input
                 label="Nome de usuário"
@@ -517,9 +585,19 @@ export default function CadastroPage() {
           <p className="text-sm text-slate-700">
             Não há recuperação automática de senha. Se esquecer, fale com o administrador.
           </p>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 space-y-2">
             <p>
-              Seu usuário será: <strong className="font-mono">{formData.username}</strong>
+              Seu usuário será:{' '}
+              <strong className="font-mono">{formData.username}</strong>
+            </p>
+            <p>
+              Sua senha:{' '}
+              <strong className="font-mono tracking-widest" aria-label="Senha oculta">
+                {'•'.repeat(Math.max(6, formData.password.length))}
+              </strong>
+            </p>
+            <p className="text-xs text-amber-900/80">
+              A senha não é exibida por segurança. Confirme se você a anotou antes de continuar.
             </p>
           </div>
           <div className="flex justify-end gap-2 pt-2">

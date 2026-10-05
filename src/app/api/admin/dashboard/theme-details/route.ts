@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { ofActiveStudent } from '@/lib/students/soft-delete'
 import { formatFullName } from '@/lib/utils'
+import { resolveAdminCourseId } from '@/lib/courses'
 import type { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
@@ -48,10 +49,13 @@ export async function GET(req: NextRequest) {
 
     if (!dimensionId && !name) {
       return NextResponse.json(
-        { error: 'Informe dimensionId ou name do tema.' },
+        { error: 'Informe o id ou o nome do tema.' },
         { status: 400 }
       )
     }
+
+    const courseId =
+      searchParams.get('courseId') || (await resolveAdminCourseId())
 
     const questionWhere: Prisma.AssessmentQuestionWhereInput = dimensionId
       ? {
@@ -77,6 +81,7 @@ export async function GET(req: NextRequest) {
       where: {
         ...resultWhere,
         assessment: {
+          course_id: courseId,
           status: 'COMPLETED',
           ...(type === 'ALL' ? { type: { in: ['PROVA', 'SIMULADO'] } } : { type }),
           ...ofActiveStudent,

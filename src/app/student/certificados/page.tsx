@@ -78,7 +78,9 @@ export default function CertificadosPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Meus Certificados</h1>
-          <p className="text-slate-600 mt-1">Gerencie e baixe seus certificados de conclusão.</p>
+          <p className="text-slate-600 mt-1">
+            Todos os certificados que você já conquistou, de qualquer curso.
+          </p>
         </div>
       </div>
 

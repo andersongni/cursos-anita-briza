@@ -8,6 +8,7 @@ import {
   normalizeCertificateLayout,
 } from '@/lib/certificate/layout'
 import { getCertificateSettings } from '@/lib/certificate/settings'
+import { resolveAdminCourseId } from '@/lib/courses'
 
 export const runtime = 'nodejs'
 
@@ -28,7 +29,8 @@ async function upsertSetting(key: string, value: unknown, userId: string, descri
 export async function GET() {
   try {
     await verifyAdmin()
-    const settings = await getCertificateSettings()
+    const courseId = await resolveAdminCourseId()
+    const settings = await getCertificateSettings({ courseId })
     return NextResponse.json({
       layout: settings.layout,
       editableVariables: settings.editableVariables,
@@ -38,6 +40,7 @@ export async function GET() {
         courseHours: settings.courseHours,
         location: settings.location,
         logoUrl: settings.logoUrl,
+        courseId,
       },
     })
   } catch (error: unknown) {

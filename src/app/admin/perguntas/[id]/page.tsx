@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
 import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { useAdminCourse } from '@/components/courses/AdminCourseProvider'
+
+function safeReturnTo(raw: string | null): string {
+  if (!raw || !raw.startsWith('/admin/')) return '/admin/perguntas'
+  return raw
+}
 
 type Dimension = { id: string; name: string }
 
@@ -29,9 +35,15 @@ const emptyForm = {
   ativa: true,
 }
 
-export default function EditarPerguntaPage() {
+function EditarPerguntaContent() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = useMemo(
+    () => safeReturnTo(searchParams.get('returnTo')),
+    [searchParams]
+  )
+  const { activeCourseId, activeCourse, loading: courseLoading } = useAdminCourse()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dimensions, setDimensions] = useState<Dimension[]>([])
@@ -39,11 +51,15 @@ export default function EditarPerguntaPage() {
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
+    if (courseLoading || !activeCourseId) return
+
     const load = async () => {
       try {
         const [qRes, dRes] = await Promise.all([
           fetch(`/api/admin/questions/${params.id}`),
-          fetch('/api/admin/dimensions'),
+          fetch(`/api/admin/dimensions?courseId=${encodeURIComponent(activeCourseId)}`, {
+            cache: 'no-store',
+          }),
         ])
         if (dRes.ok) {
           const dData = await dRes.json()
@@ -81,8 +97,8 @@ export default function EditarPerguntaPage() {
         setLoading(false)
       }
     }
-    load()
-  }, [params.id])
+    void load()
+  }, [params.id, activeCourseId, courseLoading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -112,7 +128,7 @@ export default function EditarPerguntaPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao atualizar')
       toast.success('Pergunta atualizada com sucesso!')
-      router.push('/admin/perguntas')
+      router.push(returnTo)
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -140,7 +156,7 @@ export default function EditarPerguntaPage() {
     return (
       <div className="space-y-4">
         <p className="text-gray-500">Pergunta não encontrada.</p>
-        <Link href="/admin/perguntas">
+        <Link href={returnTo}>
           <Button variant="outline">Voltar</Button>
         </Link>
       </div>
@@ -149,9 +165,16 @@ export default function EditarPerguntaPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-secondary">Editar Pergunta</h1>
-        <Link href="/admin/perguntas">
+      <div className="flex justify-between items-center gap-3 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-secondary">Editar Pergunta</h1>
+          {activeCourse?.name ? (
+            <p className="text-sm text-slate-500 mt-1">
+              Temas do curso: <strong>{activeCourse.name}</strong>
+            </p>
+          ) : null}
+        </div>
+        <Link href={returnTo}>
           <Button variant="outline">Voltar</Button>
         </Link>
       </div>
@@ -173,7 +196,7 @@ export default function EditarPerguntaPage() {
               ]}
             />
             <Select
-              label="Tema / Dimensão"
+              label="Tema"
               name="tema"
               value={formData.tema}
               onChange={handleChange}
@@ -249,7 +272,7 @@ export default function EditarPerguntaPage() {
         </Card>
 
         <div className="flex justify-end space-x-4">
-          <Link href="/admin/perguntas">
+          <Link href={returnTo}>
             <Button variant="outline" type="button">
               Cancelar
             </Button>
@@ -260,5 +283,19 @@ export default function EditarPerguntaPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function EditarPerguntaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center p-12">
+          <Spinner size="lg" />
+        </div>
+      }
+    >
+      <EditarPerguntaContent />
+    </Suspense>
   )
 }

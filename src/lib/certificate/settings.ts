@@ -229,8 +229,8 @@ export async function getCertificateLayout(): Promise<CertificateLayout> {
   return layout
 }
 
-export async function getCertificateSettings() {
-  const [rows, layout, editableVariables] = await Promise.all([
+export async function getCertificateSettings(opts?: { courseId?: string | null }) {
+  const [rows, layout, editableVariables, course] = await Promise.all([
     prisma.systemSetting.findMany({
       where: {
         key: {
@@ -246,38 +246,58 @@ export async function getCertificateSettings() {
     }),
     getCertificateLayout(),
     getCertificateEditableVariables(),
+    opts?.courseId
+      ? prisma.course.findFirst({
+          where: { id: opts.courseId, active: true },
+          select: { name: true, hours: true, description: true },
+        })
+      : Promise.resolve(null),
   ])
 
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
   const varMap = editableVariablesToMap(editableVariables)
 
+  // Nome/horas do curso ativo têm prioridade sobre o setting legado global
+  const courseName =
+    course?.name ??
+    varMap['{course_name}'] ??
+    parseSettingValue(map['platform.course_name'] ?? '', CERTIFICATE_SETTING_DEFAULTS.courseName)
+
+  const courseHours = (() => {
+    if (course?.hours != null && course.hours > 0) return course.hours
+    if (varMap['{course_hours}'] != null && varMap['{course_hours}'] !== '') {
+      const n = Number(varMap['{course_hours}'])
+      if (Number.isFinite(n) && n > 0) return Math.floor(n)
+    }
+    return parseSettingNumber(
+      map['certificate.course_hours'] ?? '',
+      CERTIFICATE_SETTING_DEFAULTS.courseHours
+    )
+  })()
+
+  const editableForCourse = editableVariables.map((v) => {
+    if (v.key === '{course_name}') return { ...v, value: courseName }
+    if (v.key === '{course_hours}') return { ...v, value: String(courseHours) }
+    return v
+  })
+
   return {
-    courseName:
-      varMap['{course_name}'] ??
-      parseSettingValue(map['platform.course_name'] ?? '', CERTIFICATE_SETTING_DEFAULTS.courseName),
+    courseName,
     institutionName:
       varMap['{institution}'] ??
       parseSettingValue(
         map['platform.institution'] ?? '',
         CERTIFICATE_SETTING_DEFAULTS.institutionName
       ),
-    courseHours: (() => {
-      if (varMap['{course_hours}'] != null && varMap['{course_hours}'] !== '') {
-        const n = Number(varMap['{course_hours}'])
-        if (Number.isFinite(n) && n > 0) return Math.floor(n)
-      }
-      return parseSettingNumber(
-        map['certificate.course_hours'] ?? '',
-        CERTIFICATE_SETTING_DEFAULTS.courseHours
-      )
-    })(),
+    courseHours,
     location:
       varMap['{location}'] ??
       parseSettingValue(map['certificate.location'] ?? '', CERTIFICATE_SETTING_DEFAULTS.location),
     logoUrl: normalizeLogoUrl(
       parseSettingValue(map['platform.logo_url'] ?? '', CERTIFICATE_SETTING_DEFAULTS.logoUrl)
     ),
-    editableVariables,
+    editableVariables: editableForCourse,
     layout,
+    courseDescription: course?.description ?? CERTIFICATE_SETTING_DEFAULTS.courseDescription,
   }
 }

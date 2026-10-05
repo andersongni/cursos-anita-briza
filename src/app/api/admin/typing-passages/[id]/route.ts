@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { assertAdminTypingExerciseAccess } from '@/lib/courses'
 import { normalizePassageContent } from '@/lib/exercises/typing'
 
 interface RouteParams {
@@ -10,6 +11,7 @@ interface RouteParams {
 export async function PATCH(req: Request, { params }: RouteParams) {
   try {
     await verifyAdmin()
+    await assertAdminTypingExerciseAccess()
     const { id } = await params
     const body = await req.json()
 
@@ -62,6 +64,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 export async function DELETE(_req: Request, { params }: RouteParams) {
   try {
     await verifyAdmin()
+    await assertAdminTypingExerciseAccess()
     const { id } = await params
 
     const existing = await prisma.typingPassage.findUnique({

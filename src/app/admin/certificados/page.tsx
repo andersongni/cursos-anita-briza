@@ -7,13 +7,15 @@ const LINKS = [
   {
     href: '/admin/certificados/modelo',
     title: 'Modelo do certificado',
-    description: 'Edite o fundo, posicione elementos e altere os textos do certificado.',
+    description:
+      'Modelo único para todos os cursos: fundo, elementos e textos. Nome e carga do curso vêm dos dados de cada emissão.',
     icon: PencilRuler,
   },
   {
     href: '/admin/certificados/emitidos',
     title: 'Certificados emitidos',
-    description: 'Consulte, visualize e baixe os certificados já gerados para os alunos.',
+    description:
+      'Consulte, filtre por curso, visualize e baixe os certificados já gerados.',
     icon: Award,
   },
 ]
@@ -24,7 +26,8 @@ export default function AdminCertificadosHubPage() {
       <div>
         <h1 className="text-3xl font-bold text-secondary">Certificados</h1>
         <p className="text-gray-500 mt-1">
-          Gerencie o modelo visual do certificado e a lista de emissões.
+          Recurso do sistema: um modelo compartilhado e consulta de emissões com filtro por
+          curso.
         </p>
       </div>
 

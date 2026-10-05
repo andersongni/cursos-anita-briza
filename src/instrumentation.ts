@@ -10,4 +10,12 @@ export async function register() {
   } catch (err) {
     console.error('[schema] ensure failed:', err instanceof Error ? err.message : err)
   }
+
+  try {
+    const { ensureCourses } = await import('@/lib/courses/ensure-courses')
+    await ensureCourses()
+    console.info('[courses] cursos padrão garantidos')
+  } catch (err) {
+    console.error('[courses] ensure failed:', err instanceof Error ? err.message : err)
+  }
 }

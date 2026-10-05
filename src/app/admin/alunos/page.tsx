@@ -11,6 +11,7 @@ import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { useAdminCourse } from '@/components/courses/AdminCourseProvider'
 
 type Student = {
   id: string
@@ -19,11 +20,18 @@ type Student = {
   status: string
   deleted_at: string | null
   created_at: string
+  pending_enrollments?: number
+  active_enrollments?: number
+  enrollments?: Array<{
+    status: string
+    course: { id: string; name: string }
+  }>
 }
 
 type ConfirmType = 'APPROVE' | 'BLOCK' | 'DELETE' | 'RESTORE' | ''
 
 export default function AdminAlunosPage() {
+  const { activeCourseId, activeCourse, loading: courseLoading } = useAdminCourse()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('Ativos')
   const [loading, setLoading] = useState(true)
@@ -36,13 +44,22 @@ export default function AdminAlunosPage() {
   })
 
   const load = useCallback(async () => {
+    if (courseLoading || !activeCourseId) return
     try {
-      const deletedParam =
-        statusFilter === 'Excluídos' ? 'only' : statusFilter === 'Todos' ? 'include' : undefined
-      const url = deletedParam
-        ? `/api/admin/students?deleted=${deletedParam}`
-        : '/api/admin/students'
-      const res = await fetch(url)
+      const params = new URLSearchParams()
+      params.set('courseId', activeCourseId)
+      if (statusFilter === 'Excluídos') {
+        params.set('deleted', 'only')
+        params.set('enrollment', 'ANY')
+      } else if (statusFilter === 'Todos') {
+        params.set('deleted', 'include')
+        params.set('enrollment', 'ACTIVE')
+      } else if (statusFilter === 'Matrículas pendentes') {
+        params.set('enrollment', 'PENDING')
+      } else {
+        params.set('enrollment', 'ACTIVE')
+      }
+      const res = await fetch(`/api/admin/students?${params}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar alunos')
       const data = await res.json()
       setAlunos(data.profiles ?? [])
@@ -51,7 +68,7 @@ export default function AdminAlunosPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, activeCourseId, courseLoading])
 
   useEffect(() => {
     setLoading(true)
@@ -81,6 +98,9 @@ export default function AdminAlunosPage() {
     }
     if (statusFilter === 'Bloqueados') {
       return matchesSearch && !isDeleted && a.status === 'BLOCKED'
+    }
+    if (statusFilter === 'Matrículas pendentes') {
+      return matchesSearch && !isDeleted && (a.pending_enrollments ?? 0) > 0
     }
     return matchesSearch
   })
@@ -160,7 +180,16 @@ export default function AdminAlunosPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-secondary">Gerenciar Alunos</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-secondary">Gerenciar Alunos</h1>
+        <p className="text-slate-500 mt-1">
+          Matriculados em{' '}
+          <strong className="text-secondary">
+            {activeCourse?.name ?? 'curso ativo'}
+          </strong>
+          . Troque o curso no topo para ver outra turma.
+        </p>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between bg-white p-4 rounded-lg shadow-sm">
         <div className="flex-1 max-w-md">
@@ -174,7 +203,8 @@ export default function AdminAlunosPage() {
           <Select
             options={[
               { value: 'Ativos', label: 'Ativos' },
-              { value: 'Pendentes', label: 'Pendentes' },
+              { value: 'Pendentes', label: 'Conta pendente' },
+              { value: 'Matrículas pendentes', label: 'Matrículas pendentes' },
               { value: 'Aprovados', label: 'Aprovados' },
               { value: 'Bloqueados', label: 'Bloqueados' },
               { value: 'Excluídos', label: 'Excluídos' },
@@ -198,6 +228,7 @@ export default function AdminAlunosPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Matrículas</TableHead>
                 <TableHead>Data de Cadastro</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -210,6 +241,24 @@ export default function AdminAlunosPage() {
                     <TableCell className="font-medium">{aluno.full_name}</TableCell>
                     <TableCell>{aluno.username}</TableCell>
                     <TableCell>{getStatusBadge(aluno)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(aluno.pending_enrollments ?? 0) > 0 && (
+                          <Badge variant="warning">
+                            {aluno.pending_enrollments} solicitada(s)
+                          </Badge>
+                        )}
+                        {(aluno.active_enrollments ?? 0) > 0 && (
+                          <Badge variant="success">
+                            {aluno.active_enrollments} ativa(s)
+                          </Badge>
+                        )}
+                        {(aluno.pending_enrollments ?? 0) === 0 &&
+                          (aluno.active_enrollments ?? 0) === 0 && (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                      </div>
+                    </TableCell>
                     <TableCell>{formatDate(aluno.created_at)}</TableCell>
                     <TableCell className="text-right space-x-2">
                       {isDeleted ? (
@@ -260,7 +309,7 @@ export default function AdminAlunosPage() {
               })}
               {filteredAlunos.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-6 text-gray-500">
                     Nenhum aluno encontrado.
                   </TableCell>
                 </TableRow>
@@ -280,6 +329,12 @@ export default function AdminAlunosPage() {
             Tem certeza que deseja {modalVerb} o aluno{' '}
             <strong>{confirmModal.studentName}</strong>?
           </p>
+          {confirmModal.type === 'APPROVE' && (
+            <p className="text-sm text-slate-600">
+              Isso aprova apenas a <strong>conta</strong>. Solicitações de matrícula em cursos
+              precisam ser aprovadas em Detalhes → Matrículas.
+            </p>
+          )}
           {confirmModal.type === 'DELETE' && (
             <p className="text-sm text-gray-500">
               A exclusão é lógica: o aluno sai das métricas e não consegue mais entrar, mas o

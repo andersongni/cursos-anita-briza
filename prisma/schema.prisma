@@ -6,6 +6,39 @@ datasource db {
   provider = "sqlite"
 }
 
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  hours       Int      @default(40)
+  active      Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  enrollments  CourseEnrollment[]
+  dimensions   Dimension[]
+  questions    Question[]
+  assessments  Assessment[]
+  certificates Certificate[]
+  releases     AttemptRelease[]
+}
+
+model CourseEnrollment {
+  id          String   @id @default(cuid())
+  student_id  String
+  course_id   String
+  status      String   @default("ACTIVE")
+  enrolled_at DateTime @default(now())
+
+  student Profile @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, course_id])
+  @@index([course_id])
+  @@index([student_id])
+}
+
 model Profile {
   id            String    @id @default(cuid())
   username      String    @unique
@@ -26,6 +59,7 @@ model Profile {
   updated_at      DateTime  @updatedAt
 
   assessments      Assessment[]
+  enrollments      CourseEnrollment[]
   releasesGiven    AttemptRelease[] @relation("ReleasedBy")
   releasesReceived AttemptRelease[] @relation("Student")
   certificates     Certificate[]
@@ -37,6 +71,7 @@ model Profile {
 
 model Dimension {
   id                String   @id @default(cuid())
+  course_id         String
   name              String
   description       String?
   weight            Int      @default(1)
@@ -46,12 +81,16 @@ model Dimension {
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
+  course              Course               @relation(fields: [course_id], references: [id])
   questions           Question[]
   assessmentQuestions AssessmentQuestion[]
+
+  @@index([course_id])
 }
 
 model Question {
   id            String   @id @default(cuid())
+  course_id     String
   type          String
   dimension_id  String
   question_text String
@@ -59,9 +98,12 @@ model Question {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
+  course              Course               @relation(fields: [course_id], references: [id])
   dimension           Dimension            @relation(fields: [dimension_id], references: [id])
   options             QuestionOption[]
   assessmentQuestions AssessmentQuestion[]
+
+  @@index([course_id])
 }
 
 model QuestionOption {
@@ -78,6 +120,7 @@ model QuestionOption {
 model Assessment {
   id               String    @id @default(cuid())
   student_id       String
+  course_id        String
   type             String
   status           String    @default("IN_PROGRESS")
   attempt_number   Int       @default(1)
@@ -93,10 +136,14 @@ model Assessment {
   created_at       DateTime  @default(now())
 
   student     Profile              @relation(fields: [student_id], references: [id])
+  course      Course               @relation(fields: [course_id], references: [id])
   questions   AssessmentQuestion[]
   answers     AssessmentAnswer[]
   certificate Certificate?
   releases    AttemptRelease[]
+
+  @@index([course_id])
+  @@index([student_id, course_id])
 }
 
 model AssessmentQuestion {
@@ -143,6 +190,7 @@ model AssessmentAnswer {
 model AttemptRelease {
   id            String    @id @default(cuid())
   student_id    String
+  course_id     String
   released_by   String
   reason        String?
   used          Boolean   @default(false)
@@ -151,13 +199,17 @@ model AttemptRelease {
   created_at    DateTime  @default(now())
 
   student    Profile     @relation("Student", fields: [student_id], references: [id])
+  course     Course      @relation(fields: [course_id], references: [id])
   releasedBy Profile     @relation("ReleasedBy", fields: [released_by], references: [id])
   assessment Assessment? @relation(fields: [assessment_id], references: [id])
+
+  @@index([course_id])
 }
 
 model Certificate {
   id                    String   @id @default(cuid())
   student_id            String
+  course_id             String
   assessment_id         String   @unique
   certificate_code      String   @unique
   student_name_snapshot String
@@ -169,7 +221,10 @@ model Certificate {
   created_at            DateTime @default(now())
 
   student    Profile    @relation(fields: [student_id], references: [id])
+  course     Course     @relation(fields: [course_id], references: [id])
   assessment Assessment @relation(fields: [assessment_id], references: [id])
+
+  @@index([course_id])
 }
 
 model SystemSetting {

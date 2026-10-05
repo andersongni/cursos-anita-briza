@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
+import { resolveStudentCourseId } from '@/lib/courses'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { user } = await verifyAuth()
+    const courseId = await resolveStudentCourseId(
+      user.id,
+      new URL(req.url).searchParams.get('courseId')
+    )
 
     const assessments = await prisma.assessment.findMany({
-      where: { student_id: user.id },
+      where: { student_id: user.id, course_id: courseId },
       orderBy: { started_at: 'desc' },
       select: {
         id: true,
@@ -19,10 +24,12 @@ export async function GET() {
         completed_at: true,
         duration_seconds: true,
         attempt_number: true,
+        course_id: true,
       },
     })
 
     return NextResponse.json({
+      courseId,
       assessments: assessments.map((a) => ({
         id: a.id,
         type: a.type,
@@ -34,11 +41,12 @@ export async function GET() {
         attemptNumber: a.attempt_number,
       })),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Student history error:', error)
+    const err = error as { message?: string; status?: number }
     return NextResponse.json(
-      { error: error.message || 'Erro ao buscar histórico' },
-      { status: error.status || 500 }
+      { error: err.message || 'Erro ao buscar histórico' },
+      { status: err.status || 500 }
     )
   }
 }

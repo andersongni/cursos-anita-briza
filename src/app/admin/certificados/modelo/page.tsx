@@ -736,8 +736,9 @@ export default function AdminCertificateTemplateEditorPage() {
         <div>
           <h1 className="text-3xl font-bold text-secondary">Modelo do certificado</h1>
           <p className="text-sm text-slate-500 mt-1">
+            Modelo único do sistema, usado por todos os cursos.{' '}
             <Link href="/admin/certificados" className="text-primary hover:underline">
-              ← Voltar para Certificados
+              ← Voltar
             </Link>
             {dirty ? ' · alterações não salvas' : ''}
           </p>
@@ -915,8 +916,9 @@ export default function AdminCertificateTemplateEditorPage() {
             {meta ? (
               <>
                 {' '}
-                Curso: <strong>{meta.courseName}</strong> · Instituição:{' '}
-                <strong>{meta.institutionName}</strong>.
+                Prévia com exemplo: curso <strong>{meta.courseName}</strong> · Instituição:{' '}
+                <strong>{meta.institutionName}</strong> (na emissão real, nome e horas vêm do
+                curso do aluno).
               </>
             ) : null}
           </p>

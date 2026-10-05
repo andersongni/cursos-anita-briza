@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { resolveAdminCourseId } from '@/lib/courses'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await verifyAdmin()
+    const courseId =
+      new URL(req.url).searchParams.get('courseId') ||
+      (await resolveAdminCourseId())
     const dimensions = await prisma.dimension.findMany({
+      where: { course_id: courseId },
       orderBy: { display_order: 'asc' },
     })
-    return NextResponse.json({ dimensions })
+    return NextResponse.json({ dimensions, courseId })
   } catch (error: unknown) {
     console.error('Error fetching dimensions:', error)
     const err = error as { message?: string; status?: number }
@@ -31,7 +36,7 @@ export async function POST(req: Request) {
   try {
     await verifyAdmin()
     const body = await req.json()
-    const { name, description, weight, target_percentage, display_order } = body
+    const { name, description, target_percentage, display_order } = body
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Nome do tema é obrigatório' }, { status: 400 })
@@ -45,11 +50,16 @@ export async function POST(req: Request) {
       )
     }
 
+    const courseId = await resolveAdminCourseId(
+      typeof body.courseId === 'string' ? body.courseId : null
+    )
+
     const dimension = await prisma.dimension.create({
       data: {
+        course_id: courseId,
         name: name.trim(),
         description,
-        weight,
+        weight: 1, // todas as perguntas/temas com o mesmo peso
         target_percentage: pct ?? 0,
         display_order,
       },
@@ -88,7 +98,11 @@ export async function PATCH(req: Request) {
         updates.push({ id: item.id, target_percentage: pct })
       }
 
+      const courseId = await resolveAdminCourseId(
+        typeof body.courseId === 'string' ? body.courseId : null
+      )
       const all = await prisma.dimension.findMany({
+        where: { course_id: courseId },
         select: { id: true, active: true, target_percentage: true },
       })
       const pctById = new Map(all.map((d) => [d.id, d.target_percentage]))
@@ -122,15 +136,16 @@ export async function PATCH(req: Request) {
       )
 
       const dimensions = await prisma.dimension.findMany({
+        where: { course_id: courseId },
         orderBy: { display_order: 'asc' },
       })
       return NextResponse.json({ success: true, dimensions })
     }
 
-    const { id, name, description, weight, target_percentage, display_order, active } = body
+    const { id, name, description, target_percentage, display_order, active } = body
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing dimension id' }, { status: 400 })
+      return NextResponse.json({ error: 'ID do tema é obrigatório' }, { status: 400 })
     }
 
     // Percentual individual só via lote (distributions) — evita salvar soma != 100
@@ -147,13 +162,23 @@ export async function PATCH(req: Request) {
     const data: {
       name?: string
       description?: string | null
-      weight?: number
       display_order?: number
       active?: boolean
     } = {}
-    if (name !== undefined) data.name = name
-    if (description !== undefined) data.description = description
-    if (weight !== undefined) data.weight = weight
+    if (name !== undefined) {
+      const trimmed = typeof name === 'string' ? name.trim() : ''
+      if (!trimmed) {
+        return NextResponse.json(
+          { error: 'Nome do tema é obrigatório' },
+          { status: 400 }
+        )
+      }
+      data.name = trimmed
+    }
+    if (description !== undefined) {
+      data.description =
+        typeof description === 'string' ? description.trim() || null : null
+    }
     if (display_order !== undefined) data.display_order = display_order
     if (active !== undefined) data.active = active
 
@@ -180,7 +205,7 @@ export async function DELETE(req: Request) {
     const id = body.id || new URL(req.url).searchParams.get('id')
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing dimension id' }, { status: 400 })
+      return NextResponse.json({ error: 'ID do tema é obrigatório' }, { status: 400 })
     }
 
     const activeQuestionsCount = await prisma.question.count({
@@ -189,7 +214,7 @@ export async function DELETE(req: Request) {
 
     if (activeQuestionsCount > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete dimension with active questions' },
+        { error: 'Não é possível excluir um tema com perguntas ativas' },
         { status: 400 }
       )
     }

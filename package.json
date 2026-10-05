@@ -10,6 +10,7 @@
     "postinstall": "prisma generate",
     "lint": "eslint",
     "seed": "npx tsx scripts/seed-questions.ts",
+    "seed:eletrica": "npx tsx scripts/seed-eletrica-questions.ts",
     "seed:typing": "npx tsx scripts/seed-typing-passages.ts",
     "seed:typing:remote": "npx tsx scripts/seed-typing-passages.ts --remote",
     "seed:settings": "npx tsx scripts/seed-settings.ts",

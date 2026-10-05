@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { notDeleted } from '@/lib/students/soft-delete'
+import { getCourseById, resolveAdminCourseId } from '@/lib/courses'
 
 export async function GET(req: Request) {
   try {
@@ -9,8 +10,23 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
     const deleted = searchParams.get('deleted') // 'only' | 'include' | default active only
+    /** ACTIVE (padrão) | PENDING | ANY — matrícula no curso ativo */
+    const enrollment = (searchParams.get('enrollment') || 'ACTIVE').toUpperCase()
+    const courseId =
+      searchParams.get('courseId') || (await resolveAdminCourseId())
+    const course = await getCourseById(courseId, { includeInactive: true })
 
-    const where: Record<string, unknown> = { role: 'STUDENT' }
+    const enrollmentWhere =
+      enrollment === 'PENDING'
+        ? { course_id: courseId, status: 'PENDING' }
+        : enrollment === 'ANY'
+          ? { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } }
+          : { course_id: courseId, status: 'ACTIVE' }
+
+    const where: Record<string, unknown> = {
+      role: 'STUDENT',
+      enrollments: { some: enrollmentWhere },
+    }
     if (deleted === 'only') {
       where.deleted_at = { not: null }
     } else if (deleted !== 'include') {
@@ -33,10 +49,25 @@ export async function GET(req: Request) {
         deleted_at: true,
         created_at: true,
         last_login_at: true,
+        enrollments: {
+          where: { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } },
+          select: {
+            status: true,
+            course: { select: { id: true, name: true } },
+          },
+        },
       },
     })
 
-    return NextResponse.json({ profiles })
+    return NextResponse.json({
+      courseId,
+      course,
+      profiles: profiles.map((p) => ({
+        ...p,
+        pending_enrollments: p.enrollments.filter((e) => e.status === 'PENDING').length,
+        active_enrollments: p.enrollments.filter((e) => e.status === 'ACTIVE').length,
+      })),
+    })
   } catch (error: unknown) {
     console.error('Error fetching students:', error)
     const err = error as { message?: string; status?: number }

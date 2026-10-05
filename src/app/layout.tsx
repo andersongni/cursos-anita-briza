@@ -10,8 +10,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Plataforma de Avaliação | Núcleo Assistencial Anita Briza",
-  description: "Plataforma de avaliação do curso de Informática para Iniciantes do Núcleo Assistencial Anita Briza",
+  title: "Plataforma de Estudos | Núcleo Assistencial Anita Briza",
+  description: "Plataforma de estudos do Núcleo Assistencial Anita Briza",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

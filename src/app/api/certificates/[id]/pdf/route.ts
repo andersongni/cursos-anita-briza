@@ -17,6 +17,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const certificate = await prisma.certificate.findUnique({
       where: { id },
+      include: { course: { select: { name: true, hours: true, description: true } } },
     })
 
     if (!certificate) {
@@ -27,15 +28,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
 
-    const settings = await getCertificateSettings()
+    const settings = await getCertificateSettings({ courseId: certificate.course_id })
 
     const doc = generateCertificatePDF({
       studentName: formatFullName(certificate.student_name_snapshot),
-      courseName: settings.courseName,
+      courseName:
+        certificate.course_name_snapshot ||
+        certificate.course?.name ||
+        settings.courseName,
       institutionName: settings.institutionName,
       completionDateLabel: formatCertificateDate(certificate.completion_date),
       certificateCode: certificate.certificate_code,
-      courseHours: settings.courseHours,
+      courseHours: certificate.course?.hours ?? settings.courseHours,
       location: settings.location,
       logoUrl: settings.logoUrl,
       layout: settings.layout,

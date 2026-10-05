@@ -21,7 +21,7 @@ export async function GET() {
 
     return NextResponse.json({
       logo_url: normalizeLogoUrl(map[PLATFORM_LOGO_SETTING_KEY] ?? DEFAULT_LOGO_URL),
-      name: typeof map['platform.name'] === 'string' ? map['platform.name'] : 'Plataforma de Avaliação',
+      name: typeof map['platform.name'] === 'string' ? map['platform.name'] : 'Plataforma de Estudos',
       institution:
         typeof map['platform.institution'] === 'string'
           ? map['platform.institution']
@@ -31,7 +31,7 @@ export async function GET() {
     console.error('Branding error:', error)
     return NextResponse.json({
       logo_url: DEFAULT_LOGO_URL,
-      name: 'Plataforma de Avaliação',
+      name: 'Plataforma de Estudos',
       institution: 'Núcleo Assistencial Anita Briza',
     })
   }

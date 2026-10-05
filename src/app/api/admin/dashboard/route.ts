@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { notDeleted, ofActiveStudent } from '@/lib/students/soft-delete'
 import { getProvaUnlockState } from '@/lib/settings/assessment'
+import { resolveAdminCourseId } from '@/lib/courses'
 
 type ThemeBucket = { total: number; correct: number }
 
@@ -18,9 +19,10 @@ function toThemeStat(bucket: ThemeBucket) {
   }
 }
 
-async function getDesempenhoPorTema() {
+async function getDesempenhoPorTema(courseId: string) {
   const [dimensions, answers] = await Promise.all([
     prisma.dimension.findMany({
+      where: { course_id: courseId },
       orderBy: { display_order: 'asc' },
       select: { id: true, name: true, active: true },
     }),
@@ -28,6 +30,7 @@ async function getDesempenhoPorTema() {
       where: {
         is_correct: { not: null },
         assessment: {
+          course_id: courseId,
           status: 'COMPLETED',
           type: { in: ['PROVA', 'SIMULADO'] },
           ...ofActiveStudent,
@@ -105,15 +108,25 @@ async function getDesempenhoPorTema() {
     .map(({ order: _order, ...rest }) => rest)
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await verifyAdmin()
+    const courseId =
+      new URL(req.url).searchParams.get('courseId') ||
+      (await resolveAdminCourseId())
+
+    const courseFilter = { course_id: courseId }
+
+    const enrolledInCourse = {
+      enrollments: { some: { course_id: courseId, status: 'ACTIVE' as const } },
+    }
 
     const [
       totalStudents,
       pendingStudents,
       approvedStudents,
       blockedStudents,
+      enrolledStudents,
       totalAssessments,
       passedAssessments,
       failedAssessments,
@@ -124,33 +137,86 @@ export async function GET() {
       inactiveQuestions,
       provaUnlock,
       desempenhoPorTema,
+      course,
     ] = await Promise.all([
-      prisma.profile.count({ where: { role: 'STUDENT', ...notDeleted } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'PENDING', ...notDeleted } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'APPROVED', ...notDeleted } }),
-      prisma.profile.count({ where: { role: 'STUDENT', status: 'BLOCKED', ...notDeleted } }),
-      prisma.assessment.count({
-        where: { status: 'COMPLETED', type: 'PROVA', ...ofActiveStudent },
+      prisma.profile.count({
+        where: { role: 'STUDENT', ...notDeleted, ...enrolledInCourse },
+      }),
+      prisma.profile.count({
+        where: {
+          role: 'STUDENT',
+          status: 'PENDING',
+          ...notDeleted,
+          ...enrolledInCourse,
+        },
+      }),
+      prisma.profile.count({
+        where: {
+          role: 'STUDENT',
+          status: 'APPROVED',
+          ...notDeleted,
+          ...enrolledInCourse,
+        },
+      }),
+      prisma.profile.count({
+        where: {
+          role: 'STUDENT',
+          status: 'BLOCKED',
+          ...notDeleted,
+          ...enrolledInCourse,
+        },
+      }),
+      prisma.courseEnrollment.count({
+        where: {
+          course_id: courseId,
+          status: 'ACTIVE',
+          student: { role: 'STUDENT', ...notDeleted },
+        },
       }),
       prisma.assessment.count({
-        where: { status: 'COMPLETED', type: 'PROVA', passed: true, ...ofActiveStudent },
+        where: { ...courseFilter, status: 'COMPLETED', type: 'PROVA', ...ofActiveStudent },
       }),
       prisma.assessment.count({
-        where: { status: 'COMPLETED', type: 'PROVA', passed: false, ...ofActiveStudent },
+        where: {
+          ...courseFilter,
+          status: 'COMPLETED',
+          type: 'PROVA',
+          passed: true,
+          ...ofActiveStudent,
+        },
       }),
       prisma.assessment.count({
-        where: { status: 'COMPLETED', type: 'SIMULADO', ...ofActiveStudent },
+        where: {
+          ...courseFilter,
+          status: 'COMPLETED',
+          type: 'PROVA',
+          passed: false,
+          ...ofActiveStudent,
+        },
       }),
-      prisma.question.count({ where: { type: 'PROVA' } }),
-      prisma.question.count({ where: { type: 'SIMULADO' } }),
-      prisma.question.count({ where: { active: true } }),
-      prisma.question.count({ where: { active: false } }),
-      getProvaUnlockState(),
-      getDesempenhoPorTema(),
+      prisma.assessment.count({
+        where: {
+          ...courseFilter,
+          status: 'COMPLETED',
+          type: 'SIMULADO',
+          ...ofActiveStudent,
+        },
+      }),
+      prisma.question.count({ where: { ...courseFilter, type: 'PROVA' } }),
+      prisma.question.count({ where: { ...courseFilter, type: 'SIMULADO' } }),
+      prisma.question.count({ where: { ...courseFilter, active: true } }),
+      prisma.question.count({ where: { ...courseFilter, active: false } }),
+      getProvaUnlockState(courseId),
+      getDesempenhoPorTema(courseId),
+      prisma.course.findUnique({
+        where: { id: courseId },
+        select: { id: true, name: true, slug: true },
+      }),
     ])
 
     const avg = await prisma.assessment.aggregate({
       where: {
+        ...courseFilter,
         status: 'COMPLETED',
         type: 'PROVA',
         score: { not: null },
@@ -164,16 +230,81 @@ export async function GET() {
         ? Math.round((passedAssessments / totalAssessments) * 1000) / 10
         : 0
 
+    // Pendências só do curso ativo (nunca de outros cursos).
+    const pendingEnrollmentRows = await prisma.courseEnrollment.findMany({
+      where: {
+        course_id: courseId,
+        status: 'PENDING',
+        student: { role: 'STUDENT', ...notDeleted },
+      },
+      orderBy: { enrolled_at: 'asc' },
+      take: 50,
+      select: {
+        id: true,
+        course_id: true,
+        enrolled_at: true,
+        student_id: true,
+        student: {
+          select: {
+            id: true,
+            full_name: true,
+            username: true,
+            status: true,
+          },
+        },
+        course: {
+          select: { id: true, name: true },
+        },
+      },
+    })
+
+    // Contas pendentes: só quem pediu matrícula neste curso e ainda não foi listado acima
+    // como solicitação de matrícula (evita duplicar e vazamento de outros cursos).
+    const pendingEnrollmentStudentIds = new Set(
+      pendingEnrollmentRows.map((e) => e.student_id)
+    )
+    const pendingAccounts = await prisma.profile.findMany({
+      where: {
+        role: 'STUDENT',
+        status: 'PENDING',
+        ...notDeleted,
+        enrollments: {
+          some: { course_id: courseId, status: 'PENDING' },
+        },
+      },
+      orderBy: { created_at: 'asc' },
+      take: 50,
+      select: {
+        id: true,
+        full_name: true,
+        username: true,
+        email: true,
+        phone: true,
+        created_at: true,
+      },
+    })
+    const pendingAccountsOnly = pendingAccounts.filter(
+      (p) => !pendingEnrollmentStudentIds.has(p.id)
+    )
+
     const alertas: string[] = []
-    if (pendingStudents > 0) {
+    if (pendingAccountsOnly.length > 0) {
       alertas.push(
-        `${pendingStudents} aluno(s) aguardando aprovação.`
+        `${pendingAccountsOnly.length} aluno(s) deste curso aguardando aprovação de conta.`
+      )
+    }
+    if (pendingEnrollmentRows.length > 0) {
+      alertas.push(
+        `${pendingEnrollmentRows.length} solicitação(ões) de matrícula neste curso aguardando aprovação.`
       )
     }
 
     return NextResponse.json({
+      courseId,
+      course,
       alunos: {
         total: totalStudents,
+        matriculados: enrolledStudents,
         pendentes: pendingStudents,
         aprovados: approvedStudents,
         bloqueados: blockedStudents,
@@ -201,6 +332,26 @@ export async function GET() {
         remainingMs: provaUnlock.remainingMs,
       },
       alertas,
+      pendencias: {
+        contas: pendingAccountsOnly.map((p) => ({
+          id: p.id,
+          fullName: p.full_name,
+          username: p.username,
+          email: p.email,
+          phone: p.phone,
+          createdAt: p.created_at,
+        })),
+        matriculas: pendingEnrollmentRows.map((e) => ({
+          id: e.id,
+          studentId: e.student_id,
+          studentName: e.student.full_name,
+          studentUsername: e.student.username,
+          studentStatus: e.student.status,
+          courseId: e.course_id,
+          courseName: e.course.name,
+          requestedAt: e.enrolled_at,
+        })),
+      },
     })
   } catch (error: unknown) {
     console.error('Error fetching dashboard metrics:', error)

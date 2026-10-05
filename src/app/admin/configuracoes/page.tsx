@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import Card, { CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
+import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Spinner from '@/components/ui/Spinner'
@@ -10,104 +10,43 @@ import PlatformLogo from '@/components/ui/PlatformLogo'
 import { DEFAULT_LOGO_URL } from '@/lib/platform/logo'
 import toast from 'react-hot-toast'
 
-type SettingsMap = Record<string, string | number | boolean>
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
-
-function asString(v: unknown, fallback = ''): string {
-  if (v == null) return fallback
-  return String(v)
-}
-
-function toApiValue(raw: unknown) {
-  if (typeof raw === 'string' && /^-?\d+(\.\d+)?$/.test(raw.trim())) {
-    return Number(raw)
-  }
-  return raw
-}
-
 export default function AdminConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [changingPassword, setChangingPassword] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL)
   const [logoKey, setLogoKey] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [settings, setSettings] = useState<SettingsMap>({})
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
     new_password: '',
     confirm_password: '',
   })
 
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-  const readyRef = useRef(false)
-  const savedLabelTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/settings', { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar configurações')
       const data = await res.json()
-      const map: SettingsMap = {}
-      for (const s of data.settings ?? []) {
-        map[s.key] = s.value
-      }
-      setSettings(map)
-      if (typeof map['platform.logo_url'] === 'string' && map['platform.logo_url']) {
-        setLogoUrl(String(map['platform.logo_url']))
+      const logo = (data.settings ?? []).find(
+        (s: { key: string }) => s.key === 'platform.logo_url'
+      )
+      if (typeof logo?.value === 'string' && logo.value) {
+        setLogoUrl(String(logo.value))
       } else {
         setLogoUrl(DEFAULT_LOGO_URL)
       }
       setLogoKey((k) => k + 1)
-      readyRef.current = true
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar configurações')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar configurações')
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    load()
-    const timers = debounceTimers.current
-    const savedTimer = savedLabelTimer
-    return () => {
-      Object.values(timers).forEach(clearTimeout)
-      if (savedTimer.current) clearTimeout(savedTimer.current)
-    }
+    void load()
   }, [load])
-
-  const persistKey = useCallback(async (key: string, raw: unknown) => {
-    setSaveStatus('saving')
-    try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, value: toApiValue(raw) }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || `Erro ao salvar ${key}`)
-      }
-      setSaveStatus('saved')
-      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
-      savedLabelTimer.current = setTimeout(() => setSaveStatus('idle'), 1500)
-    } catch (e: any) {
-      setSaveStatus('error')
-      toast.error(e.message || 'Erro ao salvar configuração')
-    }
-  }, [])
-
-  const setField = (key: string, value: string) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
-    if (!readyRef.current) return
-
-    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
-    debounceTimers.current[key] = setTimeout(() => {
-      void persistKey(key, value)
-    }, 500)
-  }
 
   const handleChangePassword = async () => {
     setChangingPassword(true)
@@ -125,8 +64,8 @@ export default function AdminConfiguracoesPage() {
         new_password: '',
         confirm_password: '',
       })
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao alterar senha')
     } finally {
       setChangingPassword(false)
     }
@@ -150,8 +89,8 @@ export default function AdminConfiguracoesPage() {
       } else {
         toast.success('Logo atualizado.')
       }
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao enviar logo')
     } finally {
       setUploadingLogo(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -168,8 +107,8 @@ export default function AdminConfiguracoesPage() {
       setLogoUrl(data.logo_url || DEFAULT_LOGO_URL)
       setLogoKey((k) => k + 1)
       toast.success('Logo padrão restaurado.')
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao restaurar logo')
     } finally {
       setUploadingLogo(false)
     }
@@ -183,68 +122,9 @@ export default function AdminConfiguracoesPage() {
     )
   }
 
-  const statusLabel =
-    saveStatus === 'saving'
-      ? 'Salvando…'
-      : saveStatus === 'saved'
-        ? 'Salvo automaticamente'
-        : saveStatus === 'error'
-          ? 'Erro ao salvar'
-          : 'Alterações são salvas automaticamente'
-
   return (
     <div className="space-y-6 pb-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-3xl font-bold text-secondary">Configurações do Sistema</h1>
-        <p
-          className={`text-sm ${
-            saveStatus === 'error'
-              ? 'text-red-600'
-              : saveStatus === 'saving'
-                ? 'text-amber-600'
-                : saveStatus === 'saved'
-                  ? 'text-green-600'
-                  : 'text-slate-500'
-          }`}
-        >
-          {statusLabel}
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações da Avaliação</CardTitle>
-          <CardDescription>
-            Valem para a prova oficial e para o simulado.
-          </CardDescription>
-        </CardHeader>
-        <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Quantidade de perguntas"
-            type="number"
-            value={asString(settings['assessment.prova.question_count'], '40')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.prova.question_count', e.target.value)
-            }
-          />
-          <Input
-            label="Tempo limite (minutos)"
-            type="number"
-            value={asString(settings['assessment.prova.time_limit_minutes'], '120')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.prova.time_limit_minutes', e.target.value)
-            }
-          />
-          <Input
-            label="Nota mínima para aprovação (%)"
-            type="number"
-            value={asString(settings['assessment.prova.passing_score'], '70')}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setField('assessment.prova.passing_score', e.target.value)
-            }
-          />
-        </div>
-      </Card>
+      <h1 className="text-3xl font-bold text-secondary">Configurações do Sistema</h1>
 
       <Card>
         <CardHeader className="flex flex-row justify-between items-center flex-wrap gap-2">

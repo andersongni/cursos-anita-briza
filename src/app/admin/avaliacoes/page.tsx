@@ -40,8 +40,8 @@ export default function AdminAvaliacoesPage() {
       if (!res.ok) throw new Error('Falha ao carregar avaliações')
       const data = await res.json()
       setAvaliacoes(data.assessments ?? [])
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar avaliações')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar avaliações')
     } finally {
       setLoading(false)
     }
@@ -50,7 +50,7 @@ export default function AdminAvaliacoesPage() {
   useEffect(() => {
     const t = setTimeout(() => {
       setLoading(true)
-      load()
+      void load()
     }, search ? 300 : 0)
     return () => clearTimeout(t)
   }, [load, search])

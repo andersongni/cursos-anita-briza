@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
+import { resolveAdminCourseId } from '@/lib/courses'
 
 export async function GET(req: Request) {
   try {
@@ -9,8 +10,9 @@ export async function GET(req: Request) {
     const type = searchParams.get('type')
     const result = searchParams.get('result')
     const q = searchParams.get('q')?.trim().toLowerCase()
+    const courseId = searchParams.get('courseId') || (await resolveAdminCourseId())
 
-    const where: any = {}
+    const where: Record<string, unknown> = { course_id: courseId }
     if (type) where.type = type
     if (result === 'APROVADO') {
       where.status = 'COMPLETED'
@@ -24,6 +26,7 @@ export async function GET(req: Request) {
       where,
       include: {
         student: { select: { id: true, full_name: true, username: true } },
+        course: { select: { id: true, name: true } },
       },
       orderBy: { started_at: 'desc' },
     })
@@ -36,12 +39,13 @@ export async function GET(req: Request) {
         )
       : assessments
 
-    return NextResponse.json({ assessments: filtered })
-  } catch (error: any) {
+    return NextResponse.json({ assessments: filtered, courseId })
+  } catch (error: unknown) {
     console.error('Error listing assessments:', error)
+    const err = error as { message?: string; status?: number }
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
-      { status: error.status || 500 }
+      { error: err.message || 'Internal Server Error' },
+      { status: err.status || 500 }
     )
   }
 }

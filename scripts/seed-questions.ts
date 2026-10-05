@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { GROUP_META, resolveDimensionGroup } from './dimension-groups'
 import { createScriptPrisma } from './prisma-client'
+import { ensureCourses } from '../src/lib/courses/ensure-courses'
 
 const prisma = createScriptPrisma()
 
@@ -21,12 +22,16 @@ interface QuestionJson {
   options: OptionJson[];
 }
 
-async function ensureGroupedDimensions(dimensionMap: Map<string, string>) {
+async function ensureGroupedDimensions(
+  courseId: string,
+  dimensionMap: Map<string, string>
+) {
   for (const [name, meta] of Object.entries(GROUP_META)) {
     if (dimensionMap.has(name)) {
       await prisma.dimension.update({
         where: { id: dimensionMap.get(name)! },
         data: {
+          course_id: courseId,
           description: meta.description,
           weight: meta.weight,
           target_percentage: meta.target_percentage,
@@ -38,6 +43,7 @@ async function ensureGroupedDimensions(dimensionMap: Map<string, string>) {
     }
     const created = await prisma.dimension.create({
       data: {
+        course_id: courseId,
         name,
         description: meta.description,
         weight: meta.weight,
@@ -52,6 +58,7 @@ async function ensureGroupedDimensions(dimensionMap: Map<string, string>) {
 
 async function main() {
   console.log('Starting seed process...');
+  const { informaticaId } = await ensureCourses()
   const dataDir = path.join(__dirname, '..', 'data', 'questions');
   const files = [
     'prova_part1.json',
@@ -60,13 +67,15 @@ async function main() {
     'simulado_part2.json'
   ];
 
-  // Load existing dimensions to map name -> id
-  const dimensions = await prisma.dimension.findMany();
+  // Load existing dimensions do curso Informática
+  const dimensions = await prisma.dimension.findMany({
+    where: { course_id: informaticaId },
+  });
   const dimensionMap = new Map<string, string>();
   for (const dim of dimensions) {
     dimensionMap.set(dim.name, dim.id);
   }
-  await ensureGroupedDimensions(dimensionMap);
+  await ensureGroupedDimensions(informaticaId, dimensionMap);
 
   let totalProcessed = 0;
 
@@ -84,6 +93,7 @@ async function main() {
           const meta = GROUP_META[dimensionName];
           const newDim = await prisma.dimension.create({
             data: {
+              course_id: informaticaId,
               name: dimensionName,
               description: meta?.description,
               weight: meta?.weight ?? 1,
@@ -99,6 +109,7 @@ async function main() {
         // Check for duplicates
         const existingQuestion = await prisma.question.findFirst({
           where: {
+            course_id: informaticaId,
             question_text: q.question_text,
             type: q.type as any,
           }
@@ -107,6 +118,7 @@ async function main() {
         if (!existingQuestion) {
           await prisma.question.create({
             data: {
+              course_id: informaticaId,
               type: q.type as any,
               dimension_id: dimensionId,
               question_text: q.question_text,
@@ -172,7 +184,7 @@ async function main() {
       value: '70',
       description: 'Espelho: nota mínima (mesmo valor da prova)',
     },
-    { key: 'platform.name', value: '"Plataforma de Avaliação"', description: 'Nome da plataforma' },
+    { key: 'platform.name', value: '"Plataforma de Estudos"', description: 'Nome da plataforma' },
     { key: 'platform.course_name', value: '"Informática Básica"', description: 'Nome do curso' },
     { key: 'platform.institution', value: '"Núcleo Assistencial Anita Briza"', description: 'Nome da instituição' },
     { key: 'platform.logo_url', value: '"/logo.jpg"', description: 'URL do logo da plataforma' },

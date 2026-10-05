@@ -14,6 +14,8 @@ import toast from 'react-hot-toast'
 import { useParams } from 'next/navigation'
 import { downloadCertificatePdf, viewCertificatePdf } from '@/lib/certificate/open-pdf'
 
+type CourseOption = { id: string; name: string; slug: string }
+
 type Profile = {
   id: string
   full_name: string
@@ -33,6 +35,7 @@ type Profile = {
     status: string
     started_at: string
     duration_seconds: number | null
+    course?: { id: string; name: string } | null
   }>
   certificates: Array<{
     id: string
@@ -40,6 +43,12 @@ type Profile = {
     course_name_snapshot: string
     completion_date: string
     created_at: string
+  }>
+  enrollments: Array<{
+    id: string
+    course_id: string
+    status: string
+    course: CourseOption
   }>
 }
 
@@ -51,6 +60,8 @@ export default function AlunoDetailPage() {
   const [resetting, setResetting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [courses, setCourses] = useState<CourseOption[]>([])
+  const [savingEnrollment, setSavingEnrollment] = useState<string | null>(null)
   const [deleteModal, setDeleteModal] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -61,10 +72,12 @@ export default function AlunoDetailPage() {
       if (!res.ok) throw new Error('Aluno não encontrado')
       const data = await res.json()
       const p = data.profile
+      setCourses(Array.isArray(data.courses) ? data.courses : [])
       setProfile({
         ...p,
         assessments: Array.isArray(p?.assessments) ? p.assessments : [],
         certificates: Array.isArray(p?.certificates) ? p.certificates : [],
+        enrollments: Array.isArray(p?.enrollments) ? p.enrollments : [],
       })
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao carregar aluno')
@@ -72,6 +85,41 @@ export default function AlunoDetailPage() {
       setLoading(false)
     }
   }, [params.id])
+
+  const setEnrollment = async (
+    courseId: string,
+    action: 'APPROVE' | 'REJECT' | 'REMOVE' | 'ENROLL'
+  ) => {
+    setSavingEnrollment(courseId)
+    try {
+      const res = await fetch(`/api/admin/students/${params.id}/enrollments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, action }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar matrícula')
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              enrollments: Array.isArray(data.enrollments) ? data.enrollments : prev.enrollments,
+            }
+          : prev
+      )
+      const messages = {
+        APPROVE: 'Matrícula aprovada.',
+        REJECT: 'Solicitação rejeitada.',
+        REMOVE: 'Matrícula removida.',
+        ENROLL: 'Aluno matriculado.',
+      } as const
+      toast.success(messages[action])
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar matrícula')
+    } finally {
+      setSavingEnrollment(null)
+    }
+  }
 
   useEffect(() => {
     load()
@@ -216,6 +264,76 @@ export default function AlunoDetailPage() {
             <div>
               <p className="text-sm text-gray-500">Último Acesso</p>
               <p>{profile.last_login_at ? formatDateTime(profile.last_login_at) : '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-2">Matrículas</p>
+              <ul className="space-y-3">
+                {courses.map((course) => {
+                  const enrollment = profile.enrollments.find((e) => e.course_id === course.id)
+                  const status = enrollment?.status
+                  const busy = savingEnrollment === course.id
+                  return (
+                    <li key={course.id} className="space-y-1.5 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-slate-800">{course.name}</span>
+                        {status === 'ACTIVE' && <Badge variant="success">Ativa</Badge>}
+                        {status === 'PENDING' && <Badge variant="warning">Solicitada</Badge>}
+                        {status === 'REJECTED' && <Badge variant="error">Rejeitada</Badge>}
+                        {status === 'INACTIVE' && <Badge variant="outline">Inativa</Badge>}
+                        {!status && <Badge variant="outline">Sem solicitação</Badge>}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {status === 'PENDING' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              loading={busy}
+                              disabled={isDeleted || busy}
+                              onClick={() => void setEnrollment(course.id, 'APPROVE')}
+                            >
+                              Aprovar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              loading={busy}
+                              disabled={isDeleted || busy}
+                              onClick={() => void setEnrollment(course.id, 'REJECT')}
+                            >
+                              Rejeitar
+                            </Button>
+                          </>
+                        )}
+                        {status === 'ACTIVE' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={busy}
+                            disabled={isDeleted || busy}
+                            onClick={() => void setEnrollment(course.id, 'REMOVE')}
+                          >
+                            Remover
+                          </Button>
+                        )}
+                        {(status === 'REJECTED' ||
+                          status === 'INACTIVE' ||
+                          !status) && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            loading={busy}
+                            disabled={isDeleted || busy}
+                            onClick={() => void setEnrollment(course.id, 'ENROLL')}
+                          >
+                            Matricular
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
             <div className="pt-2 space-y-2">
               {!isDeleted && (

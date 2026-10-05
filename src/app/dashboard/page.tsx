@@ -4,8 +4,13 @@ import { getSession } from '@/lib/auth/session'
 import { prisma } from '@/lib/db'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
-import { PlayCircle, FileText, History, Award, Dumbbell } from 'lucide-react'
+import { PlayCircle, FileText, History, Award, Dumbbell, GraduationCap } from 'lucide-react'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
+import {
+  courseHasStudentExercises,
+  listStudentCourses,
+  resolveStudentCourseId,
+} from '@/lib/courses'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,16 +31,55 @@ export default async function DashboardPage() {
   if (profile.status === 'BLOCKED') redirect('/login?blocked=true')
   if (profile.role === 'ADMIN') redirect('/admin/dashboard')
 
-  // Quick stats
-  const [totalAssessments, bestScore, provaSettings] = await Promise.all([
-    prisma.assessment.count({ where: { student_id: session.userId, status: 'COMPLETED' } }),
-    prisma.assessment.findFirst({
-      where: { student_id: session.userId, status: 'COMPLETED', type: 'PROVA' },
-      orderBy: { score: 'desc' },
-      select: { score: true },
-    }),
-    getAssessmentSettings('prova'),
-  ])
+  const activeCourses = await listStudentCourses(session.userId)
+  const hasActiveCourse = activeCourses.length > 0
+
+  let activeCourseId: string | null = null
+  let activeCourseSlug: string | null = null
+  if (hasActiveCourse) {
+    try {
+      activeCourseId = await resolveStudentCourseId(session.userId)
+      activeCourseSlug =
+        activeCourses.find((c) => c.id === activeCourseId)?.slug ??
+        activeCourses[0]?.slug ??
+        null
+    } catch {
+      activeCourseId = activeCourses[0]?.id ?? null
+      activeCourseSlug = activeCourses[0]?.slug ?? null
+    }
+  }
+
+  // Progresso do curso ativo (não agrega outros cursos)
+  const [totalAssessments, bestScore, provaSettings, pendingEnrollments] =
+    await Promise.all([
+      activeCourseId
+        ? prisma.assessment.count({
+            where: {
+              student_id: session.userId,
+              course_id: activeCourseId,
+              status: 'COMPLETED',
+            },
+          })
+        : Promise.resolve(0),
+      activeCourseId
+        ? prisma.assessment.findFirst({
+            where: {
+              student_id: session.userId,
+              course_id: activeCourseId,
+              status: 'COMPLETED',
+              type: 'PROVA',
+            },
+            orderBy: { score: 'desc' },
+            select: { score: true },
+          })
+        : Promise.resolve(null),
+      getAssessmentSettings('prova', activeCourseId),
+      prisma.courseEnrollment.count({
+        where: { student_id: session.userId, status: 'PENDING' },
+      }),
+    ])
+
+  const showExercises = courseHasStudentExercises(activeCourseSlug)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -48,25 +92,41 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      {!hasActiveCourse && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+          <p className="font-medium">
+            {pendingEnrollments > 0
+              ? 'Sua solicitação de matrícula está aguardando aprovação do administrador.'
+              : 'Você ainda não possui matrícula ativa em nenhum curso.'}
+          </p>
+          <Link
+            href="/student/matriculas"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary underline mt-1"
+          >
+            <GraduationCap className="w-4 h-4" />
+            Ver matrículas
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
-          <Card className="border-t-4 border-t-brand-gold hover:shadow-lg transition-shadow">
+          <Card className="border-t-4 border-t-secondary hover:shadow-lg transition-shadow">
             <div className="p-6">
               <div className="flex items-start">
-                <div className="flex-shrink-0 bg-amber-50 p-3 rounded-full">
-                  <Dumbbell className="w-8 h-8 text-brand-gold-dark" />
+                <div className="flex-shrink-0 bg-slate-100 p-3 rounded-full">
+                  <GraduationCap className="w-8 h-8 text-secondary" />
                 </div>
                 <div className="ml-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Exercícios</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Matrículas</h2>
                   <p className="text-gray-600 mb-6">
-                    Pratique digitação em português e acompanhe seu tempo, erros, nota e ranking.
+                    {hasActiveCourse
+                      ? `Você está matriculado em: ${activeCourses.map((c) => c.name).join(', ')}.`
+                      : 'Solicite matrícula nos cursos desejados e acompanhe a aprovação.'}
                   </p>
-                  <Link href="/student/exercicios">
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto text-secondary border-secondary hover:bg-secondary hover:text-white"
-                    >
-                      Ver exercícios
+                  <Link href="/student/matriculas">
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      Gerenciar matrículas
                     </Button>
                   </Link>
                 </div>
@@ -74,48 +134,82 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="border-t-4 border-t-accent hover:shadow-lg transition-shadow">
-            <div className="p-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
-                  <PlayCircle className="w-8 h-8 text-accent" />
-                </div>
-                <div className="ml-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Simulado</h2>
-                  <p className="text-gray-600 mb-6">
-                    Pratique com questões simuladas. Após finalizar, você poderá revisar suas respostas e ver as explicações.
-                  </p>
-                  <Link href="/student/simulado">
-                    <Button variant="outline" className="w-full sm:w-auto text-accent border-accent hover:bg-accent hover:text-white">
-                      Iniciar Simulado
-                    </Button>
-                  </Link>
+          {showExercises && (
+            <Card className="border-t-4 border-t-brand-gold hover:shadow-lg transition-shadow">
+              <div className="p-6">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 bg-amber-50 p-3 rounded-full">
+                    <Dumbbell className="w-8 h-8 text-brand-gold-dark" />
+                  </div>
+                  <div className="ml-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Exercícios</h2>
+                    <p className="text-gray-600 mb-6">
+                      Pratique digitação em português e acompanhe seu tempo, erros, nota e ranking.
+                    </p>
+                    <Link href="/student/exercicios">
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto text-secondary border-secondary hover:bg-secondary hover:text-white"
+                      >
+                        Ver exercícios
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
 
-          <Card className="border-t-4 border-t-primary hover:shadow-lg transition-shadow">
-            <div className="p-6">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
-                  <FileText className="w-8 h-8 text-primary" />
+          {hasActiveCourse && (
+            <>
+              <Card className="border-t-4 border-t-accent hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
+                      <PlayCircle className="w-8 h-8 text-accent" />
+                    </div>
+                    <div className="ml-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-2">Simulado</h2>
+                      <p className="text-gray-600 mb-6">
+                        Pratique com questões simuladas. Após finalizar, você poderá revisar suas
+                        respostas e ver as explicações.
+                      </p>
+                      <Link href="/student/simulado">
+                        <Button
+                          variant="outline"
+                          className="w-full sm:w-auto text-accent border-accent hover:bg-accent hover:text-white"
+                        >
+                          Iniciar Simulado
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Prova Oficial</h2>
-                  <p className="text-gray-600 mb-6">
-                    Realize a avaliação oficial do curso. Você precisa de{' '}
-                    {provaSettings.passingScore}% de acertos para ser aprovado.
-                  </p>
-                  <Link href="/student/prova">
-                    <Button variant="primary" className="w-full sm:w-auto">
-                      Iniciar Prova
-                    </Button>
-                  </Link>
+              </Card>
+
+              <Card className="border-t-4 border-t-primary hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 bg-sky-100 p-3 rounded-full">
+                      <FileText className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="ml-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-2">Prova Oficial</h2>
+                      <p className="text-gray-600 mb-6">
+                        Realize a avaliação oficial do curso. Você precisa de{' '}
+                        {provaSettings.passingScore}% de acertos para ser aprovado.
+                      </p>
+                      <Link href="/student/prova">
+                        <Button variant="primary" className="w-full sm:w-auto">
+                          Iniciar Prova
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            </>
+          )}
         </div>
 
         <div className="space-y-6">

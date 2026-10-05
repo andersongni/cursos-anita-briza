@@ -1,4 +1,4 @@
-# Plataforma de Avaliação — Núcleo Assistencial Anita Briza
+# Plataforma de Estudos — Núcleo Assistencial Anita Briza
 
 Plataforma web para aplicação de avaliações do curso de **Informática para Iniciantes**.
 

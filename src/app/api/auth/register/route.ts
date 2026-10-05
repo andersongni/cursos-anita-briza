@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       full_name,
       email,
       phone,
+      courseIds,
       captchaToken,
       captchaAnswer,
       recaptchaToken,
@@ -123,6 +124,35 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    const requestedCourseIds = Array.isArray(courseIds)
+      ? [...new Set(courseIds.filter((id: unknown) => typeof id === 'string' && id.trim()))]
+      : []
+
+    if (requestedCourseIds.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Selecione ao menos um curso para solicitar matrícula',
+          ...(await captchaResponseFields()),
+        },
+        { status: 400 }
+      )
+    }
+
+    const { ensureCourses, listActiveCourses } = await import('@/lib/courses')
+    await ensureCourses()
+    const activeCourses = await listActiveCourses()
+    const activeIds = new Set(activeCourses.map((c) => c.id))
+    const validCourseIds = requestedCourseIds.filter((id) => activeIds.has(id))
+    if (validCourseIds.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Nenhum curso válido selecionado',
+          ...(await captchaResponseFields()),
+        },
+        { status: 400 }
+      )
+    }
+
     const profile = await prisma.profile.create({
       data: {
         username: normalizedUsername,
@@ -133,6 +163,15 @@ export async function POST(req: Request) {
         status: 'PENDING',
         password_hash: hashedPassword,
       },
+    })
+
+    // Solicitações de matrícula — ficam PENDING até o admin aprovar
+    await prisma.courseEnrollment.createMany({
+      data: validCourseIds.map((course_id) => ({
+        student_id: profile.id,
+        course_id,
+        status: 'PENDING',
+      })),
     })
 
     // Sessão PENDING para acessar /aguardando-aprovacao

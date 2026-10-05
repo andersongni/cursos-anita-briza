@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
 import { computeTypingStats } from '@/lib/exercises/typing'
 import { buildTypingRanking } from '@/lib/exercises/typing-ranking'
+import { assertTypingExerciseAccess } from '@/lib/courses'
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
     }
     if (profile.status !== 'APPROVED' && profile.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Conta não aprovada' }, { status: 403 })
+    }
+    if (profile.role === 'STUDENT') {
+      await assertTypingExerciseAccess(user.id)
     }
 
     const body = await req.json()

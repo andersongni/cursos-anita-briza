@@ -52,15 +52,24 @@ export default function DigitacaoPage() {
   const [attempt, setAttempt] = useState<AttemptResult | null>(null)
   const [ranking, setRanking] = useState<RankingPayload | null>(null)
   const [runKey, setRunKey] = useState(0)
+  const [accessError, setAccessError] = useState<string | null>(null)
 
   const loadPassage = useCallback(async () => {
     setLoading(true)
     setAttempt(null)
     setRanking(null)
+    setAccessError(null)
     try {
       const res = await fetch('/api/exercises/typing/start', { cache: 'no-store' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Não foi possível carregar o texto')
+      if (!res.ok) {
+        const msg = data.error || 'Não foi possível carregar o texto'
+        if (res.status === 403) {
+          setAccessError(msg)
+          return
+        }
+        throw new Error(msg)
+      }
       setPassage(data.passage)
       setRunKey((k) => k + 1)
     } catch (e: unknown) {
@@ -137,8 +146,16 @@ export default function DigitacaoPage() {
       {!loading && !passage && !attempt && (
         <Card>
           <CardContent className="py-8 text-center space-y-4">
-            <p className="text-slate-600">Nenhum texto disponível no momento.</p>
-            <Button onClick={() => void loadPassage()}>Tentar novamente</Button>
+            <p className="text-slate-600">
+              {accessError || 'Nenhum texto disponível no momento.'}
+            </p>
+            {accessError ? (
+              <Link href="/student/matriculas">
+                <Button variant="primary">Ver matrículas</Button>
+              </Link>
+            ) : (
+              <Button onClick={() => void loadPassage()}>Tentar novamente</Button>
+            )}
           </CardContent>
         </Card>
       )}

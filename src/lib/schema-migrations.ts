@@ -69,4 +69,70 @@ export const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     sql: `CREATE INDEX IF NOT EXISTS TypingAttempt_student_id_passage_id_idx
       ON TypingAttempt(student_id, passage_id)`,
   },
+  {
+    id: '2026-10-05_create_course',
+    sql: `CREATE TABLE IF NOT EXISTS Course (
+      id TEXT PRIMARY KEY NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      description TEXT,
+      hours INTEGER NOT NULL DEFAULT 40,
+      active BOOLEAN NOT NULL DEFAULT 1,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
+  {
+    id: '2026-10-05_create_course_enrollment',
+    sql: `CREATE TABLE IF NOT EXISTS CourseEnrollment (
+      id TEXT PRIMARY KEY NOT NULL,
+      student_id TEXT NOT NULL,
+      course_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      enrolled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES Profile(id) ON DELETE CASCADE,
+      FOREIGN KEY (course_id) REFERENCES Course(id) ON DELETE CASCADE,
+      UNIQUE(student_id, course_id)
+    )`,
+  },
+  {
+    id: '2026-10-05_course_enrollment_indexes',
+    sql: `CREATE INDEX IF NOT EXISTS CourseEnrollment_course_id_idx ON CourseEnrollment(course_id)`,
+  },
+  {
+    id: '2026-10-05_course_enrollment_student_idx',
+    sql: `CREATE INDEX IF NOT EXISTS CourseEnrollment_student_id_idx ON CourseEnrollment(student_id)`,
+  },
+  {
+    id: '2026-10-05_dimension_course_id',
+    sql: 'ALTER TABLE Dimension ADD COLUMN course_id TEXT',
+  },
+  {
+    id: '2026-10-05_question_course_id',
+    sql: 'ALTER TABLE Question ADD COLUMN course_id TEXT',
+  },
+  {
+    id: '2026-10-05_assessment_course_id',
+    sql: 'ALTER TABLE Assessment ADD COLUMN course_id TEXT',
+  },
+  {
+    id: '2026-10-05_certificate_course_id',
+    sql: 'ALTER TABLE Certificate ADD COLUMN course_id TEXT',
+  },
+  {
+    id: '2026-10-05_attempt_release_course_id',
+    sql: 'ALTER TABLE AttemptRelease ADD COLUMN course_id TEXT',
+  },
+  {
+    id: '2026-10-05_dimension_course_idx',
+    sql: 'CREATE INDEX IF NOT EXISTS Dimension_course_id_idx ON Dimension(course_id)',
+  },
+  {
+    id: '2026-10-05_question_course_idx',
+    sql: 'CREATE INDEX IF NOT EXISTS Question_course_id_idx ON Question(course_id)',
+  },
+  {
+    id: '2026-10-05_assessment_course_idx',
+    sql: 'CREATE INDEX IF NOT EXISTS Assessment_course_id_idx ON Assessment(course_id)',
+  },
 ]

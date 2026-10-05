@@ -242,7 +242,7 @@ export default function LoginPage() {
           priority
         />
         <h2 className="text-center text-3xl font-extrabold text-secondary">
-          Plataforma de Avaliação
+          Plataforma de Estudos
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Núcleo Assistencial Anita Briza

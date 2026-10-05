@@ -18,10 +18,11 @@ import {
   Unlock,
 } from 'lucide-react'
 import {
-  PROVA_UNLOCK_UNTIL_KEY,
   PROVA_UNLOCK_WINDOW_HOURS,
+  provaUnlockUntilKey,
 } from '@/lib/settings/assessment-constants'
 import toast from 'react-hot-toast'
+import { useAdminCourse } from '@/components/courses/AdminCourseProvider'
 
 type ThemeStat = {
   total: number
@@ -65,24 +66,71 @@ type ThemeDetailsResponse = {
   truncated?: boolean
 }
 
+type PendingAccount = {
+  id: string
+  fullName: string
+  username: string
+  email: string | null
+  phone: string | null
+  createdAt: string
+}
+
+type PendingEnrollment = {
+  id: string
+  studentId: string
+  studentName: string
+  studentUsername: string
+  studentStatus: string
+  courseId: string
+  courseName: string
+  requestedAt: string
+}
+
 type DashboardStats = {
-  alunos: { total: number; pendentes: number; aprovados: number; bloqueados: number }
+  courseId?: string
+  course?: { id: string; name: string; slug: string } | null
+  alunos: {
+    total: number
+    matriculados?: number
+    pendentes: number
+    aprovados: number
+    bloqueados: number
+  }
   avaliacoes: { realizadas: number; aprovados: number; reprovados: number; simulados: number }
   desempenho: { media: number; taxaAprovacao: number }
   desempenhoPorTema: ThemePerformance[]
   perguntas: { totalProva: number; totalSimulado: number; ativas: number; inativas: number }
   prova?: { unlocked: boolean; unlockUntil: string | null; remainingMs: number }
   alertas: string[]
+  pendencias?: {
+    contas: PendingAccount[]
+    matriculas: PendingEnrollment[]
+  }
 }
 
 const emptyStats: DashboardStats = {
-  alunos: { total: 0, pendentes: 0, aprovados: 0, bloqueados: 0 },
+  courseId: undefined,
+  course: null,
+  alunos: { total: 0, matriculados: 0, pendentes: 0, aprovados: 0, bloqueados: 0 },
   avaliacoes: { realizadas: 0, aprovados: 0, reprovados: 0, simulados: 0 },
   desempenho: { media: 0, taxaAprovacao: 0 },
   desempenhoPorTema: [],
   perguntas: { totalProva: 0, totalSimulado: 0, ativas: 0, inativas: 0 },
   prova: { unlocked: false, unlockUntil: null, remainingMs: 0 },
   alertas: [],
+  pendencias: { contas: [], matriculas: [] },
+}
+
+function formatPendingDate(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function formatUnlockUntil(iso: string) {
@@ -133,10 +181,12 @@ function ThemeMetric({ stat }: { stat: ThemeStat }) {
 }
 
 export default function AdminDashboardPage() {
+  const { activeCourseId, activeCourse, loading: courseLoading } = useAdminCourse()
   const [loading, setLoading] = useState(true)
   const [unlocking, setUnlocking] = useState(false)
   const [stats, setStats] = useState<DashboardStats>(emptyStats)
   const [nowTick, setNowTick] = useState(() => Date.now())
+  const [actingKey, setActingKey] = useState<string | null>(null)
 
   const [themeDetail, setThemeDetail] = useState<ThemePerformance | null>(null)
   const [themeTypeFilter, setThemeTypeFilter] = useState<ThemeDetailTypeFilter>('ALL')
@@ -144,22 +194,103 @@ export default function AdminDashboardPage() {
   const [themeDetailsLoading, setThemeDetailsLoading] = useState(false)
   const [themeDetails, setThemeDetails] = useState<ThemeDetailsResponse | null>(null)
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/dashboard', { cache: 'no-store' })
-      if (!res.ok) throw new Error('Falha ao carregar dashboard')
-      setStats(await res.json())
-      setNowTick(Date.now())
-    } catch {
-      toast.error('Erro ao carregar os dados do dashboard.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const fetchStats = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!activeCourseId) return
+      try {
+        const res = await fetch(
+          `/api/admin/dashboard?courseId=${encodeURIComponent(activeCourseId)}`,
+          { cache: 'no-store' }
+        )
+        if (!res.ok) throw new Error('Falha ao carregar dashboard')
+        setStats(await res.json())
+        setNowTick(Date.now())
+      } catch {
+        if (!opts?.silent) {
+          toast.error('Erro ao carregar os dados do dashboard.')
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [activeCourseId]
+  )
 
   useEffect(() => {
+    if (courseLoading || !activeCourseId) return
+    setLoading(true)
     void fetchStats()
-  }, [fetchStats])
+  }, [fetchStats, courseLoading, activeCourseId])
+
+  // Atualiza pendências e métricas automaticamente
+  useEffect(() => {
+    if (courseLoading || !activeCourseId) return
+    const id = setInterval(() => {
+      void fetchStats({ silent: true })
+    }, 15_000)
+    return () => clearInterval(id)
+  }, [fetchStats, courseLoading, activeCourseId])
+
+  const approveAccount = async (studentId: string) => {
+    setActingKey(`account-approve-${studentId}`)
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: studentId, status: 'APPROVED' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao aprovar conta')
+      toast.success('Conta aprovada.')
+      await fetchStats({ silent: true })
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao aprovar conta')
+    } finally {
+      setActingKey(null)
+    }
+  }
+
+  const blockAccount = async (studentId: string) => {
+    setActingKey(`account-block-${studentId}`)
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: studentId, status: 'BLOCKED' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao bloquear conta')
+      toast.success('Conta bloqueada.')
+      await fetchStats({ silent: true })
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao bloquear conta')
+    } finally {
+      setActingKey(null)
+    }
+  }
+
+  const decideEnrollment = async (
+    studentId: string,
+    courseId: string,
+    action: 'APPROVE' | 'REJECT'
+  ) => {
+    setActingKey(`enroll-${action}-${studentId}-${courseId}`)
+    try {
+      const res = await fetch(`/api/admin/students/${studentId}/enrollments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar matrícula')
+      toast.success(action === 'APPROVE' ? 'Matrícula aprovada.' : 'Solicitação rejeitada.')
+      await fetchStats({ silent: true })
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar matrícula')
+    } finally {
+      setActingKey(null)
+    }
+  }
 
   const fetchThemeDetails = useCallback(
     async (
@@ -219,13 +350,20 @@ export default function AdminDashboardPage() {
     new Date(unlockUntil as string).getTime() > nowTick
 
   const setProvaUnlockUntil = async (untilIso: string | null) => {
+    if (!stats.courseId) {
+      toast.error('Curso ativo não identificado. Recarregue a página.')
+      return
+    }
     setUnlocking(true)
     try {
       const value = untilIso ?? ''
       const res = await fetch('/api/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: PROVA_UNLOCK_UNTIL_KEY, value }),
+        body: JSON.stringify({
+          key: provaUnlockUntilKey(stats.courseId),
+          value,
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -244,7 +382,7 @@ export default function AdminDashboardPage() {
       setNowTick(Date.now())
       toast.success(
         untilIso
-          ? `Prova liberada por ${PROVA_UNLOCK_WINDOW_HOURS} horas.`
+          ? `Prova de ${stats.course?.name ?? 'curso'} liberada por ${PROVA_UNLOCK_WINDOW_HOURS} horas.`
           : 'Prova bloqueada novamente.'
       )
     } catch (e: unknown) {
@@ -262,9 +400,169 @@ export default function AdminDashboardPage() {
     )
   }
 
+  const pendingAccounts = stats.pendencias?.contas ?? []
+  const pendingEnrollments = stats.pendencias?.matriculas ?? []
+  const hasPendencias = pendingAccounts.length > 0 || pendingEnrollments.length > 0
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-secondary">Painel administrativo</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-secondary">Painel administrativo</h1>
+        <p className="text-slate-600 mt-1">
+          Indicadores e pendências de{' '}
+          <span className="font-medium text-secondary">
+            {stats.course?.name ?? activeCourse?.name ?? 'curso ativo'}
+          </span>
+          . Troque o curso no topo para ver outro.
+        </p>
+      </div>
+
+      <Card className={hasPendencias ? 'border-amber-300 border-2' : undefined}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-secondary">
+            <AlertTriangle
+              size={20}
+              className={hasPendencias ? 'text-amber-500' : 'text-slate-400'}
+            />
+            Pendências
+            {hasPendencias && (
+              <Badge variant="warning">
+                {pendingAccounts.length + pendingEnrollments.length}
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            Apenas solicitações do curso{' '}
+            <strong>{stats.course?.name ?? activeCourse?.name ?? 'ativo'}</strong>.
+          </CardDescription>
+        </CardHeader>
+        <div className="p-4 pt-0 space-y-6">
+          {!hasPendencias ? (
+            <p className="text-sm text-slate-500">Nenhuma pendência no momento.</p>
+          ) : (
+            <>
+              {pendingAccounts.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    Aprovação de conta ({pendingAccounts.length})
+                  </h3>
+                  <ul className="space-y-2">
+                    {pendingAccounts.map((aluno) => (
+                      <li
+                        key={aluno.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/40 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900 truncate">{aluno.fullName}</p>
+                          <p className="text-sm text-slate-600">
+                            @{aluno.username}
+                            {aluno.email ? ` · ${aluno.email}` : ''}
+                            {aluno.phone ? ` · ${aluno.phone}` : ''}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Cadastro: {formatPendingDate(aluno.createdAt)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            loading={actingKey === `account-approve-${aluno.id}`}
+                            disabled={actingKey != null}
+                            onClick={() => void approveAccount(aluno.id)}
+                          >
+                            Aprovar conta
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={actingKey === `account-block-${aluno.id}`}
+                            disabled={actingKey != null}
+                            onClick={() => void blockAccount(aluno.id)}
+                          >
+                            Bloquear
+                          </Button>
+                          <Link href={`/admin/alunos/${aluno.id}`}>
+                            <Button size="sm" variant="ghost">
+                              Detalhes
+                            </Button>
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {pendingEnrollments.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    Solicitação de matrícula ({pendingEnrollments.length})
+                  </h3>
+                  <ul className="space-y-2">
+                    {pendingEnrollments.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50/40 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900 truncate">
+                            {item.studentName}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            @{item.studentUsername}
+                            {item.studentStatus === 'PENDING' && (
+                              <Badge variant="warning" className="ml-2">
+                                Conta também pendente
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Solicitado em: {formatPendingDate(item.requestedAt)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            loading={
+                              actingKey === `enroll-APPROVE-${item.studentId}-${item.courseId}`
+                            }
+                            disabled={actingKey != null}
+                            onClick={() =>
+                              void decideEnrollment(item.studentId, item.courseId, 'APPROVE')
+                            }
+                          >
+                            Aprovar matrícula
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={
+                              actingKey === `enroll-REJECT-${item.studentId}-${item.courseId}`
+                            }
+                            disabled={actingKey != null}
+                            onClick={() =>
+                              void decideEnrollment(item.studentId, item.courseId, 'REJECT')
+                            }
+                          >
+                            Rejeitar
+                          </Button>
+                          <Link href={`/admin/alunos/${item.studentId}`}>
+                            <Button size="sm" variant="ghost">
+                              Detalhes
+                            </Button>
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -273,9 +571,9 @@ export default function AdminDashboardPage() {
             Liberação da Prova Oficial
           </CardTitle>
           <CardDescription>
-            Por padrão a prova fica bloqueada. Ao liberar, os alunos podem iniciá-la nas próximas{' '}
-            {PROVA_UNLOCK_WINDOW_HOURS} horas. Quem já tiver prova em andamento pode continuar mesmo
-            depois.
+            Liberação por curso. Ao liberar, os alunos matriculados neste curso podem iniciar a prova
+            nas próximas {PROVA_UNLOCK_WINDOW_HOURS} horas. Quem já tiver prova em andamento pode
+            continuar mesmo depois.
           </CardDescription>
         </CardHeader>
         <div className="p-4 pt-0 space-y-4">
@@ -309,20 +607,6 @@ export default function AdminDashboardPage() {
         </div>
       </Card>
 
-      {stats.alertas.length > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
-          <div className="flex items-center mb-2">
-            <AlertTriangle className="text-yellow-400 mr-2" />
-            <h3 className="font-semibold text-yellow-800">Atenção Necessária</h3>
-          </div>
-          <ul className="list-disc pl-5 text-sm text-yellow-700">
-            {stats.alertas.map((alerta, i) => (
-              <li key={i}>{alerta}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -333,6 +617,9 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <div className="p-4 pt-0 space-y-2">
             <div className="text-3xl font-bold">{stats.alunos.total}</div>
+            <div className="text-sm text-slate-600">
+              {stats.alunos.matriculados ?? 0} matriculado(s) neste curso
+            </div>
             <div className="flex gap-2 flex-wrap">
               <Badge variant="warning">{stats.alunos.pendentes} Pendentes</Badge>
               <Badge variant="success">{stats.alunos.aprovados} Aprovados</Badge>

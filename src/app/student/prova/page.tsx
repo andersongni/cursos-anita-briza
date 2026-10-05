@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -21,6 +22,8 @@ export default function ProvaStartPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [enrolled, setEnrolled] = useState(true)
+  const [courseName, setCourseName] = useState<string | null>(null)
   const [eligible, setEligible] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
   const [unlockUntil, setUnlockUntil] = useState<string | null>(null)
@@ -36,23 +39,32 @@ export default function ProvaStartPage() {
       const res = await fetch('/api/assessments/check-eligibility?type=PROVA', {
         cache: 'no-store',
       })
-      if (res.ok) {
-        const data = await res.json()
-        setEligible(Boolean(data.eligible))
-        setUnlocked(Boolean(data.unlocked))
-        setUnlockUntil(typeof data.unlockUntil === 'string' ? data.unlockUntil : null)
-        setRemainingMs(Number.isFinite(Number(data.remainingMs)) ? Number(data.remainingMs) : 0)
-        setBlockReason(typeof data.reason === 'string' ? data.reason : null)
-        setInProgressId(data.inProgressId ?? null)
-        const q = Number(data.questionCount)
-        const t = Number(data.timeLimitMinutes)
-        const p = Number(data.passingScore)
-        if (Number.isFinite(q) && q > 0) setQuestionCount(q)
-        if (Number.isFinite(t) && t > 0) setTimeLimitMinutes(t)
-        if (Number.isFinite(p) && p >= 0) setPassingScore(p)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setEnrolled(false)
+        setEligible(false)
+        setUnlocked(false)
+        setBlockReason(data.error || 'Não foi possível verificar a prova.')
+        return
       }
+      setEnrolled(data.enrolled !== false)
+      setCourseName(typeof data.courseName === 'string' ? data.courseName : null)
+      setEligible(Boolean(data.eligible))
+      setUnlocked(Boolean(data.unlocked))
+      setUnlockUntil(typeof data.unlockUntil === 'string' ? data.unlockUntil : null)
+      setRemainingMs(Number.isFinite(Number(data.remainingMs)) ? Number(data.remainingMs) : 0)
+      setBlockReason(typeof data.reason === 'string' ? data.reason : null)
+      setInProgressId(data.inProgressId ?? null)
+      const q = Number(data.questionCount)
+      const t = Number(data.timeLimitMinutes)
+      const p = Number(data.passingScore)
+      if (Number.isFinite(q) && q > 0) setQuestionCount(q)
+      if (Number.isFinite(t) && t > 0) setTimeLimitMinutes(t)
+      if (Number.isFinite(p) && p >= 0) setPassingScore(p)
     } catch (error) {
       console.error(error)
+      setEnrolled(false)
+      setBlockReason('Erro ao verificar disponibilidade da prova.')
     } finally {
       setChecking(false)
     }
@@ -62,9 +74,8 @@ export default function ProvaStartPage() {
     void loadEligibility()
   }, [])
 
-  // Atualiza countdown enquanto a janela estiver aberta
   useEffect(() => {
-    if (!unlockUntil || !unlocked) return
+    if (!unlockUntil || !unlocked || !enrolled) return
     const id = setInterval(() => {
       const left = new Date(unlockUntil).getTime() - Date.now()
       if (left <= 0) {
@@ -77,7 +88,7 @@ export default function ProvaStartPage() {
       setRemainingMs(left)
     }, 30_000)
     return () => clearInterval(id)
-  }, [unlockUntil, unlocked, inProgressId])
+  }, [unlockUntil, unlocked, inProgressId, enrolled])
 
   const unlockLabel = useMemo(() => {
     if (!unlockUntil || !unlocked) return null
@@ -91,15 +102,19 @@ export default function ProvaStartPage() {
     })
   }, [unlockUntil, unlocked])
 
-  const canStart = Boolean(inProgressId) || (eligible && unlocked)
-  const isBlocked = !inProgressId && !unlocked
+  const notEnrolled = !enrolled
+  const canStart = enrolled && (Boolean(inProgressId) || (eligible && unlocked))
+  const isBlocked = notEnrolled || (!inProgressId && !unlocked)
 
   const handleStart = async () => {
+    if (notEnrolled) {
+      toast.error(blockReason || 'Matrícula ativa necessária para iniciar a prova.')
+      return
+    }
     if (inProgressId) {
       router.push(`/student/avaliacao/${inProgressId}`)
       return
     }
-
     if (!unlocked) {
       toast.error(
         blockReason ||
@@ -115,13 +130,8 @@ export default function ProvaStartPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'PROVA' }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Falha ao iniciar prova')
-      }
-
+      if (!res.ok) throw new Error(data.error || 'Falha ao iniciar prova')
       router.push(`/student/avaliacao/${data.id || data.assessment_id}`)
     } catch (error: unknown) {
       console.error(error)
@@ -157,21 +167,35 @@ export default function ProvaStartPage() {
           </div>
           <CardTitle className="text-3xl font-bold text-secondary">Prova Oficial</CardTitle>
           <CardDescription className="text-lg mt-2 text-slate-600">
-            {inProgressId
-              ? 'Você tem uma prova em andamento.'
-              : isBlocked
-                ? 'Aguardando liberação pelo administrador.'
-                : 'Avaliação final para emissão do certificado.'}
+            {notEnrolled
+              ? 'Matrícula ativa necessária para realizar a prova deste curso.'
+              : inProgressId
+                ? 'Você tem uma prova em andamento neste curso.'
+                : isBlocked
+                  ? 'Aguardando liberação pelo administrador para o curso selecionado.'
+                  : 'Avaliação final do curso selecionado para emissão do certificado.'}
           </CardDescription>
+          {courseName && enrolled && (
+            <p className="text-sm text-slate-500 mt-2">Curso: {courseName}</p>
+          )}
         </CardHeader>
 
         <CardContent className="py-8 space-y-6">
           {isBlocked && (
-            <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 text-center">
+            <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 text-center space-y-3">
               <p className="text-slate-700 font-medium">
                 {blockReason ||
-                  'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.'}
+                  (notEnrolled
+                    ? 'Você não possui matrícula ativa neste curso.'
+                    : 'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.')}
               </p>
+              {notEnrolled && (
+                <Link href="/student/matriculas">
+                  <Button variant="primary" size="sm">
+                    Solicitar matrícula
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
 
@@ -181,56 +205,60 @@ export default function ProvaStartPage() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <HelpCircle className="w-6 h-6 text-primary" />
-              <div>
-                <div className="font-semibold text-slate-800">{questionCount} Questões</div>
-                <div className="text-sm text-slate-500">
-                  Para aprovação: {Math.ceil((questionCount * passingScore) / 100)} acertos (
-                  {passingScore}%)
+          {enrolled && (
+            <>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
+                  <HelpCircle className="w-6 h-6 text-primary" />
+                  <div>
+                    <div className="font-semibold text-slate-800">{questionCount} Questões</div>
+                    <div className="text-sm text-slate-500">
+                      Para aprovação: {Math.ceil((questionCount * passingScore) / 100)} acertos (
+                      {passingScore}%)
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
+                  <Clock className="w-6 h-6 text-primary" />
+                  <div>
+                    <div className="font-semibold text-slate-800">Duração</div>
+                    <div className="text-sm text-slate-500">
+                      {timeLimitMinutes} minutos (cronometrado)
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-              <Clock className="w-6 h-6 text-primary" />
-              <div>
-                <div className="font-semibold text-slate-800">Duração</div>
-                <div className="text-sm text-slate-500">
-                  {timeLimitMinutes} minutos (cronometrado)
-                </div>
+              <div className="bg-amber-50 p-6 rounded-lg border border-brand-gold/40 mt-6">
+                <h3 className="font-semibold text-amber-950 mb-4 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-brand-gold-dark" />
+                  Avisos Importantes
+                </h3>
+                <ul className="space-y-3 text-amber-950/90">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold mt-0.5">•</span>
+                    <span>
+                      Após iniciar, o cronômetro não poderá ser pausado, mesmo que você feche a
+                      página.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold mt-0.5">•</span>
+                    <span>
+                      As respostas são salvas automaticamente. Se a conexão cair, você poderá
+                      retornar de onde parou (desde que dentro do tempo).
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold mt-0.5">•</span>
+                    <span>
+                      Certifique-se de estar em um ambiente tranquilo e com boa conexão à internet.
+                    </span>
+                  </li>
+                </ul>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-amber-50 p-6 rounded-lg border border-brand-gold/40 mt-6">
-            <h3 className="font-semibold text-amber-950 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-brand-gold-dark" />
-              Avisos Importantes
-            </h3>
-            <ul className="space-y-3 text-amber-950/90">
-              <li className="flex items-start gap-2">
-                <span className="font-bold mt-0.5">•</span>
-                <span>
-                  Após iniciar, o cronômetro não poderá ser pausado, mesmo que você feche a página.
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold mt-0.5">•</span>
-                <span>
-                  As respostas são salvas automaticamente. Se a conexão cair, você poderá retornar
-                  de onde parou (desde que dentro do tempo).
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold mt-0.5">•</span>
-                <span>
-                  Certifique-se de estar em um ambiente tranquilo e com boa conexão à internet.
-                </span>
-              </li>
-            </ul>
-          </div>
+            </>
+          )}
         </CardContent>
 
         <CardFooter className="flex justify-center pt-2 pb-8 border-t border-slate-100">
@@ -245,9 +273,11 @@ export default function ProvaStartPage() {
               ? 'Aguarde...'
               : inProgressId
                 ? 'Continuar Prova'
-                : isBlocked
-                  ? 'Prova bloqueada'
-                  : 'Iniciar Prova'}
+                : notEnrolled
+                  ? 'Sem matrícula'
+                  : isBlocked
+                    ? 'Prova bloqueada'
+                    : 'Iniciar Prova'}
           </Button>
         </CardFooter>
       </Card>

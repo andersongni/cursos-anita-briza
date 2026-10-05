@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
 import { formatFullName, generateCertificateCode } from '@/lib/utils'
-import { getCertificateSettings } from '@/lib/certificate/settings'
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +18,7 @@ export async function POST(req: Request) {
 
     const assessment = await prisma.assessment.findUnique({
       where: { id: assessment_id },
-      include: { student: true },
+      include: { student: true, course: true },
     })
 
     if (!assessment) {
@@ -52,16 +51,19 @@ export async function POST(req: Request) {
       })
     }
 
-    const settings = await getCertificateSettings()
     const certificate_code = generateCertificateCode()
+    const courseName =
+      assessment.course?.name ||
+      'Curso'
 
     const newCertificate = await prisma.certificate.create({
       data: {
         student_id: user.id,
+        course_id: assessment.course_id,
         assessment_id,
         certificate_code,
         student_name_snapshot: formatFullName(assessment.student.full_name),
-        course_name_snapshot: settings.courseName,
+        course_name_snapshot: courseName,
         completion_date: assessment.completed_at || new Date(),
         score_snapshot: assessment.score || 0,
       },
@@ -71,11 +73,12 @@ export async function POST(req: Request) {
       { success: true, certificate: newCertificate },
       { status: 201 }
     )
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Certificate Generation Error:', err)
+    const e = err as { message?: string; status?: number }
     return NextResponse.json(
-      { error: err.message || 'Erro interno no servidor' },
-      { status: err.status || 500 }
+      { error: e.message || 'Erro interno no servidor' },
+      { status: e.status || 500 }
     )
   }
 }
