@@ -1,5 +1,22 @@
 import { prisma } from '@/lib/db'
 import { DEFAULT_LOGO_URL, normalizeLogoUrl } from '@/lib/platform/logo'
+import {
+  CERTIFICATE_BACKGROUND_KEY,
+  CERTIFICATE_LAYOUT_KEY,
+  createDefaultCertificateLayout,
+  DEFAULT_CERTIFICATE_BACKGROUND,
+  normalizeCertificateLayout,
+  parseLayoutSettingValue,
+  type CertificateLayout,
+} from '@/lib/certificate/layout'
+import {
+  CERTIFICATE_EDITABLE_VARIABLES_KEY,
+  createDefaultEditableVariables,
+  editableVariablesToMap,
+  LEGACY_VARIABLE_SETTING_KEYS,
+  normalizeEditableVariables,
+  type CertificateEditableVariable,
+} from '@/lib/certificate/variables'
 
 function parseSettingValue(raw: string, fallback: string): string {
   try {
@@ -23,20 +40,20 @@ function parseSettingNumber(raw: string, fallback: number): number {
 
 export const CERTIFICATE_SETTING_DEFAULTS = {
   title: 'CERTIFICADO',
-  subtitle: 'DE CONCLUSÃO DO CURSO',
+  subtitle: 'DE CONCLUSÃO DE CURSO',
   courseName: 'Informática Básica',
   institutionName: 'Núcleo Assistencial Anita Briza',
-  introText: 'O {institution} certifica que',
+  introText: 'Certificamos que',
   middleText: 'concluiu com aproveitamento o curso de',
   courseHours: 40,
   courseDescription:
-    'com carga horária de {course_hours} horas, desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital.',
+    'desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital.',
   location: 'São Paulo',
   dateLine: '{location}, {date}',
   dateLabel: 'LOCAL E DATA',
   signatureTitle: 'Coordenação',
   signatureSubtitle: 'Núcleo Assistencial Anita Briza',
-  codeLabel: 'Código: {certificate_code}',
+  codeLabel: ' {certificate_code}',
   logoUrl: DEFAULT_LOGO_URL,
 } as const
 
@@ -56,71 +73,306 @@ export const CERTIFICATE_SETTING_KEYS = [
   'certificate.signature_title',
   'certificate.signature_subtitle',
   'certificate.code_label',
+  CERTIFICATE_EDITABLE_VARIABLES_KEY,
+  CERTIFICATE_LAYOUT_KEY,
+  CERTIFICATE_BACKGROUND_KEY,
 ] as const
 
-export async function getCertificateSettings() {
-  const rows = await prisma.systemSetting.findMany({
-    where: { key: { in: [...CERTIFICATE_SETTING_KEYS] } },
+async function upsertSettingValue(
+  key: string,
+  value: unknown,
+  userId: string,
+  description?: string
+) {
+  const stringified = JSON.stringify(value)
+  await prisma.systemSetting.upsert({
+    where: { key },
+    update: { value: stringified, updated_by: userId, ...(description ? { description } : {}) },
+    create: {
+      key,
+      value: stringified,
+      updated_by: userId,
+      description: description ?? key,
+    },
   })
+}
 
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
+export async function getCertificateEditableVariables(): Promise<CertificateEditableVariable[]> {
+  const [row, legacyRows] = await Promise.all([
+    prisma.systemSetting.findUnique({ where: { key: CERTIFICATE_EDITABLE_VARIABLES_KEY } }),
+    prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            'platform.course_name',
+            'platform.institution',
+            'certificate.course_hours',
+            'certificate.location',
+          ],
+        },
+      },
+    }),
+  ])
 
-  return {
-    title: parseSettingValue(map['certificate.title'] ?? '', CERTIFICATE_SETTING_DEFAULTS.title),
-    subtitle: parseSettingValue(
-      map['certificate.subtitle'] ?? '',
-      CERTIFICATE_SETTING_DEFAULTS.subtitle
-    ),
+  const legacy = Object.fromEntries(legacyRows.map((r) => [r.key, r.value]))
+  const seeded = createDefaultEditableVariables({
     courseName: parseSettingValue(
-      map['platform.course_name'] ?? '',
+      legacy['platform.course_name'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.courseName
     ),
     institutionName: parseSettingValue(
-      map['platform.institution'] ?? '',
+      legacy['platform.institution'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.institutionName
     ),
+    courseHours: parseSettingNumber(
+      legacy['certificate.course_hours'] ?? '',
+      CERTIFICATE_SETTING_DEFAULTS.courseHours
+    ),
+    location: parseSettingValue(
+      legacy['certificate.location'] ?? '',
+      CERTIFICATE_SETTING_DEFAULTS.location
+    ),
+  })
+
+  if (!row?.value) return seeded
+
+  try {
+    return normalizeEditableVariables(JSON.parse(row.value), seeded)
+  } catch {
+    return seeded
+  }
+}
+
+export async function saveCertificateEditableVariables(
+  userId: string,
+  variables: CertificateEditableVariable[]
+): Promise<CertificateEditableVariable[]> {
+  const normalized = normalizeEditableVariables(variables, [], { allowEmpty: true })
+  await upsertSettingValue(
+    CERTIFICATE_EDITABLE_VARIABLES_KEY,
+    normalized,
+    userId,
+    'Variáveis editáveis do certificado (chave/valor)'
+  )
+
+  // Mantém settings legados em sync quando as chaves padrão ainda existem
+  for (const [varKey, settingKey] of Object.entries(LEGACY_VARIABLE_SETTING_KEYS)) {
+    const found = normalized.find((v) => v.key === varKey)
+    if (!found) continue
+    const value =
+      settingKey === 'certificate.course_hours'
+        ? Math.max(1, Math.floor(Number(found.value) || CERTIFICATE_SETTING_DEFAULTS.courseHours))
+        : found.value
+    await upsertSettingValue(settingKey, value, userId)
+  }
+
+  return normalized
+}
+
+function textFromLayout(layout: CertificateLayout, id: string, fallback: string) {
+  const el = layout.elements.find((e) => e.id === id)
+  return el?.text?.trim() ? el.text : fallback
+}
+
+export async function getCertificateLayout(): Promise<CertificateLayout> {
+  const [layoutRow, bgRow, legacyRows] = await Promise.all([
+    prisma.systemSetting.findUnique({ where: { key: CERTIFICATE_LAYOUT_KEY } }),
+    prisma.systemSetting.findUnique({ where: { key: CERTIFICATE_BACKGROUND_KEY } }),
+    prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            'certificate.title',
+            'certificate.subtitle',
+            'certificate.intro_text',
+            'certificate.middle_text',
+            'certificate.course_description',
+            'certificate.date_line',
+            'certificate.date_label',
+            'certificate.code_label',
+            'certificate.signature_title',
+            'certificate.signature_subtitle',
+            'platform.course_name',
+          ],
+        },
+      },
+    }),
+  ])
+
+  const legacy = Object.fromEntries(legacyRows.map((r) => [r.key, r.value]))
+  const fromLegacy = createDefaultCertificateLayout({
+    title: parseSettingValue(legacy['certificate.title'] ?? '', CERTIFICATE_SETTING_DEFAULTS.title),
+    subtitle: parseSettingValue(
+      legacy['certificate.subtitle'] ?? '',
+      CERTIFICATE_SETTING_DEFAULTS.subtitle
+    ),
     introText: parseSettingValue(
-      map['certificate.intro_text'] ?? '',
+      legacy['certificate.intro_text'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.introText
     ),
     middleText: parseSettingValue(
-      map['certificate.middle_text'] ?? '',
+      legacy['certificate.middle_text'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.middleText
     ),
-    courseHours: parseSettingNumber(
-      map['certificate.course_hours'] ?? '',
-      CERTIFICATE_SETTING_DEFAULTS.courseHours
-    ),
     courseDescription: parseSettingValue(
-      map['certificate.course_description'] ?? '',
+      legacy['certificate.course_description'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.courseDescription
     ),
-    location: parseSettingValue(
-      map['certificate.location'] ?? '',
-      CERTIFICATE_SETTING_DEFAULTS.location
-    ),
     dateLine: parseSettingValue(
-      map['certificate.date_line'] ?? '',
+      legacy['certificate.date_line'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.dateLine
     ),
     dateLabel: parseSettingValue(
-      map['certificate.date_label'] ?? '',
+      legacy['certificate.date_label'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.dateLabel
     ),
+    codeLabel: parseSettingValue(
+      legacy['certificate.code_label'] ?? '',
+      CERTIFICATE_SETTING_DEFAULTS.codeLabel
+    ),
     signatureTitle: parseSettingValue(
-      map['certificate.signature_title'] ?? '',
+      legacy['certificate.signature_title'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.signatureTitle
     ),
     signatureSubtitle: parseSettingValue(
-      map['certificate.signature_subtitle'] ?? '',
+      legacy['certificate.signature_subtitle'] ?? '',
       CERTIFICATE_SETTING_DEFAULTS.signatureSubtitle
     ),
-    codeLabel: parseSettingValue(
-      map['certificate.code_label'] ?? '',
-      CERTIFICATE_SETTING_DEFAULTS.codeLabel
+  })
+
+  // course_name element always shows the key in editor; PDF substitutes from platform setting
+  const courseEl = fromLegacy.elements.find((e) => e.id === 'course_name')
+  if (courseEl) courseEl.text = '{course_name}'
+
+  const saved = parseLayoutSettingValue(layoutRow?.value)
+  const layout = saved ? normalizeCertificateLayout(saved) : fromLegacy
+
+  if (bgRow?.value) {
+    const bg = parseSettingValue(bgRow.value, DEFAULT_CERTIFICATE_BACKGROUND)
+    if (bg.startsWith('/')) layout.backgroundUrl = bg
+  }
+
+  return layout
+}
+
+export async function getCertificateSettings() {
+  const [rows, layout, editableVariables] = await Promise.all([
+    prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            'platform.course_name',
+            'platform.institution',
+            'platform.logo_url',
+            'certificate.title',
+            'certificate.subtitle',
+            'certificate.intro_text',
+            'certificate.middle_text',
+            'certificate.course_hours',
+            'certificate.course_description',
+            'certificate.location',
+            'certificate.date_line',
+            'certificate.date_label',
+            'certificate.signature_title',
+            'certificate.signature_subtitle',
+            'certificate.code_label',
+          ],
+        },
+      },
+    }),
+    getCertificateLayout(),
+    getCertificateEditableVariables(),
+  ])
+
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
+  const varMap = editableVariablesToMap(editableVariables)
+
+  return {
+    title: textFromLayout(
+      layout,
+      'title',
+      parseSettingValue(map['certificate.title'] ?? '', CERTIFICATE_SETTING_DEFAULTS.title)
+    ),
+    subtitle: textFromLayout(
+      layout,
+      'subtitle',
+      parseSettingValue(map['certificate.subtitle'] ?? '', CERTIFICATE_SETTING_DEFAULTS.subtitle)
+    ),
+    courseName:
+      varMap['{course_name}'] ??
+      parseSettingValue(map['platform.course_name'] ?? '', CERTIFICATE_SETTING_DEFAULTS.courseName),
+    institutionName:
+      varMap['{institution}'] ??
+      parseSettingValue(
+        map['platform.institution'] ?? '',
+        CERTIFICATE_SETTING_DEFAULTS.institutionName
+      ),
+    introText: textFromLayout(
+      layout,
+      'intro',
+      parseSettingValue(map['certificate.intro_text'] ?? '', CERTIFICATE_SETTING_DEFAULTS.introText)
+    ),
+    middleText: textFromLayout(
+      layout,
+      'middle',
+      parseSettingValue(map['certificate.middle_text'] ?? '', CERTIFICATE_SETTING_DEFAULTS.middleText)
+    ),
+    courseHours: (() => {
+      if (varMap['{course_hours}'] != null && varMap['{course_hours}'] !== '') {
+        const n = Number(varMap['{course_hours}'])
+        if (Number.isFinite(n) && n > 0) return Math.floor(n)
+      }
+      return parseSettingNumber(
+        map['certificate.course_hours'] ?? '',
+        CERTIFICATE_SETTING_DEFAULTS.courseHours
+      )
+    })(),
+    courseDescription: textFromLayout(
+      layout,
+      'description',
+      parseSettingValue(
+        map['certificate.course_description'] ?? '',
+        CERTIFICATE_SETTING_DEFAULTS.courseDescription
+      )
+    ),
+    location:
+      varMap['{location}'] ??
+      parseSettingValue(map['certificate.location'] ?? '', CERTIFICATE_SETTING_DEFAULTS.location),
+    dateLine: textFromLayout(
+      layout,
+      'date_line',
+      parseSettingValue(map['certificate.date_line'] ?? '', CERTIFICATE_SETTING_DEFAULTS.dateLine)
+    ),
+    dateLabel: textFromLayout(
+      layout,
+      'date_label',
+      parseSettingValue(map['certificate.date_label'] ?? '', CERTIFICATE_SETTING_DEFAULTS.dateLabel)
+    ),
+    signatureTitle: textFromLayout(
+      layout,
+      'signature_title',
+      parseSettingValue(
+        map['certificate.signature_title'] ?? '',
+        CERTIFICATE_SETTING_DEFAULTS.signatureTitle
+      )
+    ),
+    signatureSubtitle: textFromLayout(
+      layout,
+      'signature_subtitle',
+      parseSettingValue(
+        map['certificate.signature_subtitle'] ?? '',
+        CERTIFICATE_SETTING_DEFAULTS.signatureSubtitle
+      )
+    ),
+    codeLabel: textFromLayout(
+      layout,
+      'code_label',
+      parseSettingValue(map['certificate.code_label'] ?? '', CERTIFICATE_SETTING_DEFAULTS.codeLabel)
     ),
     logoUrl: normalizeLogoUrl(
       parseSettingValue(map['platform.logo_url'] ?? '', CERTIFICATE_SETTING_DEFAULTS.logoUrl)
     ),
+    editableVariables,
+    layout,
   }
 }

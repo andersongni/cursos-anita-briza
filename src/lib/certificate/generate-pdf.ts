@@ -2,6 +2,20 @@ import fs from 'node:fs'
 import path from 'node:path'
 import jsPDF from 'jspdf'
 import { DEFAULT_LOGO_URL } from '@/lib/platform/logo'
+import {
+  CERT_PAGE_HEIGHT_MM,
+  CERT_PAGE_WIDTH_MM,
+  createDefaultCertificateLayout,
+  hexToRgb,
+  isImageElement,
+  resolveElementImageUrl,
+  type CertificateLayout,
+} from '@/lib/certificate/layout'
+import {
+  editableVariablesToMap,
+  stripVariableBraces,
+  type CertificateEditableVariable,
+} from '@/lib/certificate/variables'
 
 export interface CertificateData {
   studentName: string
@@ -22,12 +36,14 @@ export interface CertificateData {
   signatureSubtitle: string
   codeLabel: string
   logoUrl?: string
+  layout?: CertificateLayout
+  /** Variáveis editáveis do modelo (chave/valor customizados). */
+  editableVariables?: CertificateEditableVariable[]
 }
 
 /** Identidade visual do logo: azul, ciano e dourado */
 const GOLD: [number, number, number] = [227, 193, 59]
 const BLUE: [number, number, number] = [0, 120, 168]
-const BLUE_SOFT: [number, number, number] = [12, 164, 227]
 const CREAM: [number, number, number] = [255, 255, 255]
 
 function resolvePublicFile(urlPath: string): string | null {
@@ -155,25 +171,20 @@ function drawBottomWaves(doc: jsPDF, pageWidth: number, pageHeight: number) {
   )
 }
 
-type PlaceholderMap = {
-  student_name: string
-  course_name: string
-  institution: string
-  certificate_code: string
-  course_hours: string
-  date: string
-  location: string
-}
+function applyPlaceholders(text: string, vars: Record<string, string>) {
+  let out = text
+  // Substitui chaves mais longas primeiro para evitar colisões parciais
+  const tokens = Object.keys(vars)
+    .map((k) => (k.startsWith('{') ? k : `{${stripVariableBraces(k)}}`))
+    .filter((k, i, arr) => arr.indexOf(k) === i)
+    .sort((a, b) => b.length - a.length)
 
-function applyPlaceholders(text: string, vars: PlaceholderMap) {
-  return text
-    .replaceAll('{student_name}', vars.student_name)
-    .replaceAll('{course_name}', vars.course_name)
-    .replaceAll('{institution}', vars.institution)
-    .replaceAll('{certificate_code}', vars.certificate_code)
-    .replaceAll('{course_hours}', vars.course_hours)
-    .replaceAll('{date}', vars.date)
-    .replaceAll('{location}', vars.location)
+  for (const token of tokens) {
+    const value = vars[token] ?? vars[stripVariableBraces(token)]
+    if (value == null) continue
+    out = out.split(token).join(value)
+  }
+  return out
 }
 
 export function generateCertificatePDF(data: CertificateData): jsPDF {
@@ -186,26 +197,39 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
   registerFonts(doc)
   const bodyFont = hasFont(doc, 'Nunito') ? 'Nunito' : 'helvetica'
 
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
+  const pageWidth = doc.internal.pageSize.getWidth() || CERT_PAGE_WIDTH_MM
+  const pageHeight = doc.internal.pageSize.getHeight() || CERT_PAGE_HEIGHT_MM
 
-  const vars: PlaceholderMap = {
+  const custom = editableVariablesToMap(data.editableVariables ?? [])
+  const vars: Record<string, string> = {
+    ...custom,
+    // Campos do aluno/emissão sempre prevalecem
+    '{student_name}': data.studentName,
     student_name: data.studentName,
-    course_name: data.courseName,
-    institution: data.institutionName,
+    '{certificate_code}': data.certificateCode,
     certificate_code: data.certificateCode,
-    course_hours: String(data.courseHours),
+    '{date}': data.completionDateLabel,
     date: data.completionDateLabel,
-    location: data.location,
+    // Fallbacks das chaves clássicas (se não vierem nas variáveis editáveis)
+    '{course_name}': custom['{course_name}'] ?? data.courseName,
+    course_name: custom['{course_name}'] ?? data.courseName,
+    '{institution}': custom['{institution}'] ?? data.institutionName,
+    institution: custom['{institution}'] ?? data.institutionName,
+    '{course_hours}': custom['{course_hours}'] ?? String(data.courseHours),
+    course_hours: custom['{course_hours}'] ?? String(data.courseHours),
+    '{location}': custom['{location}'] ?? data.location,
+    location: custom['{location}'] ?? data.location,
   }
 
-  const templatePath = resolvePublicFile('/certificate-template.png')
+  const layout = data.layout ?? createDefaultCertificateLayout()
+
+  const templatePath = resolvePublicFile(layout.backgroundUrl || '/certificate-template.jpg')
   const template = templatePath ? loadImageAsDataUrl(templatePath) : null
 
-  const logoPath =
+  const platformLogoPath =
     resolvePublicFile(data.logoUrl || DEFAULT_LOGO_URL) ||
     resolvePublicFile(DEFAULT_LOGO_URL)
-  const logo = logoPath ? loadImageAsDataUrl(logoPath) : null
+  const platformLogoUrl = data.logoUrl || DEFAULT_LOGO_URL
 
   if (template) {
     doc.addImage(template.dataUrl, template.format, 0, 0, pageWidth, pageHeight)
@@ -214,100 +238,81 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
     doc.rect(0, 0, pageWidth, pageHeight, 'F')
     drawTopWaves(doc)
     drawBottomWaves(doc, pageWidth, pageHeight)
-
-    doc.setFont(bodyFont, 'bold')
-    doc.setFontSize(34)
-    doc.setTextColor(...BLUE)
-    doc.text(applyPlaceholders(data.title, vars), pageWidth - 22, 38, { align: 'right' })
-
-    doc.setFontSize(13)
-    doc.setTextColor(...GOLD)
-    doc.text(applyPlaceholders(data.subtitle, vars), pageWidth - 22, 48, { align: 'right' })
   }
 
-  // Sempre aplica o logo atual (cobre o logo antigo embutido no template)
-  if (logo) {
-    try {
-      const GState = (doc as unknown as { GState: new (opts: { opacity: number }) => unknown }).GState
-      doc.setGState(new GState({ opacity: 0.08 }) as never)
-      doc.addImage(logo.dataUrl, logo.format, pageWidth - 115, 45, 95, 95)
-      doc.setGState(new GState({ opacity: 1 }) as never)
-    } catch {
-      // marca d'água opcional
+  const GStateCtor = (
+    doc as unknown as { GState?: new (opts: { opacity: number }) => unknown }
+  ).GState
+
+  for (const el of layout.elements) {
+    if (!el.visible) continue
+
+    if (isImageElement(el)) {
+      const url = resolveElementImageUrl(el, platformLogoUrl)
+      if (!url) continue
+      const filePath =
+        resolvePublicFile(url) ||
+        (url.includes('logo') ? platformLogoPath : null)
+      const image = filePath ? loadImageAsDataUrl(filePath) : null
+      if (!image) continue
+
+      const x = (el.x / 100) * pageWidth
+      const y = (el.y / 100) * pageHeight
+      const w = (el.widthPct / 100) * pageWidth
+      const h = (el.heightPct / 100) * pageHeight
+      const opacity = Number.isFinite(el.opacity) ? el.opacity : 1
+
+      try {
+        if (GStateCtor && opacity < 1) {
+          doc.setGState(new GStateCtor({ opacity }) as never)
+        }
+        doc.addImage(image.dataUrl, image.format, x, y, w, h)
+        if (GStateCtor && opacity < 1) {
+          doc.setGState(new GStateCtor({ opacity: 1 }) as never)
+        }
+      } catch {
+        // imagem opcional
+      }
+      continue
     }
 
-    // Cobre o card do logo antigo (incluindo slogan embutido no template)
-    doc.setFillColor(255, 255, 255)
-    doc.roundedRect(10, 8, 54, 58, 4, 4, 'F')
-    doc.addImage(logo.dataUrl, logo.format, 14, 11, 46, 46)
+    let text = applyPlaceholders(el.text, vars)
+    if (el.uppercase) text = text.toUpperCase()
+
+    const x = (el.x / 100) * pageWidth
+    const y = (el.y / 100) * pageHeight
+    const [r, g, b] = hexToRgb(el.color)
+
+    doc.setFont(bodyFont, el.bold ? 'bold' : 'normal')
+    // setFontSize é sempre em pontos (pt), não em mm
+    doc.setFontSize(el.fontSize)
+    doc.setTextColor(r, g, b)
+
+    const maxWidth =
+      el.maxWidthPct > 0 ? (el.maxWidthPct / 100) * pageWidth : pageWidth * 0.9
+    const lines = doc.splitTextToSize(text, maxWidth) as string[]
+    doc.text(lines, x, y, { align: el.align })
+
+    if (el.underline && lines.length > 0) {
+      const first = lines[0] ?? ''
+      const tw = doc.getTextWidth(first)
+      let x1 = x
+      let x2 = x + tw
+      if (el.align === 'center') {
+        x1 = x - tw / 2 - 2
+        x2 = x + tw / 2 + 2
+      } else if (el.align === 'right') {
+        x1 = x - tw - 2
+        x2 = x + 2
+      } else {
+        x1 = x
+        x2 = x + Math.max(tw, 55)
+      }
+      doc.setDrawColor(r, g, b)
+      doc.setLineWidth(0.35)
+      doc.line(x1, y + 3, x2, y + 3)
+    }
   }
-
-  const intro = applyPlaceholders(data.introText, vars)
-  const middle = applyPlaceholders(data.middleText, vars)
-  const description = applyPlaceholders(data.courseDescription, vars)
-  const dateLine = applyPlaceholders(data.dateLine, vars)
-  const dateLabel = applyPlaceholders(data.dateLabel, vars)
-  const codeLabel = applyPlaceholders(data.codeLabel, vars)
-  const courseName = applyPlaceholders(data.courseName, vars)
-
-  // Intro + nome: centralizados no 3º quarto da largura (50%–75% → centro em 62,5%)
-  const thirdQuarterCenterX = (pageWidth * 5) / 8
-
-  doc.setFont(bodyFont, 'normal')
-  doc.setFontSize(13)
-  doc.setTextColor(...BLUE_SOFT)
-  doc.text(intro, thirdQuarterCenterX, 79, { align: 'center' })
-
-  doc.setFont(bodyFont, 'bold')
-  doc.setFontSize(26)
-  doc.setTextColor(...BLUE)
-  doc.text(data.studentName, thirdQuarterCenterX, 92, { align: 'center' })
-
-  const nameWidth = doc.getTextWidth(data.studentName)
-  doc.setDrawColor(...BLUE)
-  doc.setLineWidth(0.35)
-  doc.line(
-    thirdQuarterCenterX - nameWidth / 2 - 2,
-    96,
-    thirdQuarterCenterX + nameWidth / 2 + 2,
-    96
-  )
-
-  doc.setFont(bodyFont, 'normal')
-  doc.setFontSize(13)
-  doc.setTextColor(...BLUE_SOFT)
-  doc.text(middle, pageWidth / 2, 110, { align: 'center' })
-
-  doc.setFont(bodyFont, 'bold')
-  doc.setFontSize(24)
-  doc.setTextColor(...GOLD)
-  doc.text(courseName.toUpperCase(), pageWidth / 2, 126, { align: 'center' })
-
-  doc.setFont(bodyFont, 'normal')
-  doc.setFontSize(11)
-  doc.setTextColor(...BLUE_SOFT)
-  const descLines = doc.splitTextToSize(description, pageWidth - 90)
-  doc.text(descLines, pageWidth / 2, 138, { align: 'center' })
-
-  // Local/data e código: mais espaço após a descrição, ainda acima da faixa escura (~y > 175)
-  const footerY = 164
-
-  doc.setFont(bodyFont, 'normal')
-  doc.setFontSize(11)
-  doc.setTextColor(...BLUE)
-  doc.text(dateLine, 42, footerY)
-  const dateWidth = doc.getTextWidth(dateLine)
-  doc.setLineWidth(0.35)
-  doc.line(42, footerY + 3, 42 + Math.max(dateWidth, 55), footerY + 3)
-  doc.setFont(bodyFont, 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(...BLUE_SOFT)
-  doc.text(dateLabel, 42, footerY + 8)
-
-  doc.setFont(bodyFont, 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...BLUE)
-  doc.text(codeLabel, pageWidth / 2, footerY + 8, { align: 'center' })
 
   return doc
 }

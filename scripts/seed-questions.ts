@@ -184,7 +184,7 @@ async function main() {
     },
     {
       key: 'certificate.intro_text',
-      value: '"O {institution} certifica que"',
+      value: '"Certificamos que"',
       description: 'Texto introdutório do certificado (antes do nome)',
     },
     {
@@ -196,7 +196,7 @@ async function main() {
     {
       key: 'certificate.course_description',
       value:
-        '"com carga horária de {course_hours} horas, desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital."',
+        '"desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital."',
       description: 'Descrição do curso no certificado',
     },
     { key: 'certificate.location', value: '"São Paulo"', description: 'Cidade no rodapé do certificado' },
@@ -222,7 +222,7 @@ async function main() {
     },
     {
       key: 'certificate.code_label',
-      value: '"Código: {certificate_code}"',
+      value: '" {certificate_code}"',
       description: 'Rótulo do código no certificado',
     },
   ];

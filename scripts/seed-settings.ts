@@ -2,8 +2,15 @@
  * Insere apenas configurações padrão do sistema (sem perguntas, alunos ou certificados).
  */
 import { createScriptPrisma } from './prisma-client'
+import {
+  CERTIFICATE_BACKGROUND_KEY,
+  CERTIFICATE_LAYOUT_KEY,
+  createDefaultCertificateLayout,
+  DEFAULT_CERTIFICATE_BACKGROUND,
+} from '../src/lib/certificate/layout'
 
 const prisma = createScriptPrisma()
+const defaultCertLayout = createDefaultCertificateLayout()
 
 const defaultSettings = [
   {
@@ -55,7 +62,7 @@ const defaultSettings = [
   },
   {
     key: 'certificate.intro_text',
-    value: '"O {institution} certifica que"',
+    value: '"Certificamos que"',
     description: 'Texto introdutório do certificado (antes do nome)',
   },
   {
@@ -67,7 +74,7 @@ const defaultSettings = [
   {
     key: 'certificate.course_description',
     value:
-      '"com carga horária de {course_hours} horas, desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital."',
+      '"desenvolvendo conhecimentos e habilidades para o uso do computador no dia a dia, incluindo sistema operacional, editor de textos, planilhas, internet e comunicação digital."',
     description: 'Descrição do curso no certificado',
   },
   { key: 'certificate.location', value: '"São Paulo"', description: 'Cidade no rodapé do certificado' },
@@ -93,8 +100,18 @@ const defaultSettings = [
   },
   {
     key: 'certificate.code_label',
-    value: '"Código: {certificate_code}"',
+    value: '" {certificate_code}"',
     description: 'Rótulo do código no certificado',
+  },
+  {
+    key: CERTIFICATE_BACKGROUND_KEY,
+    value: JSON.stringify(DEFAULT_CERTIFICATE_BACKGROUND),
+    description: 'Imagem de fundo padrão do certificado',
+  },
+  {
+    key: CERTIFICATE_LAYOUT_KEY,
+    value: JSON.stringify(defaultCertLayout),
+    description: 'Layout visual padrão do certificado',
   },
 ]
 

@@ -49,6 +49,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       signatureSubtitle: settings.signatureSubtitle,
       codeLabel: settings.codeLabel,
       logoUrl: settings.logoUrl,
+      layout: settings.layout,
+      editableVariables: settings.editableVariables,
     })
 
     const buffer = Buffer.from(doc.output('arraybuffer'))

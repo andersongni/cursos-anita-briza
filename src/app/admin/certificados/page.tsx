@@ -1,111 +1,54 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
-import Input from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
-import Spinner from '@/components/ui/Spinner'
-import { formatDateTime } from '@/lib/utils'
-import toast from 'react-hot-toast'
-import { downloadCertificatePdf, viewCertificatePdf } from '@/lib/certificate/open-pdf'
+import Link from 'next/link'
+import { Award, ChevronRight, PencilRuler } from 'lucide-react'
 
-type CertificateRow = {
-  id: string
-  certificate_code: string
-  completion_date: string
-  score_snapshot: number | null
-  created_at: string
-  student: { id: string; full_name: string; username: string }
-}
+const LINKS = [
+  {
+    href: '/admin/certificados/modelo',
+    title: 'Modelo do certificado',
+    description: 'Edite o fundo, posicione elementos e altere os textos do certificado.',
+    icon: PencilRuler,
+  },
+  {
+    href: '/admin/certificados/emitidos',
+    title: 'Certificados emitidos',
+    description: 'Consulte, visualize e baixe os certificados já gerados para os alunos.',
+    icon: Award,
+  },
+]
 
-export default function AdminCertificadosPage() {
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [certificates, setCertificates] = useState<CertificateRow[]>([])
-
-  const load = useCallback(async (q?: string) => {
-    try {
-      const url = q
-        ? `/api/admin/certificates?q=${encodeURIComponent(q)}`
-        : '/api/admin/certificates'
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('Falha ao carregar certificados')
-      const data = await res.json()
-      setCertificates(data.certificates ?? [])
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar certificados')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setLoading(true)
-      load(search.trim() || undefined)
-    }, search ? 300 : 0)
-    return () => clearTimeout(t)
-  }, [search, load])
-
+export default function AdminCertificadosHubPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-secondary">Certificados Emitidos</h1>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <Input
-          placeholder="Buscar por aluno ou código..."
-          className="max-w-md"
-          value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-        />
+      <div>
+        <h1 className="text-3xl font-bold text-secondary">Certificados</h1>
+        <p className="text-gray-500 mt-1">
+          Gerencie o modelo visual do certificado e a lista de emissões.
+        </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center p-12">
-            <Spinner size="lg" />
-          </div>
-        ) : certificates.length === 0 ? (
-          <p className="p-8 text-center text-gray-500">Nenhum certificado emitido ainda.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Aluno</TableHead>
-                <TableHead>Código de Autenticidade</TableHead>
-                <TableHead>Data de Emissão</TableHead>
-                <TableHead>Nota</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {certificates.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.student.full_name}</TableCell>
-                  <TableCell className="font-mono text-sm">{c.certificate_code}</TableCell>
-                  <TableCell>{formatDateTime(c.completion_date || c.created_at)}</TableCell>
-                  <TableCell>
-                    {c.score_snapshot != null ? Number(c.score_snapshot).toFixed(1) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button size="sm" variant="ghost" onClick={() => viewCertificatePdf(c.id)}>
-                      Visualizar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        downloadCertificatePdf(c.id, `certificado-${c.certificate_code}.pdf`)
-                      }
-                    >
-                      Baixar PDF
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="grid grid-cols-1 gap-4 max-w-2xl">
+        {LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="group bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:border-primary hover:shadow-md transition-all"
+          >
+            <div className="flex items-start gap-4">
+              <div className="bg-sky-100 p-3 rounded-full group-hover:bg-sky-200 transition-colors shrink-0">
+                <item.icon className="w-7 h-7 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xl font-semibold text-secondary">{item.title}</h2>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-primary shrink-0" />
+                </div>
+                <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   )

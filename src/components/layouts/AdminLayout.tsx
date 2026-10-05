@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router])
 
   const navItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Painel', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Alunos', href: '/admin/alunos', icon: Users },
     { name: 'Perguntas', href: '/admin/perguntas', icon: HelpCircle },
     { name: 'Temas', href: '/admin/dimensoes', icon: BookOpen },
@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex-1 flex flex-col min-h-0 pt-5 pb-4">
           <div className="flex items-center flex-shrink-0 px-4 mb-6">
             <PlatformLogo width={40} height={40} className="rounded-full" />
-            <span className="ml-3 text-white font-bold text-lg truncate">Admin Panel</span>
+            <span className="ml-3 text-white font-bold text-lg truncate">Painel Admin</span>
           </div>
           <nav className="mt-5 flex-1 px-2 space-y-1">
             {navItems.map((item) => {
@@ -89,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
               <div className="flex-shrink-0 flex items-center px-4 mb-6">
                 <PlatformLogo width={40} height={40} className="rounded-full" />
-                <span className="ml-3 text-white font-bold text-lg truncate">Admin Panel</span>
+                <span className="ml-3 text-white font-bold text-lg truncate">Painel Admin</span>
               </div>
               <nav className="mt-5 px-2 space-y-1">
                 {navItems.map((item) => {
