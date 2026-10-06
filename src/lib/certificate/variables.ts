@@ -33,20 +33,36 @@ export function stripVariableBraces(key: string): string {
 
 /** Normaliza entrada do admin para `{snake_case}`. Retorna '' se inválida. */
 export function normalizeVariableKey(raw: string): string {
-  const inner = stripVariableBraces(raw)
-    .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .replace(/_+/g, '_')
+  // Limite + loop linear evitam ReDoS em cadeias longas de '_' (CodeQL js/polynomial-redos).
+  const capped = String(raw).slice(0, 64)
+  const source = stripVariableBraces(capped).toLowerCase()
+  let inner = ''
+  let prevUnderscore = false
+  for (const ch of source) {
+    const ok =
+      (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+    if (ok) {
+      inner += ch
+      prevUnderscore = false
+    } else if (!prevUnderscore) {
+      inner += '_'
+      prevUnderscore = true
+    }
+  }
+  while (inner.startsWith('_')) inner = inner.slice(1)
+  while (inner.endsWith('_')) inner = inner.slice(0, -1)
   if (!inner) return ''
   return `{${inner}}`
 }
 
 function newVarId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID()
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
   }
-  return `var_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+  const bytes = new Uint8Array(4)
+  globalThis.crypto.getRandomValues(bytes)
+  const suffix = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `var_${Date.now().toString(36)}_${suffix}`
 }
 
 export function createDefaultEditableVariables(values?: {
