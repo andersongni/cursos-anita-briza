@@ -19,8 +19,10 @@ type Dimension = { id: string; name: string }
 
 const emptyForm = {
   tipo: 'PROVA',
+  formato: 'MULTIPLE_CHOICE' as 'MULTIPLE_CHOICE' | 'DISCURSIVE',
   tema: '',
   pergunta: '',
+  expectedAnswer: '',
   altA: '',
   expA: '',
   altB: '',
@@ -75,8 +77,11 @@ function EditarPerguntaContent() {
         const correct = opts.find((o: any) => o.is_correct)?.option_key?.toUpperCase() || 'A'
         setFormData({
           tipo: question.type,
+          formato:
+            question.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE',
           tema: question.dimension_id,
           pergunta: question.question_text,
+          expectedAnswer: question.expected_answer ?? '',
           altA: byKey('A')?.option_text ?? '',
           expA: byKey('A')?.explanation ?? '',
           altB: byKey('B')?.option_text ?? '',
@@ -102,25 +107,35 @@ function EditarPerguntaContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (formData.formato === 'DISCURSIVE' && !formData.expectedAnswer.trim()) {
+      toast.error('Informe a resposta de referência para correção da discursiva.')
+      return
+    }
     setSaving(true)
     try {
       const keys = ['A', 'B', 'C', 'D', 'E'] as const
       const texts = [formData.altA, formData.altB, formData.altC, formData.altD, formData.altE]
       const exps = [formData.expA, formData.expB, formData.expC, formData.expD, formData.expE]
-      const options = keys.map((key, i) => ({
-        option_key: key,
-        option_text: texts[i],
-        is_correct: formData.correta === key,
-        explanation: exps[i] || '',
-      }))
+      const options =
+        formData.formato === 'MULTIPLE_CHOICE'
+          ? keys.map((key, i) => ({
+              option_key: key,
+              option_text: texts[i],
+              is_correct: formData.correta === key,
+              explanation: exps[i] || '',
+            }))
+          : []
 
       const res = await fetch(`/api/admin/questions/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: formData.tipo,
+          format: formData.formato,
           dimension_id: formData.tema,
           question_text: formData.pergunta,
+          expected_answer:
+            formData.formato === 'DISCURSIVE' ? formData.expectedAnswer : null,
           active: formData.ativa,
           options,
         }),
@@ -196,6 +211,16 @@ function EditarPerguntaContent() {
               ]}
             />
             <Select
+              label="Formato"
+              name="formato"
+              value={formData.formato}
+              onChange={handleChange}
+              options={[
+                { value: 'MULTIPLE_CHOICE', label: 'Múltipla escolha' },
+                { value: 'DISCURSIVE', label: 'Discursiva' },
+              ]}
+            />
+            <Select
               label="Tema"
               name="tema"
               value={formData.tema}
@@ -233,43 +258,69 @@ function EditarPerguntaContent() {
           </div>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Alternativas</CardTitle>
-          </CardHeader>
-          <div className="p-4 pt-0 space-y-4">
-            {(['A', 'B', 'C', 'D', 'E'] as const).map((key) => (
-              <div key={key} className="grid grid-cols-1 md:grid-cols-2 gap-3 border-b pb-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Alternativa {key}</label>
-                  <input
-                    name={`alt${key}`}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    value={(formData as any)[`alt${key}`]}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Explicação {key}</label>
-                  <input
-                    name={`exp${key}`}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                    value={(formData as any)[`exp${key}`]}
-                    onChange={handleChange}
-                  />
-                </div>
+        {formData.formato === 'DISCURSIVE' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Correção da discursiva</CardTitle>
+            </CardHeader>
+            <div className="p-4 pt-0 space-y-3">
+              <p className="text-sm text-slate-500">
+                Oriente a IA sobre o que considerar correto. A correção interpreta o
+                sentido da resposta (não é só busca por palavras-chave).
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Critérios para a IA *
+                </label>
+                <textarea
+                  name="expectedAnswer"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[120px]"
+                  value={formData.expectedAnswer}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            ))}
-            <Select
-              label="Alternativa correta"
-              name="correta"
-              value={formData.correta}
-              onChange={handleChange}
-              options={['A', 'B', 'C', 'D', 'E'].map((v) => ({ value: v, label: v }))}
-            />
-          </div>
-        </Card>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Alternativas</CardTitle>
+            </CardHeader>
+            <div className="p-4 pt-0 space-y-4">
+              {(['A', 'B', 'C', 'D', 'E'] as const).map((key) => (
+                <div key={key} className="grid grid-cols-1 md:grid-cols-2 gap-3 border-b pb-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Alternativa {key}</label>
+                    <input
+                      name={`alt${key}`}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      value={(formData as any)[`alt${key}`]}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Explicação {key}</label>
+                    <input
+                      name={`exp${key}`}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      value={(formData as any)[`exp${key}`]}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              ))}
+              <Select
+                label="Alternativa correta"
+                name="correta"
+                value={formData.correta}
+                onChange={handleChange}
+                options={['A', 'B', 'C', 'D', 'E'].map((v) => ({ value: v, label: v }))}
+              />
+            </div>
+          </Card>
+        )}
 
         <div className="flex justify-end space-x-4">
           <Link href={returnTo}>

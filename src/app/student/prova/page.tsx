@@ -30,6 +30,7 @@ export default function ProvaStartPage() {
   const [remainingMs, setRemainingMs] = useState(0)
   const [blockReason, setBlockReason] = useState<string | null>(null)
   const [inProgressId, setInProgressId] = useState<string | null>(null)
+  const [awaitingGradingId, setAwaitingGradingId] = useState<string | null>(null)
   const [questionCount, setQuestionCount] = useState(40)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
   const [passingScore, setPassingScore] = useState(70)
@@ -55,6 +56,7 @@ export default function ProvaStartPage() {
       setRemainingMs(Number.isFinite(Number(data.remainingMs)) ? Number(data.remainingMs) : 0)
       setBlockReason(typeof data.reason === 'string' ? data.reason : null)
       setInProgressId(data.inProgressId ?? null)
+      setAwaitingGradingId(data.awaitingGradingId ?? null)
       const q = Number(data.questionCount)
       const t = Number(data.timeLimitMinutes)
       const p = Number(data.passingScore)
@@ -103,8 +105,13 @@ export default function ProvaStartPage() {
   }, [unlockUntil, unlocked])
 
   const notEnrolled = !enrolled
-  const canStart = enrolled && (Boolean(inProgressId) || (eligible && unlocked))
-  const isBlocked = notEnrolled || (!inProgressId && !unlocked)
+  const canStart =
+    enrolled &&
+    (Boolean(inProgressId) ||
+      Boolean(awaitingGradingId) ||
+      (eligible && unlocked))
+  const isBlocked =
+    notEnrolled || (!inProgressId && !awaitingGradingId && !unlocked)
 
   const handleStart = async () => {
     if (notEnrolled) {
@@ -113,6 +120,10 @@ export default function ProvaStartPage() {
     }
     if (inProgressId) {
       router.push(`/student/avaliacao/${inProgressId}`)
+      return
+    }
+    if (awaitingGradingId) {
+      router.push(`/student/resultado/${awaitingGradingId}`)
       return
     }
     if (!unlocked) {
@@ -273,11 +284,13 @@ export default function ProvaStartPage() {
               ? 'Aguarde...'
               : inProgressId
                 ? 'Continuar Prova'
-                : notEnrolled
-                  ? 'Sem matrícula'
-                  : isBlocked
-                    ? 'Prova bloqueada'
-                    : 'Iniciar Prova'}
+                : awaitingGradingId
+                  ? 'Ver resultado (aguardando correção)'
+                  : notEnrolled
+                    ? 'Sem matrícula'
+                    : isBlocked
+                      ? 'Prova bloqueada'
+                      : 'Iniciar Prova'}
           </Button>
         </CardFooter>
       </Card>

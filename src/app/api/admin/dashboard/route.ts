@@ -299,6 +299,41 @@ export async function GET(req: Request) {
       )
     }
 
+    const pendingGradingRows = await prisma.assessment.findMany({
+      where: {
+        ...courseFilter,
+        status: 'AWAITING_GRADING',
+        ...ofActiveStudent,
+      },
+      orderBy: { completed_at: 'asc' },
+      take: 50,
+      select: {
+        id: true,
+        type: true,
+        completed_at: true,
+        started_at: true,
+        student: {
+          select: { id: true, full_name: true, username: true },
+        },
+        questions: {
+          where: { format: 'DISCURSIVE' },
+          select: {
+            id: true,
+            answers: {
+              select: { score_percent: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    })
+
+    if (pendingGradingRows.length > 0) {
+      alertas.push(
+        `${pendingGradingRows.length} avaliação(ões) com discursivas aguardando correção.`
+      )
+    }
+
     return NextResponse.json({
       courseId,
       course,
@@ -351,6 +386,22 @@ export async function GET(req: Request) {
           courseName: e.course.name,
           requestedAt: e.enrolled_at,
         })),
+        correcoes: pendingGradingRows.map((a) => {
+          const totalDisc = a.questions.length
+          const gradedDisc = a.questions.filter(
+            (q) => typeof q.answers[0]?.score_percent === 'number'
+          ).length
+          return {
+            id: a.id,
+            type: a.type,
+            studentId: a.student.id,
+            studentName: a.student.full_name,
+            studentUsername: a.student.username,
+            submittedAt: a.completed_at || a.started_at,
+            pendingCount: Math.max(0, totalDisc - gradedDisc),
+            totalDiscursive: totalDisc,
+          }
+        }),
       },
     })
   } catch (error: unknown) {

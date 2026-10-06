@@ -165,6 +165,27 @@ export async function POST(req: Request) {
       }
     }
 
+    const awaitingGrading = await prisma.assessment.findFirst({
+      where: {
+        student_id: user.id,
+        course_id: courseId,
+        type,
+        status: 'AWAITING_GRADING',
+      },
+      orderBy: { completed_at: 'desc' },
+    })
+    if (awaitingGrading) {
+      return NextResponse.json(
+        {
+          error:
+            'Você possui uma avaliação aguardando correção das questões discursivas. Aguarde o resultado antes de iniciar outra.',
+          assessment_id: awaitingGrading.id,
+          status: awaitingGrading.status,
+        },
+        { status: 409 }
+      )
+    }
+
     // Nova prova só pode ser iniciada na janela liberada pelo admin (padrão: bloqueada)
     if (type === 'PROVA') {
       const unlock = await getProvaUnlockState(courseId)
@@ -200,7 +221,8 @@ export async function POST(req: Request) {
 
     const typeKey = type === 'PROVA' ? 'prova' : 'simulado'
     const settings = await getAssessmentSettings(typeKey, courseId)
-    const totalQuestions = settings.questionCount
+    const mcCount = settings.questionCount
+    const discursiveCount = settings.discursiveCount
     const timeLimitMins = settings.timeLimitMinutes
 
     const dimensions = await prisma.dimension.findMany({
@@ -212,10 +234,10 @@ export async function POST(req: Request) {
       ReturnType<typeof prisma.question.findMany<{ include: { options: true; dimension: true } }>>
     >[number]
 
-    let selectedQuestions: QWithOpts[] = []
+    let selectedMc: QWithOpts[] = []
 
     if (dimensions.length > 0) {
-      const dist = calculateDistribution(dimensions, totalQuestions)
+      const dist = calculateDistribution(dimensions, mcCount)
       for (const d of dist) {
         const qs = await prisma.question.findMany({
           where: {
@@ -223,21 +245,42 @@ export async function POST(req: Request) {
             dimension_id: d.dimension_id,
             type,
             active: true,
+            format: 'MULTIPLE_CHOICE',
           },
           include: { options: true, dimension: true },
         })
-        selectedQuestions.push(...shuffle(qs).slice(0, d.count))
+        selectedMc.push(...shuffle(qs).slice(0, d.count))
       }
     } else {
       const qs = await prisma.question.findMany({
-        where: { course_id: courseId, type, active: true },
+        where: {
+          course_id: courseId,
+          type,
+          active: true,
+          format: 'MULTIPLE_CHOICE',
+        },
         include: { options: true, dimension: true },
       })
-      selectedQuestions = shuffle(qs).slice(0, totalQuestions)
+      selectedMc = shuffle(qs).slice(0, mcCount)
     }
 
-    // Garante no máximo o configurado (caso algum tema tenha menos perguntas que o pedido)
-    selectedQuestions = shuffle(selectedQuestions).slice(0, totalQuestions)
+    selectedMc = shuffle(selectedMc).slice(0, mcCount)
+
+    let selectedDiscursive: QWithOpts[] = []
+    if (discursiveCount > 0) {
+      const discursivePool = await prisma.question.findMany({
+        where: {
+          course_id: courseId,
+          type,
+          active: true,
+          format: 'DISCURSIVE',
+        },
+        include: { options: true, dimension: true },
+      })
+      selectedDiscursive = shuffle(discursivePool).slice(0, discursiveCount)
+    }
+
+    const selectedQuestions = shuffle([...selectedMc, ...selectedDiscursive])
 
     if (selectedQuestions.length === 0) {
       return NextResponse.json(
@@ -249,9 +292,9 @@ export async function POST(req: Request) {
       )
     }
 
-    if (selectedQuestions.length < totalQuestions) {
+    if (selectedMc.length < mcCount) {
       console.warn(
-        `Avaliação ${type}: pedidas ${totalQuestions}, disponíveis ${selectedQuestions.length}`
+        `Avaliação ${type}: pedidas ${mcCount} objetivas, disponíveis ${selectedMc.length}`
       )
     }
 
@@ -273,6 +316,35 @@ export async function POST(req: Request) {
 
     const aqs = await prisma.$transaction(
       selectedQuestions.map((q, idx) => {
+        const format =
+          q.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE'
+
+        if (format === 'DISCURSIVE') {
+          return prisma.assessmentQuestion.create({
+            data: {
+              assessment_id: assessment.id,
+              question_id: q.id,
+              question_order: idx + 1,
+              dimension_id: q.dimension_id,
+              dimension_name_snapshot: q.dimension?.name ?? 'Geral',
+              question_text_snapshot: q.question_text,
+              format: 'DISCURSIVE',
+              expected_answer_snapshot: q.expected_answer ?? '',
+              option_a_text: '',
+              option_b_text: '',
+              option_c_text: '',
+              option_d_text: '',
+              option_e_text: '',
+              option_a_explanation: '',
+              option_b_explanation: '',
+              option_c_explanation: '',
+              option_d_explanation: '',
+              option_e_explanation: '',
+              correct_option: '',
+            },
+          })
+        }
+
         // Embaralha alternativas nesta tentativa; A–E são só rótulos de apresentação
         const shuffled = shuffle(q.options)
         const [optA, optB, optC, optD, optE] = shuffled
@@ -288,6 +360,8 @@ export async function POST(req: Request) {
             dimension_id: q.dimension_id,
             dimension_name_snapshot: q.dimension?.name ?? 'Geral',
             question_text_snapshot: q.question_text,
+            format: 'MULTIPLE_CHOICE',
+            expected_answer_snapshot: '',
             option_a_text: optA?.option_text ?? '',
             option_b_text: optB?.option_text ?? '',
             option_c_text: optC?.option_text ?? '',

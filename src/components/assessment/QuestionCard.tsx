@@ -14,6 +14,9 @@ interface QuestionCardProps {
   options: { id: string; text: string; label: string }[]
   selectedOption?: string
   onSelect?: (id: string) => void
+  format?: 'MULTIPLE_CHOICE' | 'DISCURSIVE'
+  textAnswer?: string
+  onTextAnswerChange?: (value: string) => void
   flaggedForReview?: boolean
   onToggleFlag?: () => void
   readOnly?: boolean
@@ -30,6 +33,9 @@ export function QuestionCard({
   options,
   selectedOption,
   onSelect,
+  format = 'MULTIPLE_CHOICE',
+  textAnswer = '',
+  onTextAnswerChange,
   flaggedForReview,
   onToggleFlag,
   readOnly,
@@ -126,6 +132,21 @@ export function QuestionCard({
         >
           {text}
         </div>
+        {format === 'DISCURSIVE' ? (
+          <div className="pt-4 space-y-2">
+            <label className="block text-sm font-medium text-slate-600">
+              Sua resposta
+            </label>
+            <textarea
+              className="w-full min-h-[140px] rounded-lg border-2 border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-slate-50"
+              style={{ fontSize: `${optionPx}px`, lineHeight: 1.45 }}
+              value={textAnswer}
+              disabled={readOnly}
+              placeholder="Digite sua resposta aqui..."
+              onChange={(e) => onTextAnswerChange?.(e.target.value)}
+            />
+          </div>
+        ) : (
         <div className="space-y-3 pt-4">
           {options.map((option) => {
             const isSelected = selectedOption === option.id
@@ -173,10 +194,11 @@ export function QuestionCard({
             )
           })}
         </div>
+        )}
         {showResult && explanation && (
           <div className="mt-6 p-4 rounded-lg bg-sky-50 border border-sky-200">
             <h3 className="font-semibold text-secondary mb-2" style={{ fontSize: `${titlePx}px` }}>
-              Explicação:
+              {format === 'DISCURSIVE' ? 'Feedback da correção:' : 'Explicação:'}
             </h3>
             <p
               className="text-slate-700 whitespace-pre-wrap"
@@ -234,6 +256,18 @@ export function QuestionCard({
         {text}
       </div>
 
+      {format === 'DISCURSIVE' ? (
+        <div className="flex flex-col flex-1 min-h-0 mt-1.5">
+          <textarea
+            className="w-full flex-1 min-h-[8rem] rounded-lg border-2 border-slate-200 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-slate-50 resize-none"
+            style={{ fontSize: `${optionPx}px`, lineHeight: 1.35 }}
+            value={textAnswer}
+            disabled={readOnly}
+            placeholder="Digite sua resposta aqui..."
+            onChange={(e) => onTextAnswerChange?.(e.target.value)}
+          />
+        </div>
+      ) : (
       <div
         className={cn(
           'flex flex-col flex-1 min-h-0 overflow-hidden',
@@ -295,6 +329,7 @@ export function QuestionCard({
           )
         })}
       </div>
+      )}
     </div>
   )
 }

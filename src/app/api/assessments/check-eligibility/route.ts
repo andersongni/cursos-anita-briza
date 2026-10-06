@@ -79,7 +79,7 @@ export async function GET(req: Request) {
 
     const course = await getCourseById(courseId)
 
-    const [inProgress, unlock] = await Promise.all([
+    const [inProgress, awaitingGrading, unlock] = await Promise.all([
       prisma.assessment.findFirst({
         where: {
           student_id: user.id,
@@ -88,27 +88,45 @@ export async function GET(req: Request) {
           status: 'IN_PROGRESS',
         },
       }),
+      prisma.assessment.findFirst({
+        where: {
+          student_id: user.id,
+          course_id: courseId,
+          type,
+          status: 'AWAITING_GRADING',
+        },
+        orderBy: { completed_at: 'desc' },
+      }),
       type === 'PROVA' ? getProvaUnlockState(courseId) : Promise.resolve(null),
     ])
 
     // Simulado liberado se matriculado; prova só na janela do admin.
     // Prova em andamento pode ser continuada mesmo após o fim da janela.
+    // Com discursivas aguardando correção, não inicia nova tentativa.
     const provaOpen = type !== 'PROVA' || unlock?.open === true
-    const eligible = Boolean(inProgress) || provaOpen
+    const eligible =
+      Boolean(inProgress) || (provaOpen && !awaitingGrading)
+
+    let reason: string | null = null
+    if (awaitingGrading && !inProgress) {
+      reason =
+        'Sua avaliação foi enviada e aguarda correção das questões discursivas pelo administrador.'
+    } else if (!eligible && type === 'PROVA') {
+      reason =
+        'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.'
+    }
 
     return NextResponse.json({
       eligible,
       enrolled: true,
       courseId,
       courseName: course?.name ?? null,
-      reason:
-        eligible || type !== 'PROVA'
-          ? null
-          : 'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.',
+      reason,
       unlockUntil: unlock?.unlockUntil ?? null,
       remainingMs: unlock?.remainingMs ?? 0,
       unlocked: unlock?.open ?? type !== 'PROVA',
       inProgressId: inProgress?.id ?? null,
+      awaitingGradingId: awaitingGrading?.id ?? null,
       questionCount: settings.questionCount,
       timeLimitMinutes: settings.timeLimitMinutes,
       passingScore: settings.passingScore,

@@ -15,6 +15,7 @@ type ReviewQuestion = {
   question_order: number
   dimension_name_snapshot: string
   question_text_snapshot: string
+  format?: string
   option_a_text: string
   option_b_text: string
   option_c_text: string
@@ -31,6 +32,9 @@ type ReviewQuestion = {
 type ReviewAnswer = {
   assessment_question_id: string
   selected_option: string | null
+  text_answer?: string | null
+  score_percent?: number | null
+  grading_feedback?: string | null
   is_correct: boolean | null
 }
 
@@ -104,21 +108,31 @@ export default function RevisaoSimuladoPage() {
 
   const q = questions[currentIndex]
   const ans = answerMap.get(q.id)
+  const isDiscursive = q.format === 'DISCURSIVE'
   const selected = ans?.selected_option?.toLowerCase() ?? undefined
   const correct = q.correct_option?.toLowerCase()
-  const acertou = ans?.is_correct ?? (selected != null && selected === correct)
-  const explanation =
-    explanationFor(q, correct) ||
-    explanationFor(q, selected) ||
-    'Sem explicação cadastrada para esta questão.'
+  const scorePct = ans?.score_percent
+  const acertou = isDiscursive
+    ? (ans?.is_correct ?? (typeof scorePct === 'number' && scorePct >= 70))
+    : (ans?.is_correct ?? (selected != null && selected === correct))
+  const explanation = isDiscursive
+    ? ans?.grading_feedback ||
+      (typeof scorePct === 'number'
+        ? `Nota desta questão: ${Math.round(scorePct)}%.`
+        : 'Sem feedback de correção.')
+    : explanationFor(q, correct) ||
+      explanationFor(q, selected) ||
+      'Sem explicação cadastrada para esta questão.'
 
-  const options = [
-    { id: 'a', label: 'A', text: q.option_a_text },
-    { id: 'b', label: 'B', text: q.option_b_text },
-    { id: 'c', label: 'C', text: q.option_c_text },
-    { id: 'd', label: 'D', text: q.option_d_text },
-    { id: 'e', label: 'E', text: q.option_e_text },
-  ]
+  const options = isDiscursive
+    ? []
+    : [
+        { id: 'a', label: 'A', text: q.option_a_text },
+        { id: 'b', label: 'B', text: q.option_b_text },
+        { id: 'c', label: 'C', text: q.option_c_text },
+        { id: 'd', label: 'D', text: q.option_d_text },
+        { id: 'e', label: 'E', text: q.option_e_text },
+      ]
 
   return (
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
@@ -144,12 +158,23 @@ export default function RevisaoSimuladoPage() {
           </div>
           {acertou ? (
             <span className="inline-flex items-center gap-1 text-green-700 font-semibold text-sm">
-              <CheckCircle2 className="w-4 h-4" /> Você acertou
+              <CheckCircle2 className="w-4 h-4" />{' '}
+              {isDiscursive
+                ? `Nota ${Math.round(scorePct ?? 0)}%`
+                : 'Você acertou'}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-red-700 font-semibold text-sm">
-              <XCircle className="w-4 h-4" /> Você errou
-              {!selected && <span className="font-normal text-slate-500">(em branco)</span>}
+              <XCircle className="w-4 h-4" />{' '}
+              {isDiscursive
+                ? `Nota ${Math.round(scorePct ?? 0)}%`
+                : 'Você errou'}
+              {!isDiscursive && !selected && (
+                <span className="font-normal text-slate-500">(em branco)</span>
+              )}
+              {isDiscursive && !ans?.text_answer?.trim() && (
+                <span className="font-normal text-slate-500">(em branco)</span>
+              )}
             </span>
           )}
         </div>
@@ -157,8 +182,10 @@ export default function RevisaoSimuladoPage() {
         <QuestionCard
           questionNumber={q.question_order || currentIndex + 1}
           text={q.question_text_snapshot}
+          format={isDiscursive ? 'DISCURSIVE' : 'MULTIPLE_CHOICE'}
           options={options}
           selectedOption={selected}
+          textAnswer={ans?.text_answer ?? ''}
           correctOption={correct}
           showResult
           readOnly
@@ -180,8 +207,11 @@ export default function RevisaoSimuladoPage() {
             const a = answerMap.get(item.id)
             const sel = a?.selected_option?.toLowerCase()
             const ok =
-              a?.is_correct ??
-              (sel != null && sel === item.correct_option?.toLowerCase())
+              item.format === 'DISCURSIVE'
+                ? (a?.is_correct ??
+                  (typeof a?.score_percent === 'number' && a.score_percent >= 70))
+                : (a?.is_correct ??
+                  (sel != null && sel === item.correct_option?.toLowerCase()))
             return (
               <button
                 key={item.id}

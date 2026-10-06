@@ -20,8 +20,16 @@ export default function ResumoPage() {
   const [assessmentType, setAssessmentType] = useState<'PROVA' | 'SIMULADO'>('SIMULADO')
   const [questions, setQuestions] = useState<{ id: string; text: string }[]>([])
   const [answers, setAnswers] = useState<
-    { assessment_question_id: string; selected_option: string | null; flagged_for_review: boolean }[]
+    {
+      assessment_question_id: string
+      selected_option: string | null
+      text_answer?: string | null
+      flagged_for_review: boolean
+    }[]
   >([])
+  const [questionFormats, setQuestionFormats] = useState<
+    Record<string, string>
+  >({})
 
   useEffect(() => {
     const fetchAssessment = async () => {
@@ -43,6 +51,12 @@ export default function ResumoPage() {
             text: q.question_text_snapshot,
           }))
         )
+        const formats: Record<string, string> = {}
+        for (const q of assessment.questions ?? []) {
+          formats[q.id] =
+            q.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE'
+        }
+        setQuestionFormats(formats)
         setAnswers(assessment.answers ?? [])
       } catch (error) {
         console.error(error)
@@ -68,7 +82,10 @@ export default function ResumoPage() {
 
   const questionStatus = questions.map((q, idx) => {
     const ans = answerMap.get(q.id)
-    const isAnswered = !!ans?.selected_option
+    const isDiscursive = questionFormats[q.id] === 'DISCURSIVE'
+    const isAnswered = isDiscursive
+      ? Boolean(ans?.text_answer?.trim())
+      : !!ans?.selected_option
     const isFlagged = !!ans?.flagged_for_review
 
     if (!isAnswered) statusCounts.unanswered++

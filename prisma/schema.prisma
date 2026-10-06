@@ -89,14 +89,18 @@ model Dimension {
 }
 
 model Question {
-  id            String   @id @default(cuid())
-  course_id     String
-  type          String
-  dimension_id  String
-  question_text String
-  active        Boolean  @default(true)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  course_id       String
+  type            String
+  /// MULTIPLE_CHOICE | DISCURSIVE
+  format          String   @default("MULTIPLE_CHOICE")
+  dimension_id    String
+  question_text   String
+  /// Critérios / exemplos aceitos para correção de discursivas
+  expected_answer String?
+  active          Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
   course              Course               @relation(fields: [course_id], references: [id])
   dimension           Dimension            @relation(fields: [dimension_id], references: [id])
@@ -147,28 +151,31 @@ model Assessment {
 }
 
 model AssessmentQuestion {
-  id                      String  @id @default(cuid())
-  assessment_id           String
-  question_id             String?
-  question_order          Int
-  dimension_id            String?
-  dimension_name_snapshot String
-  question_text_snapshot  String
-  option_a_text           String
-  option_b_text           String
-  option_c_text           String
-  option_d_text           String
-  option_e_text           String
-  option_a_explanation    String
-  option_b_explanation    String
-  option_c_explanation    String
-  option_d_explanation    String
-  option_e_explanation    String
-  correct_option          String
+  id                         String  @id @default(cuid())
+  assessment_id              String
+  question_id                String?
+  question_order             Int
+  dimension_id               String?
+  dimension_name_snapshot    String
+  question_text_snapshot     String
+  /// MULTIPLE_CHOICE | DISCURSIVE
+  format                     String  @default("MULTIPLE_CHOICE")
+  expected_answer_snapshot   String  @default("")
+  option_a_text              String  @default("")
+  option_b_text              String  @default("")
+  option_c_text              String  @default("")
+  option_d_text              String  @default("")
+  option_e_text              String  @default("")
+  option_a_explanation       String  @default("")
+  option_b_explanation       String  @default("")
+  option_c_explanation       String  @default("")
+  option_d_explanation       String  @default("")
+  option_e_explanation       String  @default("")
+  correct_option             String  @default("")
 
-  assessment Assessment        @relation(fields: [assessment_id], references: [id], onDelete: Cascade)
-  question   Question?         @relation(fields: [question_id], references: [id])
-  dimension  Dimension?        @relation(fields: [dimension_id], references: [id])
+  assessment Assessment         @relation(fields: [assessment_id], references: [id], onDelete: Cascade)
+  question   Question?          @relation(fields: [question_id], references: [id])
+  dimension  Dimension?         @relation(fields: [dimension_id], references: [id])
   answers    AssessmentAnswer[]
 }
 
@@ -177,6 +184,10 @@ model AssessmentAnswer {
   assessment_id          String
   assessment_question_id String
   selected_option        String?
+  text_answer            String?
+  /// 0–100 para a questão (discursiva ou MC convertida)
+  score_percent          Float?
+  grading_feedback       String?
   is_correct             Boolean?
   answered_at            DateTime?
   flagged_for_review     Boolean   @default(false)

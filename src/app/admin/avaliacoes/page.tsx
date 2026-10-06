@@ -77,6 +77,7 @@ export default function AdminAvaliacoesPage() {
         <Select
           options={[
             { value: '', label: 'Resultado: Todos' },
+            { value: 'PENDENTE', label: 'Aguardando correção' },
             { value: 'APROVADO', label: 'Aprovado' },
             { value: 'REPROVADO', label: 'Reprovado' },
           ]}
@@ -107,11 +108,13 @@ export default function AdminAvaliacoesPage() {
             <TableBody>
               {avaliacoes.map((av) => {
                 const resultado =
-                  av.status !== 'COMPLETED'
-                    ? av.status
-                    : av.passed
-                      ? 'APROVADO'
-                      : 'REPROVADO'
+                  av.status === 'AWAITING_GRADING'
+                    ? 'AGUARDANDO CORREÇÃO'
+                    : av.status !== 'COMPLETED'
+                      ? av.status
+                      : av.passed
+                        ? 'APROVADO'
+                        : 'REPROVADO'
                 return (
                   <TableRow key={av.id}>
                     <TableCell className="font-medium">{av.student.full_name}</TableCell>

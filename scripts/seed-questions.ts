@@ -146,6 +146,50 @@ async function main() {
 
   console.log(`Finished seeding questions. Total new questions inserted: ${totalProcessed}`);
 
+  // Exemplos de discursivas (qualquer tema; usamos Fundamentos do computador)
+  const fundamentosId = dimensionMap.get('Fundamentos do computador')
+  if (fundamentosId) {
+    const discursiveExamples = [
+      {
+        question_text: 'Cite dois exemplos de Hardware.',
+        expected_answer:
+          'Aceitar quaisquer dois exemplos de hardware, como: monitor, teclado, mouse, impressora, CPU, processador, HD, SSD, memória RAM, placa-mãe, webcam, microfone, caixa de som, pendrive.',
+      },
+      {
+        question_text: 'Cite dois exemplos de Software.',
+        expected_answer:
+          'Aceitar quaisquer dois exemplos de software, incluindo programas e sites/plataformas web, como: Windows, Linux, Word, Excel, PowerPoint, Chrome, Firefox, WhatsApp, Paint, Bloco de Notas, antivírus, sistema operacional, aplicativo, programa, Gmail, YouTube, GitHub, Railway, Vercel.',
+      },
+    ]
+
+    for (const type of ['PROVA', 'SIMULADO'] as const) {
+      for (const ex of discursiveExamples) {
+        const existing = await prisma.question.findFirst({
+          where: {
+            course_id: informaticaId,
+            question_text: ex.question_text,
+            type,
+            format: 'DISCURSIVE',
+          },
+        })
+        if (existing) continue
+        await prisma.question.create({
+          data: {
+            course_id: informaticaId,
+            type,
+            format: 'DISCURSIVE',
+            dimension_id: fundamentosId,
+            question_text: ex.question_text,
+            expected_answer: ex.expected_answer,
+            active: true,
+          },
+        })
+        totalProcessed++
+        console.log(`Seeded discursive (${type}): ${ex.question_text}`)
+      }
+    }
+  }
+
   console.log('Seeding System Settings...');
   const defaultSettings = [
     {

@@ -16,6 +16,7 @@ export default function SimuladoStartPage() {
   const [courseName, setCourseName] = useState<string | null>(null)
   const [blockReason, setBlockReason] = useState<string | null>(null)
   const [inProgressId, setInProgressId] = useState<string | null>(null)
+  const [awaitingGradingId, setAwaitingGradingId] = useState<string | null>(null)
   const [questionCount, setQuestionCount] = useState<number | null>(null)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
 
@@ -35,6 +36,7 @@ export default function SimuladoStartPage() {
         setCourseName(typeof data.courseName === 'string' ? data.courseName : null)
         setBlockReason(typeof data.reason === 'string' ? data.reason : null)
         if (data.inProgressId) setInProgressId(data.inProgressId)
+        if (data.awaitingGradingId) setAwaitingGradingId(data.awaitingGradingId)
         const q = Number(data.questionCount)
         const t = Number(data.timeLimitMinutes)
         if (Number.isFinite(q) && q > 0) setQuestionCount(q)
@@ -56,6 +58,10 @@ export default function SimuladoStartPage() {
     }
     if (inProgressId) {
       router.push(`/student/avaliacao/${inProgressId}`)
+      return
+    }
+    if (awaitingGradingId) {
+      router.push(`/student/resultado/${awaitingGradingId}`)
       return
     }
 
@@ -164,6 +170,12 @@ export default function SimuladoStartPage() {
                   Você já tem um simulado em andamento. Clique abaixo para continuar.
                 </div>
               )}
+              {awaitingGradingId && !inProgressId && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg text-center text-sm">
+                  Seu simulado aguarda correção das discursivas. Clique abaixo para ver o
+                  resultado parcial.
+                </div>
+              )}
             </>
           )}
         </CardContent>
@@ -181,7 +193,9 @@ export default function SimuladoStartPage() {
                 ? 'Sem matrícula'
                 : inProgressId
                   ? 'Continuar Simulado'
-                  : 'Iniciar Simulado'}
+                  : awaitingGradingId
+                    ? 'Ver resultado (aguardando correção)'
+                    : 'Iniciar Simulado'}
           </Button>
         </CardFooter>
       </Card>

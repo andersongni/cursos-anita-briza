@@ -20,8 +20,10 @@ type Dimension = { id: string; name: string }
 
 const emptyForm = {
   tipo: 'PROVA',
+  formato: 'MULTIPLE_CHOICE' as 'MULTIPLE_CHOICE' | 'DISCURSIVE',
   tema: '',
   pergunta: '',
+  expectedAnswer: '',
   altA: '',
   expA: '',
   altB: '',
@@ -89,8 +91,19 @@ function NovaPerguntaContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.tema || !formData.pergunta || !formData.altA || !formData.altB) {
+    if (!formData.tema || !formData.pergunta) {
       toast.error('Preencha os campos obrigatórios.')
+      return
+    }
+    if (formData.formato === 'DISCURSIVE' && !formData.expectedAnswer.trim()) {
+      toast.error('Informe a resposta de referência para correção da discursiva.')
+      return
+    }
+    if (
+      formData.formato === 'MULTIPLE_CHOICE' &&
+      (!formData.altA || !formData.altB)
+    ) {
+      toast.error('Preencha pelo menos as alternativas A e B.')
       return
     }
     if (!activeCourseId) {
@@ -103,15 +116,18 @@ function NovaPerguntaContent() {
       const keys = ['A', 'B', 'C', 'D', 'E'] as const
       const texts = [formData.altA, formData.altB, formData.altC, formData.altD, formData.altE]
       const exps = [formData.expA, formData.expB, formData.expC, formData.expD, formData.expE]
-      const options = keys.map((key, i) => ({
-        option_key: key,
-        option_text: texts[i],
-        is_correct: formData.correta === key,
-        explanation:
-          formData.correta === key
-            ? formData.expCorreta || exps[i] || ''
-            : exps[i] || '',
-      }))
+      const options =
+        formData.formato === 'MULTIPLE_CHOICE'
+          ? keys.map((key, i) => ({
+              option_key: key,
+              option_text: texts[i],
+              is_correct: formData.correta === key,
+              explanation:
+                formData.correta === key
+                  ? formData.expCorreta || exps[i] || ''
+                  : exps[i] || '',
+            }))
+          : undefined
 
       const res = await fetch('/api/admin/questions', {
         method: 'POST',
@@ -119,8 +135,11 @@ function NovaPerguntaContent() {
         body: JSON.stringify({
           courseId: activeCourseId,
           type: formData.tipo,
+          format: formData.formato,
           dimension_id: formData.tema,
           question_text: formData.pergunta,
+          expected_answer:
+            formData.formato === 'DISCURSIVE' ? formData.expectedAnswer : undefined,
           active: formData.ativa,
           options,
         }),
@@ -199,6 +218,16 @@ function NovaPerguntaContent() {
                 ]}
               />
               <Select
+                label="Formato"
+                name="formato"
+                value={formData.formato}
+                onChange={handleChange}
+                options={[
+                  { value: 'MULTIPLE_CHOICE', label: 'Múltipla escolha' },
+                  { value: 'DISCURSIVE', label: 'Discursiva' },
+                ]}
+              />
+              <Select
                 label="Tema"
                 name="tema"
                 value={formData.tema}
@@ -236,81 +265,108 @@ function NovaPerguntaContent() {
             </div>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Alternativas</CardTitle>
-            </CardHeader>
-            <div className="p-4 pt-0 space-y-6">
-              <div className="md:w-1/3">
-                <Select
-                  label="Alternativa Correta *"
-                  name="correta"
-                  value={formData.correta}
-                  onChange={handleChange}
-                  options={[
-                    { value: 'A', label: 'A' },
-                    { value: 'B', label: 'B' },
-                    { value: 'C', label: 'C' },
-                    { value: 'D', label: 'D' },
-                    { value: 'E', label: 'E' },
-                  ]}
-                />
+          {formData.formato === 'DISCURSIVE' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Correção da discursiva</CardTitle>
+              </CardHeader>
+              <div className="p-4 pt-0 space-y-3">
+                <p className="text-sm text-slate-500">
+                  Oriente a IA sobre o que considerar correto. A correção interpreta o
+                  sentido da resposta (não é só busca por palavras-chave).
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Critérios para a IA *
+                  </label>
+                  <textarea
+                    name="expectedAnswer"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[120px]"
+                    value={formData.expectedAnswer}
+                    onChange={handleChange}
+                    placeholder="Ex.: Aceitar exemplos de hardware (parte física do computador), como monitor, teclado, mouse, impressora, CPU..."
+                    required
+                  />
+                </div>
               </div>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Alternativas</CardTitle>
+              </CardHeader>
+              <div className="p-4 pt-0 space-y-6">
+                <div className="md:w-1/3">
+                  <Select
+                    label="Alternativa Correta *"
+                    name="correta"
+                    value={formData.correta}
+                    onChange={handleChange}
+                    options={[
+                      { value: 'A', label: 'A' },
+                      { value: 'B', label: 'B' },
+                      { value: 'C', label: 'C' },
+                      { value: 'D', label: 'D' },
+                      { value: 'E', label: 'E' },
+                    ]}
+                  />
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Explicação Geral (mostrada quando acerta)
-                </label>
-                <textarea
-                  name="expCorreta"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[60px]"
-                  value={formData.expCorreta}
-                  onChange={handleChange}
-                />
-              </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Explicação Geral (mostrada quando acerta)
+                  </label>
+                  <textarea
+                    name="expCorreta"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[60px]"
+                    value={formData.expCorreta}
+                    onChange={handleChange}
+                  />
+                </div>
 
-              {(['A', 'B', 'C', 'D', 'E'] as const).map((letra) => (
-                <div
-                  key={letra}
-                  className={`p-4 border rounded-md ${
-                    formData.correta === letra
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center mb-2">
-                    <span
-                      className={`font-bold mr-2 ${
-                        formData.correta === letra ? 'text-green-600' : 'text-gray-700'
-                      }`}
-                    >
-                      Alternativa {letra} {formData.correta === letra && '(Correta)'}
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    <Input
-                      label="Texto da Alternativa *"
-                      name={`alt${letra}`}
-                      value={formData[`alt${letra}` as keyof typeof formData] as string}
-                      onChange={handleChange}
-                      required={letra === 'A' || letra === 'B'}
-                    />
-                    <div className="mt-2">
-                      <label className="block text-xs text-gray-500 mb-1">
-                        Explicação específica (opcional, mostrada se aluno errar escolhendo esta)
-                      </label>
-                      <textarea
-                        name={`exp${letra}`}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[50px]"
-                        value={formData[`exp${letra}` as keyof typeof formData] as string}
+                {(['A', 'B', 'C', 'D', 'E'] as const).map((letra) => (
+                  <div
+                    key={letra}
+                    className={`p-4 border rounded-md ${
+                      formData.correta === letra
+                        ? 'border-green-300 bg-green-50'
+                        : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center mb-2">
+                      <span
+                        className={`font-bold mr-2 ${
+                          formData.correta === letra ? 'text-green-600' : 'text-gray-700'
+                        }`}
+                      >
+                        Alternativa {letra} {formData.correta === letra && '(Correta)'}
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      <Input
+                        label="Texto da Alternativa *"
+                        name={`alt${letra}`}
+                        value={formData[`alt${letra}` as keyof typeof formData] as string}
                         onChange={handleChange}
+                        required={letra === 'A' || letra === 'B'}
                       />
+                      <div className="mt-2">
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Explicação específica (opcional, mostrada se aluno errar escolhendo esta)
+                        </label>
+                        <textarea
+                          name={`exp${letra}`}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[50px]"
+                          value={formData[`exp${letra}` as keyof typeof formData] as string}
+                          onChange={handleChange}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="flex justify-end space-x-4">
             <Link href={returnTo}>

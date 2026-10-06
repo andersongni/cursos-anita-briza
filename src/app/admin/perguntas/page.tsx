@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 type Question = {
   id: string
   type: string
+  format?: string
   question_text: string
   active: boolean
   created_at: string
@@ -25,6 +26,7 @@ type Dimension = { id: string; name: string }
 export default function AdminPerguntasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('Todos')
+  const [formatFilter, setFormatFilter] = useState('Todos')
   const [themeFilter, setThemeFilter] = useState('Todos')
   const [statusFilter, setStatusFilter] = useState('Todas')
   const [loading, setLoading] = useState(true)
@@ -57,15 +59,17 @@ export default function AdminPerguntasPage() {
     return perguntas.filter((p) => {
       const matchesSearch = p.question_text.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesType = typeFilter === 'Todos' || p.type === typeFilter
+      const format = p.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE'
+      const matchesFormat = formatFilter === 'Todos' || format === formatFilter
       const matchesTheme =
         themeFilter === 'Todos' || p.dimension?.id === themeFilter || p.dimension?.name === themeFilter
       const matchesStatus =
         statusFilter === 'Todas' ||
         (statusFilter === 'Ativas' && p.active) ||
         (statusFilter === 'Inativas' && !p.active)
-      return matchesSearch && matchesType && matchesTheme && matchesStatus
+      return matchesSearch && matchesType && matchesFormat && matchesTheme && matchesStatus
     })
-  }, [perguntas, searchTerm, typeFilter, themeFilter, statusFilter])
+  }, [perguntas, searchTerm, typeFilter, formatFilter, themeFilter, statusFilter])
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
@@ -92,7 +96,7 @@ export default function AdminPerguntasPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-lg shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-4 rounded-lg shadow-sm">
         <Input
           placeholder="Buscar no texto da pergunta..."
           value={searchTerm}
@@ -106,6 +110,15 @@ export default function AdminPerguntasPage() {
           ]}
           value={typeFilter}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTypeFilter(e.target.value)}
+        />
+        <Select
+          options={[
+            { value: 'Todos', label: 'Todos os formatos' },
+            { value: 'MULTIPLE_CHOICE', label: 'Múltipla escolha' },
+            { value: 'DISCURSIVE', label: 'Discursiva' },
+          ]}
+          value={formatFilter}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormatFilter(e.target.value)}
         />
         <Select
           options={[
@@ -137,6 +150,7 @@ export default function AdminPerguntasPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Formato</TableHead>
                   <TableHead>Tema</TableHead>
                   <TableHead>Pergunta</TableHead>
                   <TableHead>Status</TableHead>
@@ -149,6 +163,11 @@ export default function AdminPerguntasPage() {
                   <TableRow key={p.id}>
                     <TableCell>
                       <Badge variant={p.type === 'PROVA' ? 'default' : 'info'}>{p.type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={p.format === 'DISCURSIVE' ? 'info' : 'default'}>
+                        {p.format === 'DISCURSIVE' ? 'Discursiva' : 'Objetiva'}
+                      </Badge>
                     </TableCell>
                     <TableCell>{p.dimension?.name ?? '—'}</TableCell>
                     <TableCell className="max-w-xs truncate">{p.question_text}</TableCell>
@@ -176,7 +195,7 @@ export default function AdminPerguntasPage() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       Nenhuma pergunta cadastrada.
                     </TableCell>
                   </TableRow>

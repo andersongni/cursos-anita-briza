@@ -52,6 +52,18 @@ export async function GET() {
         key: 'assessment.prova.passing_score',
         value: courseAssessment.passingScore,
       },
+      {
+        key: 'assessment.prova.mc_weight_percent',
+        value: courseAssessment.mcWeightPercent,
+      },
+      {
+        key: 'assessment.prova.discursive_weight_percent',
+        value: courseAssessment.discursiveWeightPercent,
+      },
+      {
+        key: 'assessment.prova.discursive_count',
+        value: courseAssessment.discursiveCount,
+      },
     ]
 
     const byKey = new Map(settings.map((s) => [s.key, s]))

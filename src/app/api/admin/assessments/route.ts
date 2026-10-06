@@ -20,6 +20,8 @@ export async function GET(req: Request) {
     } else if (result === 'REPROVADO') {
       where.status = 'COMPLETED'
       where.passed = false
+    } else if (result === 'PENDENTE') {
+      where.status = 'AWAITING_GRADING'
     }
 
     const assessments = await prisma.assessment.findMany({

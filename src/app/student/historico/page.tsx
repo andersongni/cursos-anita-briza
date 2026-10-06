@@ -106,8 +106,20 @@ export default function HistoricoPage() {
                       ) : a.status === 'CANCELLED' ? (
                         <Badge variant="default">ABORTADA</Badge>
                       ) : (
-                        <Badge variant={a.passed ? 'success' : 'error'}>
-                          {a.passed ? 'APROVADO' : 'REPROVADO'}
+                        <Badge
+                          variant={
+                            a.status === 'AWAITING_GRADING'
+                              ? 'warning'
+                              : a.passed
+                                ? 'success'
+                                : 'error'
+                          }
+                        >
+                          {a.status === 'AWAITING_GRADING'
+                            ? 'AGUARDANDO CORREÇÃO'
+                            : a.passed
+                              ? 'APROVADO'
+                              : 'REPROVADO'}
                         </Badge>
                       )}
                     </td>

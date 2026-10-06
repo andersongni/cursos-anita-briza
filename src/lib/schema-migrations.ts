@@ -135,4 +135,32 @@ export const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     id: '2026-10-05_assessment_course_idx',
     sql: 'CREATE INDEX IF NOT EXISTS Assessment_course_id_idx ON Assessment(course_id)',
   },
+  {
+    id: '2026-10-05_question_format',
+    sql: `ALTER TABLE Question ADD COLUMN format TEXT NOT NULL DEFAULT 'MULTIPLE_CHOICE'`,
+  },
+  {
+    id: '2026-10-05_question_expected_answer',
+    sql: `ALTER TABLE Question ADD COLUMN expected_answer TEXT`,
+  },
+  {
+    id: '2026-10-05_aq_format',
+    sql: `ALTER TABLE AssessmentQuestion ADD COLUMN format TEXT NOT NULL DEFAULT 'MULTIPLE_CHOICE'`,
+  },
+  {
+    id: '2026-10-05_aq_expected_answer_snapshot',
+    sql: `ALTER TABLE AssessmentQuestion ADD COLUMN expected_answer_snapshot TEXT NOT NULL DEFAULT ''`,
+  },
+  {
+    id: '2026-10-05_answer_text',
+    sql: `ALTER TABLE AssessmentAnswer ADD COLUMN text_answer TEXT`,
+  },
+  {
+    id: '2026-10-05_answer_score_percent',
+    sql: `ALTER TABLE AssessmentAnswer ADD COLUMN score_percent REAL`,
+  },
+  {
+    id: '2026-10-05_answer_grading_feedback',
+    sql: `ALTER TABLE AssessmentAnswer ADD COLUMN grading_feedback TEXT`,
+  },
 ]

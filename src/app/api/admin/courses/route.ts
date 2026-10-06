@@ -93,12 +93,30 @@ function parseAssessmentFields(body: Record<string, unknown>) {
     body.timeLimitMinutes ?? body.time_limit_minutes
   )
   const passingScore = Number(body.passingScore ?? body.passing_score)
+  const mcWeightPercent = Number(
+    body.mcWeightPercent ?? body.mc_weight_percent
+  )
+  const discursiveWeightPercent = Number(
+    body.discursiveWeightPercent ?? body.discursive_weight_percent
+  )
+  const discursiveCount = Number(
+    body.discursiveCount ?? body.discursive_count
+  )
   return {
     questionCount: Number.isFinite(questionCount) ? questionCount : undefined,
     timeLimitMinutes: Number.isFinite(timeLimitMinutes)
       ? timeLimitMinutes
       : undefined,
     passingScore: Number.isFinite(passingScore) ? passingScore : undefined,
+    mcWeightPercent: Number.isFinite(mcWeightPercent)
+      ? mcWeightPercent
+      : undefined,
+    discursiveWeightPercent: Number.isFinite(discursiveWeightPercent)
+      ? discursiveWeightPercent
+      : undefined,
+    discursiveCount: Number.isFinite(discursiveCount)
+      ? discursiveCount
+      : undefined,
   }
 }
 
@@ -287,7 +305,10 @@ export async function PATCH(req: Request) {
     const hasAssessmentUpdate =
       assessmentInput.questionCount != null ||
       assessmentInput.timeLimitMinutes != null ||
-      assessmentInput.passingScore != null
+      assessmentInput.passingScore != null ||
+      assessmentInput.mcWeightPercent != null ||
+      assessmentInput.discursiveWeightPercent != null ||
+      assessmentInput.discursiveCount != null
 
     if (Object.keys(data).length === 0 && !hasAssessmentUpdate) {
       return NextResponse.json({ error: 'Nada para atualizar' }, { status: 400 })

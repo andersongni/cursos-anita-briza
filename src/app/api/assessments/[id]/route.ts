@@ -27,22 +27,41 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
-    // Prova: aluno nunca vê gabarito/explicações por esta rota (só o admin)
-    const responseAssessment =
-      assessment.type === 'PROVA' && profile.role !== 'ADMIN'
-        ? {
-            ...assessment,
-            questions: assessment.questions.map((q) => ({
-              ...q,
-              correct_option: null,
-              option_a_explanation: null,
-              option_b_explanation: null,
-              option_c_explanation: null,
-              option_d_explanation: null,
-              option_e_explanation: null,
-            })),
-          }
-        : assessment
+    // Aluno nunca vê gabarito / critérios de correção em prova em andamento
+    const hideKeys = profile.role !== 'ADMIN'
+    const responseAssessment = hideKeys
+      ? {
+          ...assessment,
+          questions: assessment.questions.map((q) => ({
+            ...q,
+            correct_option:
+              assessment.type === 'PROVA' || assessment.status === 'IN_PROGRESS'
+                ? null
+                : q.correct_option,
+            expected_answer_snapshot: null,
+            option_a_explanation:
+              assessment.type === 'PROVA' ? null : q.option_a_explanation,
+            option_b_explanation:
+              assessment.type === 'PROVA' ? null : q.option_b_explanation,
+            option_c_explanation:
+              assessment.type === 'PROVA' ? null : q.option_c_explanation,
+            option_d_explanation:
+              assessment.type === 'PROVA' ? null : q.option_d_explanation,
+            option_e_explanation:
+              assessment.type === 'PROVA' ? null : q.option_e_explanation,
+          })),
+          answers: assessment.answers.map((a) =>
+            assessment.status === 'IN_PROGRESS'
+              ? {
+                  ...a,
+                  score_percent: null,
+                  grading_feedback: null,
+                  is_correct: null,
+                }
+              : a
+          ),
+        }
+      : assessment
 
     return NextResponse.json({ assessment: responseAssessment })
   } catch (error: unknown) {

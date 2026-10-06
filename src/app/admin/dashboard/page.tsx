@@ -86,6 +86,17 @@ type PendingEnrollment = {
   requestedAt: string
 }
 
+type PendingGrading = {
+  id: string
+  type: string
+  studentId: string
+  studentName: string
+  studentUsername: string
+  submittedAt: string
+  pendingCount: number
+  totalDiscursive: number
+}
+
 type DashboardStats = {
   courseId?: string
   course?: { id: string; name: string; slug: string } | null
@@ -105,6 +116,7 @@ type DashboardStats = {
   pendencias?: {
     contas: PendingAccount[]
     matriculas: PendingEnrollment[]
+    correcoes?: PendingGrading[]
   }
 }
 
@@ -118,7 +130,7 @@ const emptyStats: DashboardStats = {
   perguntas: { totalProva: 0, totalSimulado: 0, ativas: 0, inativas: 0 },
   prova: { unlocked: false, unlockUntil: null, remainingMs: 0 },
   alertas: [],
-  pendencias: { contas: [], matriculas: [] },
+  pendencias: { contas: [], matriculas: [], correcoes: [] },
 }
 
 function formatPendingDate(iso: string) {
@@ -402,7 +414,11 @@ export default function AdminDashboardPage() {
 
   const pendingAccounts = stats.pendencias?.contas ?? []
   const pendingEnrollments = stats.pendencias?.matriculas ?? []
-  const hasPendencias = pendingAccounts.length > 0 || pendingEnrollments.length > 0
+  const pendingGradings = stats.pendencias?.correcoes ?? []
+  const hasPendencias =
+    pendingAccounts.length > 0 ||
+    pendingEnrollments.length > 0 ||
+    pendingGradings.length > 0
 
   return (
     <div className="space-y-6">
@@ -424,7 +440,9 @@ export default function AdminDashboardPage() {
               <AlertTriangle size={20} className="text-amber-500" />
               Pendências
               <Badge variant="warning">
-                {pendingAccounts.length + pendingEnrollments.length}
+                {pendingAccounts.length +
+                  pendingEnrollments.length +
+                  pendingGradings.length}
               </Badge>
             </CardTitle>
             <CardDescription>
@@ -433,6 +451,44 @@ export default function AdminDashboardPage() {
             </CardDescription>
           </CardHeader>
           <div className="p-4 pt-0 space-y-6">
+            {pendingGradings.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Correção de discursivas ({pendingGradings.length})
+                </h3>
+                <ul className="space-y-2">
+                  {pendingGradings.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-violet-200 bg-violet-50/40 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">
+                          {item.studentName}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          @{item.studentUsername} · {item.type}
+                          {item.pendingCount > 0
+                            ? ` · ${item.pendingCount} discursiva(s) pendente(s)`
+                            : ''}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Enviada em: {formatPendingDate(item.submittedAt)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <Link href={`/admin/avaliacoes/${item.id}`}>
+                          <Button size="sm" variant="primary">
+                            Corrigir
+                          </Button>
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {pendingAccounts.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-800">

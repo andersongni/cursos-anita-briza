@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Timer } from '@/components/assessment/Timer'
 import { QuestionCard } from '@/components/assessment/QuestionCard'
@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, CheckCircle, LayoutGrid, X, Ban } from 'luci
 type UiQuestion = {
   id: string
   text: string
+  format: 'MULTIPLE_CHOICE' | 'DISCURSIVE'
   options: { id: string; text: string; label: string }[]
 }
 
@@ -20,13 +21,17 @@ function mapAssessmentQuestions(raw: any[]): UiQuestion[] {
   return (raw ?? []).map((q) => ({
     id: q.id,
     text: q.question_text_snapshot,
-    options: [
-      { id: 'a', label: 'A', text: q.option_a_text },
-      { id: 'b', label: 'B', text: q.option_b_text },
-      { id: 'c', label: 'C', text: q.option_c_text },
-      { id: 'd', label: 'D', text: q.option_d_text },
-      { id: 'e', label: 'E', text: q.option_e_text },
-    ],
+    format: q.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE',
+    options:
+      q.format === 'DISCURSIVE'
+        ? []
+        : [
+            { id: 'a', label: 'A', text: q.option_a_text },
+            { id: 'b', label: 'B', text: q.option_b_text },
+            { id: 'c', label: 'C', text: q.option_c_text },
+            { id: 'd', label: 'D', text: q.option_d_text },
+            { id: 'e', label: 'E', text: q.option_e_text },
+          ],
   }))
 }
 
@@ -41,9 +46,11 @@ export default function AssessmentPage() {
   const [questions, setQuestions] = useState<UiQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [mapOpen, setMapOpen] = useState(false)
   const [aborting, setAborting] = useState(false)
+  const textSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     const fetchAssessment = async () => {
@@ -74,6 +81,7 @@ export default function AssessmentPage() {
         setQuestions(mapped)
 
         const restoredAnswers: Record<string, string> = {}
+        const restoredText: Record<string, string> = {}
         const restoredFlagged = new Set<string>()
 
         for (const ans of data.answers ?? []) {
@@ -81,10 +89,14 @@ export default function AssessmentPage() {
           if (ans.selected_option) {
             restoredAnswers[qid] = String(ans.selected_option).toLowerCase()
           }
+          if (ans.text_answer) {
+            restoredText[qid] = String(ans.text_answer)
+          }
           if (ans.flagged_for_review) restoredFlagged.add(qid)
         }
 
         setAnswers(restoredAnswers)
+        setTextAnswers(restoredText)
         setFlagged(restoredFlagged)
       } catch (error) {
         console.error(error)
@@ -99,8 +111,11 @@ export default function AssessmentPage() {
 
   const saveAnswer = async (
     questionId: string,
-    selectedOption: string | undefined,
-    isFlagged: boolean
+    payload: {
+      selectedOption?: string
+      textAnswer?: string
+      isFlagged: boolean
+    }
   ) => {
     setSaving(true)
     try {
@@ -110,8 +125,9 @@ export default function AssessmentPage() {
         body: JSON.stringify({
           assessment_id: id,
           assessment_question_id: questionId,
-          selected_option: selectedOption,
-          flagged_for_review: isFlagged,
+          selected_option: payload.selectedOption,
+          text_answer: payload.textAnswer,
+          flagged_for_review: payload.isFlagged,
         }),
       })
     } catch (error) {
@@ -124,16 +140,38 @@ export default function AssessmentPage() {
   const handleSelectOption = async (optionId: string) => {
     const questionId = questions[currentIndex].id
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }))
-    await saveAnswer(questionId, optionId, flagged.has(questionId))
+    await saveAnswer(questionId, {
+      selectedOption: optionId,
+      isFlagged: flagged.has(questionId),
+    })
+  }
+
+  const handleTextAnswerChange = (value: string) => {
+    const questionId = questions[currentIndex].id
+    setTextAnswers((prev) => ({ ...prev, [questionId]: value }))
+    if (textSaveTimers.current[questionId]) {
+      clearTimeout(textSaveTimers.current[questionId])
+    }
+    textSaveTimers.current[questionId] = setTimeout(() => {
+      void saveAnswer(questionId, {
+        textAnswer: value,
+        isFlagged: flagged.has(questionId),
+      })
+    }, 450)
   }
 
   const handleToggleFlag = async () => {
-    const questionId = questions[currentIndex].id
+    const q = questions[currentIndex]
+    const questionId = q.id
     const next = new Set(flagged)
     if (next.has(questionId)) next.delete(questionId)
     else next.add(questionId)
     setFlagged(next)
-    await saveAnswer(questionId, answers[questionId], next.has(questionId))
+    await saveAnswer(questionId, {
+      selectedOption: answers[questionId],
+      textAnswer: textAnswers[questionId],
+      isFlagged: next.has(questionId),
+    })
   }
 
   const handleAbort = async () => {
@@ -191,10 +229,13 @@ export default function AssessmentPage() {
       questions.map((q, idx) => ({
         id: q.id,
         number: idx + 1,
-        isAnswered: !!answers[q.id],
+        isAnswered:
+          q.format === 'DISCURSIVE'
+            ? Boolean(textAnswers[q.id]?.trim())
+            : !!answers[q.id],
         isFlagged: flagged.has(q.id),
       })),
-    [questions, answers, flagged]
+    [questions, answers, textAnswers, flagged]
   )
 
   if (loading) {
@@ -217,7 +258,11 @@ export default function AssessmentPage() {
   const currentQuestion = questions[currentIndex]
   const isLastQuestion = currentIndex === questions.length - 1
   const deadline = assessment.deadline_at || assessment.deadlineAt
-  const answeredCount = Object.keys(answers).length
+  const answeredCount = questions.filter((q) =>
+    q.format === 'DISCURSIVE'
+      ? Boolean(textAnswers[q.id]?.trim())
+      : Boolean(answers[q.id])
+  ).length
 
   return (
     <div className="h-full max-w-7xl mx-auto flex flex-col overflow-hidden px-2 sm:px-3">
@@ -276,9 +321,12 @@ export default function AssessmentPage() {
               compact
               questionNumber={currentIndex + 1}
               text={currentQuestion.text}
+              format={currentQuestion.format}
               options={currentQuestion.options}
               selectedOption={answers[currentQuestion.id]}
               onSelect={handleSelectOption}
+              textAnswer={textAnswers[currentQuestion.id] ?? ''}
+              onTextAnswerChange={handleTextAnswerChange}
               flaggedForReview={flagged.has(currentQuestion.id)}
               onToggleFlag={handleToggleFlag}
             />
@@ -299,7 +347,21 @@ export default function AssessmentPage() {
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700 text-white h-8"
-                onClick={() => router.push(`/student/avaliacao/${id}/resumo`)}
+                onClick={async () => {
+                  const q = questions[currentIndex]
+                  if (q?.format === 'DISCURSIVE') {
+                    const timers = textSaveTimers.current
+                    if (timers[q.id]) {
+                      clearTimeout(timers[q.id])
+                      delete timers[q.id]
+                    }
+                    await saveAnswer(q.id, {
+                      textAnswer: textAnswers[q.id] ?? '',
+                      isFlagged: flagged.has(q.id),
+                    })
+                  }
+                  router.push(`/student/avaliacao/${id}/resumo`)
+                }}
               >
                 Revisão <CheckCircle className="ml-1 w-4 h-4" />
               </Button>

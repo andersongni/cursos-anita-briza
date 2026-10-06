@@ -29,6 +29,9 @@ type Course = {
     questionCount: number
     timeLimitMinutes: number
     passingScore: number
+    mcWeightPercent?: number
+    discursiveWeightPercent?: number
+    discursiveCount?: number
   }
 }
 
@@ -39,6 +42,9 @@ const DEFAULT_FORM = {
   description: '',
   hours: '40',
   questionCount: '40',
+  discursiveCount: '2',
+  mcWeightPercent: '80',
+  discursiveWeightPercent: '20',
   timeLimitMinutes: '120',
   passingScore: '70',
 }
@@ -69,6 +75,11 @@ export default function AdminCursosPage() {
       description: course.description ?? '',
       hours: String(course.hours),
       questionCount: String(course.assessment?.questionCount ?? 40),
+      discursiveCount: String(course.assessment?.discursiveCount ?? 2),
+      mcWeightPercent: String(course.assessment?.mcWeightPercent ?? 80),
+      discursiveWeightPercent: String(
+        course.assessment?.discursiveWeightPercent ?? 20
+      ),
       timeLimitMinutes: String(course.assessment?.timeLimitMinutes ?? 120),
       passingScore: String(course.assessment?.passingScore ?? 70),
     })
@@ -159,6 +170,9 @@ export default function AdminCursosPage() {
           description: form.description,
           hours: Number(form.hours) || 40,
           questionCount: Number(form.questionCount),
+          discursiveCount: Number(form.discursiveCount),
+          mcWeightPercent: Number(form.mcWeightPercent),
+          discursiveWeightPercent: Number(form.discursiveWeightPercent),
           timeLimitMinutes: Number(form.timeLimitMinutes),
           passingScore: Number(form.passingScore),
         }),
@@ -191,6 +205,9 @@ export default function AdminCursosPage() {
           description: form.description,
           hours: Number(form.hours) || 40,
           questionCount: Number(form.questionCount),
+          discursiveCount: Number(form.discursiveCount),
+          mcWeightPercent: Number(form.mcWeightPercent),
+          discursiveWeightPercent: Number(form.discursiveWeightPercent),
           timeLimitMinutes: Number(form.timeLimitMinutes),
           passingScore: Number(form.passingScore),
         }),
@@ -384,7 +401,7 @@ export default function AdminCursosPage() {
               Configurações da avaliação
             </p>
             <Input
-              label="Quantidade de perguntas *"
+              label="Perguntas de múltipla escolha *"
               type="number"
               min={1}
               max={200}
@@ -392,6 +409,49 @@ export default function AdminCursosPage() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, questionCount: e.target.value }))
               }
+              required
+            />
+            <Input
+              label="Perguntas discursivas *"
+              type="number"
+              min={0}
+              max={50}
+              value={form.discursiveCount}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((f) => ({ ...f, discursiveCount: e.target.value }))
+              }
+              required
+            />
+            <Input
+              label="Peso múltipla escolha (%) *"
+              type="number"
+              min={0}
+              max={100}
+              value={form.mcWeightPercent}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const mc = Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                setForm((f) => ({
+                  ...f,
+                  mcWeightPercent: String(mc),
+                  discursiveWeightPercent: String(100 - mc),
+                }))
+              }}
+              required
+            />
+            <Input
+              label="Peso discursivas (%) *"
+              type="number"
+              min={0}
+              max={100}
+              value={form.discursiveWeightPercent}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const d = Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                setForm((f) => ({
+                  ...f,
+                  discursiveWeightPercent: String(d),
+                  mcWeightPercent: String(100 - d),
+                }))
+              }}
               required
             />
             <Input
@@ -481,7 +541,7 @@ export default function AdminCursosPage() {
               Configurações da avaliação
             </p>
             <Input
-              label="Quantidade de perguntas *"
+              label="Perguntas de múltipla escolha *"
               type="number"
               min={1}
               max={200}
@@ -489,6 +549,49 @@ export default function AdminCursosPage() {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, questionCount: e.target.value }))
               }
+              required
+            />
+            <Input
+              label="Perguntas discursivas *"
+              type="number"
+              min={0}
+              max={50}
+              value={form.discursiveCount}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((f) => ({ ...f, discursiveCount: e.target.value }))
+              }
+              required
+            />
+            <Input
+              label="Peso múltipla escolha (%) *"
+              type="number"
+              min={0}
+              max={100}
+              value={form.mcWeightPercent}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const mc = Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                setForm((f) => ({
+                  ...f,
+                  mcWeightPercent: String(mc),
+                  discursiveWeightPercent: String(100 - mc),
+                }))
+              }}
+              required
+            />
+            <Input
+              label="Peso discursivas (%) *"
+              type="number"
+              min={0}
+              max={100}
+              value={form.discursiveWeightPercent}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const d = Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                setForm((f) => ({
+                  ...f,
+                  discursiveWeightPercent: String(d),
+                  mcWeightPercent: String(100 - d),
+                }))
+              }}
               required
             />
             <Input

@@ -30,6 +30,9 @@ export const SHARED_ASSESSMENT_SETTING_SUFFIXES = [
   'question_count',
   'time_limit_minutes',
   'passing_score',
+  'mc_weight_percent',
+  'discursive_weight_percent',
+  'discursive_count',
 ] as const
 
 export type AssessmentSettingSuffix =
@@ -81,7 +84,17 @@ export async function getAssessmentSettings(
     cid = informaticaId
   }
 
-  const [qCount, timeLimit, passing, lq, lt, lp] = await Promise.all([
+  const [
+    qCount,
+    timeLimit,
+    passing,
+    mcWeight,
+    discWeight,
+    discCount,
+    lq,
+    lt,
+    lp,
+  ] = await Promise.all([
     prisma.systemSetting.findUnique({
       where: { key: assessmentCourseSettingKey(cid, 'question_count') },
     }),
@@ -91,12 +104,39 @@ export async function getAssessmentSettings(
     prisma.systemSetting.findUnique({
       where: { key: assessmentCourseSettingKey(cid, 'passing_score') },
     }),
+    prisma.systemSetting.findUnique({
+      where: { key: assessmentCourseSettingKey(cid, 'mc_weight_percent') },
+    }),
+    prisma.systemSetting.findUnique({
+      where: { key: assessmentCourseSettingKey(cid, 'discursive_weight_percent') },
+    }),
+    prisma.systemSetting.findUnique({
+      where: { key: assessmentCourseSettingKey(cid, 'discursive_count') },
+    }),
     prisma.systemSetting.findUnique({ where: { key: 'assessment.prova.question_count' } }),
     prisma.systemSetting.findUnique({
       where: { key: 'assessment.prova.time_limit_minutes' },
     }),
     prisma.systemSetting.findUnique({ where: { key: 'assessment.prova.passing_score' } }),
   ])
+
+  let mcWeightPercent = Math.max(
+    0,
+    Math.min(100, Math.floor(parseSettingNumber(mcWeight?.value, 80)))
+  )
+  let discursiveWeightPercent = Math.max(
+    0,
+    Math.min(100, Math.floor(parseSettingNumber(discWeight?.value, 20)))
+  )
+  // Garante soma 100%
+  if (mcWeightPercent + discursiveWeightPercent !== 100) {
+    if (mcWeightPercent === 0 && discursiveWeightPercent === 0) {
+      mcWeightPercent = 80
+      discursiveWeightPercent = 20
+    } else {
+      discursiveWeightPercent = Math.max(0, 100 - mcWeightPercent)
+    }
+  }
 
   return {
     questionCount: Math.max(
@@ -111,6 +151,12 @@ export async function getAssessmentSettings(
       0,
       Math.min(100, Math.floor(parseSettingNumber(passing?.value ?? lp?.value, 70)))
     ),
+    mcWeightPercent,
+    discursiveWeightPercent,
+    discursiveCount: Math.max(
+      0,
+      Math.floor(parseSettingNumber(discCount?.value, 2))
+    ),
   }
 }
 
@@ -118,6 +164,9 @@ export type AssessmentSettingsInput = {
   questionCount?: number
   timeLimitMinutes?: number
   passingScore?: number
+  mcWeightPercent?: number
+  discursiveWeightPercent?: number
+  discursiveCount?: number
 }
 
 /** Normaliza e grava as 3 configs de avaliação do curso (prova + simulado). */
@@ -155,10 +204,48 @@ export async function setAssessmentSettingsForCourse(
     )
   )
 
+  let mcWeightPercent = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.floor(
+        Number.isFinite(Number(input.mcWeightPercent))
+          ? Number(input.mcWeightPercent)
+          : current.mcWeightPercent
+      )
+    )
+  )
+  let discursiveWeightPercent = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.floor(
+        Number.isFinite(Number(input.discursiveWeightPercent))
+          ? Number(input.discursiveWeightPercent)
+          : current.discursiveWeightPercent
+      )
+    )
+  )
+  if (mcWeightPercent + discursiveWeightPercent !== 100) {
+    discursiveWeightPercent = Math.max(0, 100 - mcWeightPercent)
+  }
+
+  const discursiveCount = Math.max(
+    0,
+    Math.floor(
+      Number.isFinite(Number(input.discursiveCount))
+        ? Number(input.discursiveCount)
+        : current.discursiveCount
+    )
+  )
+
   const pairs: { suffix: AssessmentSettingSuffix; value: number }[] = [
     { suffix: 'question_count', value: questionCount },
     { suffix: 'time_limit_minutes', value: timeLimitMinutes },
     { suffix: 'passing_score', value: passingScore },
+    { suffix: 'mc_weight_percent', value: mcWeightPercent },
+    { suffix: 'discursive_weight_percent', value: discursiveWeightPercent },
+    { suffix: 'discursive_count', value: discursiveCount },
   ]
 
   await Promise.all(
@@ -179,7 +266,14 @@ export async function setAssessmentSettingsForCourse(
     )
   )
 
-  return { questionCount, timeLimitMinutes, passingScore }
+  return {
+    questionCount,
+    timeLimitMinutes,
+    passingScore,
+    mcWeightPercent,
+    discursiveWeightPercent,
+    discursiveCount,
+  }
 }
 
 function parseUnlockUntil(raw: string | undefined | null): Date | null {
