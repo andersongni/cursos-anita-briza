@@ -5,6 +5,7 @@ import Card, { CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import Spinner from '@/components/ui/Spinner'
+import DiscursiveCriteriaEditor from '@/components/admin/DiscursiveCriteriaEditor'
 import Link from 'next/link'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -266,20 +267,23 @@ function EditarPerguntaContent() {
             <div className="p-4 pt-0 space-y-3">
               <p className="text-sm text-slate-500">
                 Oriente a IA sobre o que considerar correto. A correção interpreta o
-                sentido da resposta (não é só busca por palavras-chave).
+                sentido da resposta (não é só busca por palavras-chave). Use
+                &quot;Incrementar com IA&quot; para ampliar critérios, faixas de nota e
+                exemplos.
               </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Critérios para a IA *
-                </label>
-                <textarea
-                  name="expectedAnswer"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[120px]"
-                  value={formData.expectedAnswer}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <DiscursiveCriteriaEditor
+                questionText={formData.pergunta}
+                courseName={activeCourse?.name}
+                themeName={
+                  dimensions.find((d) => d.id === formData.tema)?.name ?? null
+                }
+                assessmentType={formData.tipo}
+                value={formData.expectedAnswer}
+                onChange={(expectedAnswer) =>
+                  setFormData((f) => ({ ...f, expectedAnswer }))
+                }
+                required
+              />
             </div>
           </Card>
         ) : (

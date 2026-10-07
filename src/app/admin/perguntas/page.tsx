@@ -28,7 +28,7 @@ export default function AdminPerguntasPage() {
   const [typeFilter, setTypeFilter] = useState('Todos')
   const [formatFilter, setFormatFilter] = useState('Todos')
   const [themeFilter, setThemeFilter] = useState('Todos')
-  const [statusFilter, setStatusFilter] = useState('Todas')
+  const [statusFilter, setStatusFilter] = useState('Ativas')
   const [loading, setLoading] = useState(true)
   const [perguntas, setPerguntas] = useState<Question[]>([])
   const [dimensions, setDimensions] = useState<Dimension[]>([])

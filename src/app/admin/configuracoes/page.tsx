@@ -18,8 +18,6 @@ type GeminiStatus = {
   model: string
 }
 
-const DEFAULT_MODEL = 'gemini-2.5-flash'
-
 export default function AdminConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
   const [changingPassword, setChangingPassword] = useState(false)
@@ -339,7 +337,7 @@ export default function AdminConfiguracoesPage() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setGeminiApiKey(e.target.value)
             }
-            helperText={`Obtenha em aistudio.google.com/apikey · modelo fixo: ${geminiStatus?.model || DEFAULT_MODEL}`}
+            helperText="Obtenha em aistudio.google.com/apikey · modelos: 3.8-flash → 3.5-flash-lite → 3.1-flash-lite"
           />
         </div>
       </Card>

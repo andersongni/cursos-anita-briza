@@ -3,8 +3,18 @@ import { decryptSecret, encryptSecret, maskSecret } from '@/lib/crypto/secret'
 
 export const GEMINI_API_KEY_SETTING = 'gemini.api_key_encrypted'
 
-/** Modelo fixo (não configurável pela interface). */
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
+/**
+ * Modelos free do Gemini, em ordem de preferência.
+ * Se um falhar (indisponível/cota/503), o cliente tenta o próximo.
+ */
+export const GEMINI_FREE_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+] as const
+
+/** Modelo preferencial (não configurável pela interface). */
+export const DEFAULT_GEMINI_MODEL = GEMINI_FREE_MODELS[0]
 
 export type GeminiSettingsStatus = {
   configured: boolean

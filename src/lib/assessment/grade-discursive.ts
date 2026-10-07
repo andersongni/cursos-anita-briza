@@ -237,87 +237,41 @@ async function gradeWithGemini(
   expectedAnswer: string,
   studentAnswer: string
 ): Promise<DiscursiveGrade | null> {
-  const { getGeminiApiKey, getGeminiModel } = await import(
-    '@/lib/gemini/settings'
-  )
-  const apiKey = await getGeminiApiKey()
-  if (!apiKey) {
-    console.warn(
-      '[grade-discursive] Chave Gemini ausente (banco/env) — usando fallback local'
-    )
+  const { generateGeminiText } = await import('@/lib/gemini/client')
+
+  const result = await generateGeminiText({
+    systemPrompt: SYSTEM_PROMPT,
+    userText: JSON.stringify({
+      pergunta: questionText,
+      criteriosDoProfessor: expectedAnswer || null,
+      respostaDoAluno: studentAnswer,
+    }),
+    temperature: 0,
+    maxOutputTokens: 1024,
+    responseMimeType: 'application/json',
+  })
+
+  if (!result.ok) {
+    console.warn('[grade-discursive]', result.error)
     return null
   }
 
-  const model = await getGeminiModel()
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+  const parsed = extractJsonObject(result.text)
+  if (!parsed) return null
 
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
-        },
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: JSON.stringify({
-                  pergunta: questionText,
-                  criteriosDoProfessor: expectedAnswer || null,
-                  respostaDoAluno: studentAnswer,
-                }),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0,
-          responseMimeType: 'application/json',
-        },
-      }),
-    })
+  const score = Number(parsed.scorePercent)
+  if (!Number.isFinite(score)) return null
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '')
-      console.error(
-        '[grade-discursive] Gemini HTTP',
-        res.status,
-        errText.slice(0, 400)
-      )
-      return null
-    }
+  const rawComment =
+    (typeof parsed.feedback === 'string' && parsed.feedback.trim()) ||
+    (typeof parsed.comentario === 'string' && parsed.comentario.trim()) ||
+    ''
 
-    const data = await res.json()
-    const content = data?.candidates?.[0]?.content?.parts
-      ?.map((p: { text?: string }) => p?.text || '')
-      .join('')
-    if (typeof content !== 'string' || !content.trim()) return null
-
-    const parsed = extractJsonObject(content)
-    if (!parsed) return null
-
-    const score = Number(parsed.scorePercent)
-    if (!Number.isFinite(score)) return null
-
-    const rawComment =
-      (typeof parsed.feedback === 'string' && parsed.feedback.trim()) ||
-      (typeof parsed.comentario === 'string' && parsed.comentario.trim()) ||
-      ''
-
-    return {
-      scorePercent: clampScore(score),
-      feedback: sanitizeStudentFacingComment(rawComment) ||
-        'Revise o conteúdo da aula e compare sua resposta com os exemplos corretos do tema.',
-    }
-  } catch (err) {
-    console.error('[grade-discursive] Gemini error:', err)
-    return null
+  return {
+    scorePercent: clampScore(score),
+    feedback:
+      sanitizeStudentFacingComment(rawComment) ||
+      'Revise o conteúdo da aula e compare sua resposta com os exemplos corretos do tema.',
   }
 }
 
