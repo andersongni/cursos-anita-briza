@@ -141,7 +141,7 @@ export default function RevisaoSimuladoPage() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Resultado
         </Button>
         <div className="flex items-center gap-2">
-          <Badge variant="info">Revisão do Simulado</Badge>
+          <Badge variant="info">Revisão — múltipla escolha</Badge>
           {score != null && (
             <Badge variant="outline">{Math.round(score)}%</Badge>
           )}

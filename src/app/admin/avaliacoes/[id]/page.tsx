@@ -119,7 +119,7 @@ export default function AvaliacaoDetalhePage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar nota')
       toast.success(
         data.finalized
-          ? 'Nota salva. Avaliação finalizada.'
+          ? 'Nota revisada. Nota final da prova atualizada.'
           : 'Nota salva. Ainda há discursivas pendentes.'
       )
       await load()
@@ -158,7 +158,9 @@ export default function AvaliacaoDetalhePage() {
           ? 'APROVADO'
           : 'REPROVADO'
   const answerMap = new Map(av.answers.map((a) => [a.assessment_question_id, a]))
-  const canGrade = av.status === 'AWAITING_GRADING'
+  const canGrade =
+    av.type === 'PROVA' &&
+    (av.status === 'AWAITING_GRADING' || av.status === 'COMPLETED')
 
   return (
     <div className="space-y-6">
@@ -210,10 +212,16 @@ export default function AvaliacaoDetalhePage() {
             </p>
           </div>
         </div>
-        {canGrade && (
+        {canGrade && av.status === 'AWAITING_GRADING' && (
           <p className="px-4 pb-4 text-sm text-amber-800 bg-amber-50 border-t border-amber-100">
             Atribua a nota de cada discursiva (0–100). A nota final e a aprovação só são
             calculadas depois que todas forem corrigidas.
+          </p>
+        )}
+        {canGrade && av.status === 'COMPLETED' && (
+          <p className="px-4 pb-4 text-sm text-sky-900 bg-sky-50 border-t border-sky-100">
+            Você pode revisar a nota e o comentário gerados automaticamente. Ao salvar, a
+            nota final da prova é recalculada.
           </p>
         )}
       </Card>
@@ -280,7 +288,7 @@ export default function AvaliacaoDetalhePage() {
                       />
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Feedback (opcional)
+                          Comentário (opcional)
                         </label>
                         <textarea
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[42px]"
@@ -301,7 +309,9 @@ export default function AvaliacaoDetalhePage() {
                             loading={savingId === q.id}
                             onClick={() => void saveDiscursiveGrade(q.id)}
                           >
-                            Salvar nota
+                            {av.status === 'COMPLETED'
+                              ? 'Salvar revisão'
+                              : 'Salvar nota'}
                           </Button>
                         </div>
                       )}

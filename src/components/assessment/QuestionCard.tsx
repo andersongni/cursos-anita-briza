@@ -198,7 +198,7 @@ export function QuestionCard({
         {showResult && explanation && (
           <div className="mt-6 p-4 rounded-lg bg-sky-50 border border-sky-200">
             <h3 className="font-semibold text-secondary mb-2" style={{ fontSize: `${titlePx}px` }}>
-              {format === 'DISCURSIVE' ? 'Feedback da correção:' : 'Explicação:'}
+              {format === 'DISCURSIVE' ? 'Comentário:' : 'Explicação:'}
             </h3>
             <p
               className="text-slate-700 whitespace-pre-wrap"

@@ -84,6 +84,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   // Modo foco: execução da prova/simulado
   const isAssessmentFocus = /^\/student\/avaliacao\/[^/]+\/?$/.test(pathname)
+  // Telas de início: cabem na viewport sem scroll (sem rodapé)
+  const isAssessmentStart =
+    pathname === '/student/simulado' || pathname === '/student/prova'
 
   if (isAssessmentFocus) {
     return (
@@ -98,7 +101,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div
+      className={`bg-slate-50 flex flex-col ${
+        isAssessmentStart ? 'h-dvh overflow-hidden' : 'min-h-screen'
+      }`}
+    >
       <header className="bg-white shadow-sm sticky top-0 z-20">
         {/* Linha 1: marca + curso + ações */}
         <div className="border-b border-slate-100">
@@ -283,14 +290,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         )}
       </header>
 
-      <main className="flex-1 w-full">{children}</main>
+      <main
+        className={`flex-1 w-full ${isAssessmentStart ? 'min-h-0 overflow-y-auto' : ''}`}
+      >
+        {children}
+      </main>
 
-      <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-          <p>Núcleo Assistencial Anita Briza — O Futuro Depende de Nós</p>
-          <p className="mt-1">&copy; {new Date().getFullYear()} Todos os direitos reservados.</p>
-        </div>
-      </footer>
+      {!isAssessmentStart && (
+        <footer className="bg-white border-t border-gray-200 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
+            <p>Núcleo Assistencial Anita Briza — O Futuro Depende de Nós</p>
+            <p className="mt-1">&copy; {new Date().getFullYear()} Todos os direitos reservados.</p>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

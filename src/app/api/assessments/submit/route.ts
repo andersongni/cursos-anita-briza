@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
 import { computeScoreBreakdown } from '@/lib/assessment/finalize-score'
+import { gradeDiscursiveAnswer } from '@/lib/assessment/grade-discursive'
 
 export async function POST(req: Request) {
   try {
@@ -52,25 +53,26 @@ export async function POST(req: Request) {
       assessment.course_id
     )
 
-    const discursiveQuestions = assessment.questions.filter(
-      (q) => q.format === 'DISCURSIVE'
-    )
-
     for (const question of assessment.questions) {
       const answer = assessment.answers.find(
         (a) => a.assessment_question_id === question.id
       )
 
       if (question.format === 'DISCURSIVE') {
-        // Discursivas ficam pendentes de correção manual do administrador
+        const text = answer?.text_answer?.trim() || ''
+        const grade = await gradeDiscursiveAnswer({
+          questionText: question.question_text_snapshot,
+          expectedAnswer: question.expected_answer_snapshot || '',
+          studentAnswer: text,
+        })
         if (answer) {
           await prisma.assessmentAnswer.update({
             where: { id: answer.id },
             data: {
-              score_percent: null,
-              grading_feedback: null,
-              is_correct: null,
-              answered_at: answer.text_answer?.trim()
+              score_percent: grade.scorePercent,
+              grading_feedback: grade.feedback,
+              is_correct: grade.scorePercent >= 70,
+              answered_at: text
                 ? answer.answered_at ?? new Date()
                 : answer.answered_at,
             },
@@ -98,7 +100,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Recarrega respostas após correção das objetivas
     const refreshedAnswers = await prisma.assessmentAnswer.findMany({
       where: { assessment_id },
     })
@@ -127,19 +128,18 @@ export async function POST(req: Request) {
       )
     }
 
-    const hasPendingDiscursive = discursiveQuestions.length > 0
+    const hasMc = assessment.questions.some((q) => q.format !== 'DISCURSIVE')
 
     const updatedAssessment = await prisma.assessment.update({
       where: { id: assessment_id },
       data: {
-        status: hasPendingDiscursive ? 'AWAITING_GRADING' : 'COMPLETED',
+        status: 'COMPLETED',
         completed_at: completedAt,
         duration_seconds: durationSeconds,
-        // Nota final só quando não houver discursiva pendente
-        score: hasPendingDiscursive ? null : breakdown.score,
+        score: breakdown.score,
         correct_count: breakdown.mcCorrect,
         wrong_count: breakdown.mcWrong,
-        passed: hasPendingDiscursive ? null : breakdown.passed,
+        passed: breakdown.passed,
       },
     })
 
@@ -154,17 +154,14 @@ export async function POST(req: Request) {
         correct_count: updatedAssessment.correct_count,
         wrong_count: updatedAssessment.wrong_count,
         total_questions: updatedAssessment.total_questions,
-        awaiting_grading: hasPendingDiscursive,
-        review_available:
-          !hasPendingDiscursive && updatedAssessment.type === 'SIMULADO',
+        awaiting_grading: false,
+        review_available: hasMc,
         scoring: {
           mcWeight: breakdown.mcWeight,
           discursiveWeight: breakdown.discursiveWeight,
           mcAvg: Math.round(breakdown.mcAvg * 10) / 10,
-          discursiveAvg: hasPendingDiscursive
-            ? null
-            : Math.round(breakdown.discursiveAvg * 10) / 10,
-          pendingDiscursive: breakdown.pendingDiscursive,
+          discursiveAvg: Math.round(breakdown.discursiveAvg * 10) / 10,
+          pendingDiscursive: 0,
         },
       },
     })

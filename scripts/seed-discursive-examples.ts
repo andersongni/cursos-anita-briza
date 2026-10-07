@@ -1,5 +1,6 @@
 import { createScriptPrisma } from './prisma-client'
 import { ensureCourses } from '../src/lib/courses/ensure-courses'
+import { INFORMATICA_DISCURSIVE_QUESTIONS } from '../src/lib/assessment/discursive-informatica'
 
 const prisma = createScriptPrisma()
 
@@ -12,32 +13,32 @@ async function main() {
     throw new Error('Tema "Fundamentos do computador" não encontrado')
   }
 
-  const examples = [
-    {
-      question_text: 'Cite dois exemplos de Hardware.',
-      expected_answer:
-        'Aceitar quaisquer dois exemplos de hardware, como: monitor, teclado, mouse, impressora, CPU, processador, HD, SSD, memória RAM, placa-mãe, webcam, microfone, caixa de som, pendrive.',
-    },
-    {
-      question_text: 'Cite dois exemplos de Software.',
-      expected_answer:
-        'Aceitar quaisquer dois exemplos de software, incluindo programas e sites/plataformas web, como: Windows, Linux, Word, Excel, PowerPoint, Chrome, Firefox, WhatsApp, Paint, Bloco de Notas, antivírus, sistema operacional, aplicativo, programa, Gmail, YouTube, GitHub, Railway, Vercel.',
-    },
-  ]
-
   let created = 0
+  let updated = 0
+
   for (const type of ['PROVA', 'SIMULADO'] as const) {
-    for (const ex of examples) {
+    for (const ex of INFORMATICA_DISCURSIVE_QUESTIONS) {
+      const texts = [ex.question_text, ...ex.legacyTexts]
       const existing = await prisma.question.findFirst({
         where: {
           course_id: informaticaId,
-          question_text: ex.question_text,
           type,
           format: 'DISCURSIVE',
+          question_text: { in: [...texts] },
         },
       })
       if (existing) {
-        console.log(`Já existe (${type}): ${ex.question_text}`)
+        await prisma.question.update({
+          where: { id: existing.id },
+          data: {
+            question_text: ex.question_text,
+            expected_answer: ex.expected_answer,
+            dimension_id: dim.id,
+            active: true,
+          },
+        })
+        updated++
+        console.log(`Atualizada (${type}): ${ex.question_text}`)
         continue
       }
       await prisma.question.create({
@@ -55,7 +56,7 @@ async function main() {
       console.log(`Criada (${type}): ${ex.question_text}`)
     }
   }
-  console.log(`Concluído. Novas: ${created}`)
+  console.log(`Concluído. Criadas: ${created}, atualizadas: ${updated}`)
 }
 
 main()

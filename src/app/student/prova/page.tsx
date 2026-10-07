@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import { Clock, HelpCircle, AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
+import CompositionSummary from '@/components/assessment/CompositionSummary'
+import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function formatRemaining(ms: number): string {
@@ -31,7 +32,10 @@ export default function ProvaStartPage() {
   const [blockReason, setBlockReason] = useState<string | null>(null)
   const [inProgressId, setInProgressId] = useState<string | null>(null)
   const [awaitingGradingId, setAwaitingGradingId] = useState<string | null>(null)
-  const [questionCount, setQuestionCount] = useState(40)
+  const [mcCount, setMcCount] = useState(40)
+  const [discursiveCount, setDiscursiveCount] = useState(0)
+  const [mcWeightPercent, setMcWeightPercent] = useState(80)
+  const [discursiveWeightPercent, setDiscursiveWeightPercent] = useState(20)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
   const [passingScore, setPassingScore] = useState(70)
 
@@ -57,10 +61,16 @@ export default function ProvaStartPage() {
       setBlockReason(typeof data.reason === 'string' ? data.reason : null)
       setInProgressId(data.inProgressId ?? null)
       setAwaitingGradingId(data.awaitingGradingId ?? null)
-      const q = Number(data.questionCount)
+      const mc = Number(data.mcCount)
+      const disc = Number(data.discursiveCount)
+      const mcW = Number(data.mcWeightPercent)
+      const discW = Number(data.discursiveWeightPercent)
       const t = Number(data.timeLimitMinutes)
       const p = Number(data.passingScore)
-      if (Number.isFinite(q) && q > 0) setQuestionCount(q)
+      if (Number.isFinite(mc) && mc >= 0) setMcCount(mc)
+      if (Number.isFinite(disc) && disc >= 0) setDiscursiveCount(disc)
+      if (Number.isFinite(mcW)) setMcWeightPercent(mcW)
+      if (Number.isFinite(discW)) setDiscursiveWeightPercent(discW)
       if (Number.isFinite(t) && t > 0) setTimeLimitMinutes(t)
       if (Number.isFinite(p) && p >= 0) setPassingScore(p)
     } catch (error) {
@@ -157,51 +167,82 @@ export default function ProvaStartPage() {
 
   if (checking) {
     return (
-      <div className="p-8 text-center text-slate-500">Verificando disponibilidade da prova...</div>
+      <div className="h-full flex items-center justify-center text-slate-500">
+        Verificando disponibilidade da prova...
+      </div>
     )
   }
 
+  const startLabel = loading
+    ? 'Aguarde...'
+    : inProgressId
+      ? 'Continuar Prova'
+      : awaitingGradingId
+        ? 'Ver resultado (aguardando correção)'
+        : notEnrolled
+          ? 'Sem matrícula'
+          : isBlocked
+            ? 'Prova bloqueada'
+            : 'Iniciar Prova'
+
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <Card className="border-2 border-slate-200 shadow-md">
-        <CardHeader className="text-center pb-8 border-b border-slate-100">
-          <div
-            className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-              isBlocked ? 'bg-slate-100' : 'bg-sky-100'
-            }`}
-          >
-            {isBlocked ? (
-              <Lock className="w-8 h-8 text-slate-500" />
-            ) : (
-              <CheckCircle2 className="w-8 h-8 text-primary" />
+    <div className="h-full flex items-center justify-center px-4 py-3 sm:px-6">
+      <Card
+        padding="sm"
+        className="w-full max-w-4xl border-2 border-slate-200 shadow-md !p-0 overflow-hidden"
+      >
+        <CardHeader className="mb-0 px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                isBlocked ? 'bg-slate-100' : 'bg-sky-100'
+              }`}
+            >
+              {isBlocked ? (
+                <Lock className="w-6 h-6 text-slate-500" />
+              ) : (
+                <CheckCircle2 className="w-6 h-6 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <CardTitle className="text-2xl font-bold text-secondary">Prova Oficial</CardTitle>
+                {courseName && enrolled && (
+                  <span className="text-sm text-slate-500">Curso: {courseName}</span>
+                )}
+              </div>
+              <CardDescription className="text-base mt-1 text-slate-600">
+                {notEnrolled
+                  ? 'Matrícula ativa necessária para realizar a prova deste curso.'
+                  : inProgressId
+                    ? 'Você tem uma prova em andamento neste curso.'
+                    : isBlocked
+                      ? 'Aguardando liberação pelo administrador para o curso selecionado.'
+                      : 'Avaliação final do curso selecionado para emissão do certificado.'}
+              </CardDescription>
+            </div>
+            {!isBlocked && unlocked && unlockLabel && !inProgressId && (
+              <div className="hidden md:block shrink-0 text-right text-sm text-green-800 bg-green-50 border border-green-200 rounded-xl px-3 py-2 max-w-[14rem]">
+                Liberada até {unlockLabel}
+                <div className="text-xs text-green-700 mt-0.5">
+                  Restam {formatRemaining(remainingMs)}
+                </div>
+              </div>
             )}
           </div>
-          <CardTitle className="text-3xl font-bold text-secondary">Prova Oficial</CardTitle>
-          <CardDescription className="text-lg mt-2 text-slate-600">
-            {notEnrolled
-              ? 'Matrícula ativa necessária para realizar a prova deste curso.'
-              : inProgressId
-                ? 'Você tem uma prova em andamento neste curso.'
-                : isBlocked
-                  ? 'Aguardando liberação pelo administrador para o curso selecionado.'
-                  : 'Avaliação final do curso selecionado para emissão do certificado.'}
-          </CardDescription>
-          {courseName && enrolled && (
-            <p className="text-sm text-slate-500 mt-2">Curso: {courseName}</p>
-          )}
         </CardHeader>
 
-        <CardContent className="py-8 space-y-6">
+        <CardContent className="px-5 sm:px-6 py-5 space-y-4">
           {isBlocked && (
-            <div className="bg-slate-50 p-5 rounded-lg border border-slate-200 text-center space-y-3">
-              <p className="text-slate-700 font-medium">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 px-4 py-3.5 rounded-xl border border-slate-200">
+              <p className="flex-1 text-slate-700 font-medium text-sm sm:text-base leading-snug">
                 {blockReason ||
                   (notEnrolled
                     ? 'Você não possui matrícula ativa neste curso.'
                     : 'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.')}
               </p>
               {notEnrolled && (
-                <Link href="/student/matriculas">
+                <Link href="/student/matriculas" className="shrink-0">
                   <Button variant="primary" size="sm">
                     Solicitar matrícula
                   </Button>
@@ -211,88 +252,63 @@ export default function ProvaStartPage() {
           )}
 
           {!isBlocked && unlocked && unlockLabel && !inProgressId && (
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-center text-sm text-green-800">
+            <div className="md:hidden bg-green-50 px-4 py-2.5 rounded-xl border border-green-200 text-sm text-green-800 text-center">
               Liberada até {unlockLabel} (restam {formatRemaining(remainingMs)}).
             </div>
           )}
 
           {enrolled && (
-            <>
-              <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-                  <HelpCircle className="w-6 h-6 text-primary" />
-                  <div>
-                    <div className="font-semibold text-slate-800">{questionCount} Questões</div>
-                    <div className="text-sm text-slate-500">
-                      Para aprovação: {Math.ceil((questionCount * passingScore) / 100)} acertos (
-                      {passingScore}%)
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg flex-1 justify-center border border-slate-100">
-                  <Clock className="w-6 h-6 text-primary" />
-                  <div>
-                    <div className="font-semibold text-slate-800">Duração</div>
-                    <div className="text-sm text-slate-500">
-                      {timeLimitMinutes} minutos (cronometrado)
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 p-6 rounded-lg border border-brand-gold/40 mt-6">
-                <h3 className="font-semibold text-amber-950 mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-brand-gold-dark" />
-                  Avisos Importantes
-                </h3>
-                <ul className="space-y-3 text-amber-950/90">
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold mt-0.5">•</span>
-                    <span>
-                      Após iniciar, o cronômetro não poderá ser pausado, mesmo que você feche a
-                      página.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold mt-0.5">•</span>
-                    <span>
-                      As respostas são salvas automaticamente. Se a conexão cair, você poderá
-                      retornar de onde parou (desde que dentro do tempo).
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold mt-0.5">•</span>
-                    <span>
-                      Certifique-se de estar em um ambiente tranquilo e com boa conexão à internet.
-                    </span>
-                  </li>
-                </ul>
-              </div>
-            </>
+            <CompositionSummary
+              mcCount={mcCount}
+              discursiveCount={discursiveCount}
+              mcWeightPercent={mcWeightPercent}
+              discursiveWeightPercent={discursiveWeightPercent}
+              timeLimitMinutes={timeLimitMinutes}
+              accentClassName="text-primary"
+              passingScore={passingScore}
+              showPassingHint
+            />
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-center pt-2 pb-8 border-t border-slate-100">
-          <Button
-            size="lg"
-            variant="primary"
-            className="w-full sm:w-auto px-12 py-6 text-lg rounded-full"
-            onClick={handleStart}
-            disabled={loading || !canStart}
-          >
-            {loading
-              ? 'Aguarde...'
-              : inProgressId
-                ? 'Continuar Prova'
-                : awaitingGradingId
-                  ? 'Ver resultado (aguardando correção)'
-                  : notEnrolled
-                    ? 'Sem matrícula'
-                    : isBlocked
-                      ? 'Prova bloqueada'
-                      : 'Iniciar Prova'}
-          </Button>
-        </CardFooter>
+        {enrolled && (
+          <CardFooter className="mt-0 flex flex-col sm:flex-row sm:items-center gap-4 px-5 sm:px-6 py-4 border-t border-slate-100 bg-amber-50/70">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-amber-950 mb-1.5 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-brand-gold-dark shrink-0" />
+                Avisos importantes
+              </h3>
+              <ul className="grid sm:grid-cols-3 gap-x-4 gap-y-1.5 text-sm text-amber-950/90 leading-snug">
+                <li>O cronômetro não pausa, mesmo se você fechar a página.</li>
+                <li>Respostas salvas automaticamente — dá para retomar dentro do tempo.</li>
+                <li>Use um ambiente tranquilo e com boa conexão à internet.</li>
+              </ul>
+            </div>
+            <Button
+              size="lg"
+              variant="primary"
+              className="w-full sm:w-auto shrink-0 px-8 py-3.5 text-base rounded-full"
+              onClick={handleStart}
+              disabled={loading || !canStart}
+            >
+              {startLabel}
+            </Button>
+          </CardFooter>
+        )}
+
+        {!enrolled && (
+          <CardFooter className="mt-0 flex justify-center px-5 sm:px-6 py-4 border-t border-slate-100">
+            <Button
+              size="lg"
+              variant="primary"
+              className="w-full sm:w-auto px-8 py-3.5 text-base rounded-full"
+              onClick={handleStart}
+              disabled
+            >
+              {startLabel}
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   )

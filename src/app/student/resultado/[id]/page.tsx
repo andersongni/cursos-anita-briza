@@ -128,6 +128,8 @@ export default function ResultadoPage() {
       }
     })
 
+  const hasMcReview = isFinal && mcResults.length > 0
+
   const discursiveResults = questions
     .filter((q: any) => q.format === 'DISCURSIVE')
     .map((q: any) => {
@@ -219,7 +221,7 @@ export default function ResultadoPage() {
             }`}
           >
             {awaitingGrading
-              ? 'As questões de múltipla escolha já foram corrigidas. As discursivas serão avaliadas pelo administrador; a nota final sai depois disso.'
+              ? 'As questões de múltipla escolha já foram corrigidas. As discursivas ainda estão em correção; a nota final sai depois disso.'
               : isApproved
                 ? 'Parabéns! Você alcançou a nota necessária.'
                 : `Você não alcançou a nota mínima de ${passingScore}%.`}
@@ -257,9 +259,9 @@ export default function ResultadoPage() {
           <Button variant="outline" onClick={() => router.push('/dashboard')}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao início
           </Button>
-          {isFinal && result.type === 'SIMULADO' && (
+          {isFinal && hasMcReview && (
             <Button onClick={() => router.push(`/student/revisao/${id}`)}>
-              <BookOpen className="w-4 h-4 mr-2" /> Ver respostas e explicações
+              <BookOpen className="w-4 h-4 mr-2" /> Revisar múltipla escolha
             </Button>
           )}
           {isFinal && result.type === 'PROVA' && isApproved && (
@@ -277,7 +279,7 @@ export default function ResultadoPage() {
               Múltipla escolha
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              Corrigidas automaticamente ao enviar a avaliação.
+              Corrigidas ao enviar a avaliação.
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -313,8 +315,8 @@ export default function ResultadoPage() {
             </h3>
             <p className="text-sm text-slate-500 mt-1">
               {awaitingGrading
-                ? 'Aguardando correção do administrador.'
-                : 'Notas atribuídas pelo administrador.'}
+                ? 'Aguardando correção.'
+                : 'Corrigidas ao enviar a avaliação.'}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -340,7 +342,7 @@ export default function ResultadoPage() {
                 </p>
                 {!d.pending && d.feedback ? (
                   <p className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-700">Feedback: </span>
+                    <span className="font-medium text-slate-700">Comentário: </span>
                     {d.feedback}
                   </p>
                 ) : null}

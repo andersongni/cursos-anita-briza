@@ -149,30 +149,33 @@ async function main() {
   // Exemplos de discursivas (qualquer tema; usamos Fundamentos do computador)
   const fundamentosId = dimensionMap.get('Fundamentos do computador')
   if (fundamentosId) {
-    const discursiveExamples = [
-      {
-        question_text: 'Cite dois exemplos de Hardware.',
-        expected_answer:
-          'Aceitar quaisquer dois exemplos de hardware, como: monitor, teclado, mouse, impressora, CPU, processador, HD, SSD, memória RAM, placa-mãe, webcam, microfone, caixa de som, pendrive.',
-      },
-      {
-        question_text: 'Cite dois exemplos de Software.',
-        expected_answer:
-          'Aceitar quaisquer dois exemplos de software, incluindo programas e sites/plataformas web, como: Windows, Linux, Word, Excel, PowerPoint, Chrome, Firefox, WhatsApp, Paint, Bloco de Notas, antivírus, sistema operacional, aplicativo, programa, Gmail, YouTube, GitHub, Railway, Vercel.',
-      },
-    ]
+    const { INFORMATICA_DISCURSIVE_QUESTIONS } = await import(
+      '../src/lib/assessment/discursive-informatica'
+    )
 
     for (const type of ['PROVA', 'SIMULADO'] as const) {
-      for (const ex of discursiveExamples) {
+      for (const ex of INFORMATICA_DISCURSIVE_QUESTIONS) {
+        const texts = [ex.question_text, ...ex.legacyTexts]
         const existing = await prisma.question.findFirst({
           where: {
             course_id: informaticaId,
-            question_text: ex.question_text,
             type,
             format: 'DISCURSIVE',
+            question_text: { in: [...texts] },
           },
         })
-        if (existing) continue
+        if (existing) {
+          await prisma.question.update({
+            where: { id: existing.id },
+            data: {
+              question_text: ex.question_text,
+              expected_answer: ex.expected_answer,
+              active: true,
+            },
+          })
+          console.log(`Updated discursive (${type}): ${ex.question_text}`)
+          continue
+        }
         await prisma.question.create({
           data: {
             course_id: informaticaId,

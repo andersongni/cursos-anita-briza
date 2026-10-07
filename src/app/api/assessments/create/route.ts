@@ -280,7 +280,8 @@ export async function POST(req: Request) {
       selectedDiscursive = shuffle(discursivePool).slice(0, discursiveCount)
     }
 
-    const selectedQuestions = shuffle([...selectedMc, ...selectedDiscursive])
+    // Objetivas primeiro; discursivas no final (ordem sorteada dentro de cada bloco)
+    const selectedQuestions = [...selectedMc, ...selectedDiscursive]
 
     if (selectedQuestions.length === 0) {
       return NextResponse.json(

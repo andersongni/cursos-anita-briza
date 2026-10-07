@@ -11,6 +11,27 @@ import {
 const NO_ENROLLMENT_MSG =
   'Você não possui matrícula ativa neste curso. Solicite a matrícula e aguarde a aprovação do administrador.'
 
+function compositionFromSettings(settings: {
+  questionCount: number
+  discursiveCount: number
+  mcWeightPercent: number
+  discursiveWeightPercent: number
+  timeLimitMinutes: number
+  passingScore: number
+}) {
+  const mcCount = settings.questionCount
+  const discursiveCount = settings.discursiveCount
+  return {
+    questionCount: mcCount + discursiveCount,
+    mcCount,
+    discursiveCount,
+    mcWeightPercent: settings.mcWeightPercent,
+    discursiveWeightPercent: settings.discursiveWeightPercent,
+    timeLimitMinutes: settings.timeLimitMinutes,
+    passingScore: settings.passingScore,
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const { user } = await verifyAuth()
@@ -31,9 +52,7 @@ export async function GET(req: Request) {
         remainingMs: 0,
         unlocked: false,
         inProgressId: null,
-        questionCount: defaults.questionCount,
-        timeLimitMinutes: defaults.timeLimitMinutes,
-        passingScore: defaults.passingScore,
+        ...compositionFromSettings(defaults),
       })
     }
 
@@ -52,9 +71,7 @@ export async function GET(req: Request) {
         remainingMs: 0,
         unlocked: false,
         inProgressId: null,
-        questionCount: defaults.questionCount,
-        timeLimitMinutes: defaults.timeLimitMinutes,
-        passingScore: defaults.passingScore,
+        ...compositionFromSettings(defaults),
       })
     }
 
@@ -71,9 +88,7 @@ export async function GET(req: Request) {
         remainingMs: 0,
         unlocked: false,
         inProgressId: null,
-        questionCount: settings.questionCount,
-        timeLimitMinutes: settings.timeLimitMinutes,
-        passingScore: settings.passingScore,
+        ...compositionFromSettings(settings),
       })
     }
 
@@ -127,9 +142,7 @@ export async function GET(req: Request) {
       unlocked: unlock?.open ?? type !== 'PROVA',
       inProgressId: inProgress?.id ?? null,
       awaitingGradingId: awaitingGrading?.id ?? null,
-      questionCount: settings.questionCount,
-      timeLimitMinutes: settings.timeLimitMinutes,
-      passingScore: settings.passingScore,
+      ...compositionFromSettings(settings),
     })
   } catch (error: unknown) {
     console.error('Check eligibility error:', error)

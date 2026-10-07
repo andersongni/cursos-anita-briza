@@ -1,43 +1,63 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { verifyAuth } from '@/lib/auth/verify';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth/verify'
 
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { user } = await verifyAuth();
-    const resolvedParams = await params;
-    const { id } = resolvedParams;
+    const { user } = await verifyAuth()
+    const { id } = await params
 
     const assessment = await prisma.assessment.findUnique({
       where: { id },
       include: {
         questions: { orderBy: { question_order: 'asc' } },
-        answers: true
-      }
-    });
+        answers: true,
+      },
+    })
 
     if (!assessment) {
-      return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
     }
 
     if (assessment.student_id !== user.id) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
-    if (assessment.type === 'PROVA') {
-      return NextResponse.json({ error: 'Revisão não disponível para provas' }, { status: 403 });
-    }
-    
-    if (assessment.status !== 'COMPLETED') {
-      return NextResponse.json({ error: 'Avaliação ainda não concluída' }, { status: 400 });
+    // Revisão liberada para prova e simulado após conclusão (só MC no front)
+    if (
+      assessment.status !== 'COMPLETED' &&
+      assessment.status !== 'AWAITING_GRADING'
+    ) {
+      return NextResponse.json(
+        { error: 'Avaliação ainda não concluída' },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json({ assessment });
-  } catch (error: any) {
-    console.error('Review assessment error:', error);
-    return NextResponse.json({ error: error.message || 'Erro ao buscar revisão' }, { status: 500 });
+    const mcQuestions = assessment.questions.filter(
+      (q) => q.format !== 'DISCURSIVE'
+    )
+    const mcIds = new Set(mcQuestions.map((q) => q.id))
+    const mcAnswers = assessment.answers.filter((a) =>
+      mcIds.has(a.assessment_question_id)
+    )
+
+    return NextResponse.json({
+      assessment: {
+        ...assessment,
+        questions: mcQuestions,
+        answers: mcAnswers,
+      },
+    })
+  } catch (error: unknown) {
+    console.error('Review assessment error:', error)
+    const err = error as { message?: string }
+    return NextResponse.json(
+      { error: err.message || 'Erro ao buscar revisão' },
+      { status: 500 }
+    )
   }
 }

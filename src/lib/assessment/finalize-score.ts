@@ -117,8 +117,8 @@ export function computeScoreBreakdown(
 }
 
 /**
- * Se todas as discursivas tiverem nota, finaliza a avaliação (COMPLETED + passed).
- * Retorna null se ainda houver pendência.
+ * Recalcula a nota quando todas as discursivas têm pontuação.
+ * Aceita AWAITING_GRADING (finaliza) ou COMPLETED (reavaliação do professor).
  */
 export async function tryFinalizeAssessment(assessmentId: string) {
   const assessment = await prisma.assessment.findUnique({
@@ -129,7 +129,10 @@ export async function tryFinalizeAssessment(assessmentId: string) {
     },
   })
   if (!assessment) return null
-  if (assessment.status !== 'AWAITING_GRADING') {
+  if (
+    assessment.status !== 'AWAITING_GRADING' &&
+    assessment.status !== 'COMPLETED'
+  ) {
     return null
   }
 

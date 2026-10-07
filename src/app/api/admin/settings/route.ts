@@ -7,6 +7,12 @@ import {
   isLegacyAssessmentSettingKey,
 } from '@/lib/settings/assessment'
 import { getCourseById, resolveAdminCourseId } from '@/lib/courses'
+import { GEMINI_API_KEY_SETTING } from '@/lib/gemini/settings'
+
+const REDACTED_SETTING_KEYS = new Set([
+  GEMINI_API_KEY_SETTING,
+  'openai.api_key_encrypted',
+])
 
 export async function GET() {
   try {
@@ -15,9 +21,11 @@ export async function GET() {
     const course = await getCourseById(courseId)
     const courseAssessment = await getAssessmentSettings('prova', courseId)
 
-    const settingsRaw = await prisma.systemSetting.findMany({
-      orderBy: { key: 'asc' },
-    })
+    const settingsRaw = (
+      await prisma.systemSetting.findMany({
+        orderBy: { key: 'asc' },
+      })
+    ).filter((s) => !REDACTED_SETTING_KEYS.has(s.key))
 
     type SettingRow = {
       id: string
@@ -106,6 +114,20 @@ export async function PATCH(req: Request) {
 
     if (!key || value === undefined) {
       return NextResponse.json({ error: 'Missing key or value' }, { status: 400 })
+    }
+
+    if (
+      REDACTED_SETTING_KEYS.has(key) ||
+      String(key).startsWith('gemini.api_key') ||
+      String(key).startsWith('openai.api_key')
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Use a tela de Configurações → Gemini (ou /api/admin/gemini) para alterar a chave.',
+        },
+        { status: 400 }
+      )
     }
 
     const courseId =

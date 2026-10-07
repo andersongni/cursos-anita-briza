@@ -53,11 +53,17 @@ export async function POST(
       return NextResponse.json({ error: 'Avaliação não encontrada' }, { status: 404 })
     }
 
-    if (assessment.status !== 'AWAITING_GRADING') {
+    // Revisão/edição da nota da IA: só na prova (aguardando ou já concluída)
+    const canEdit =
+      assessment.type === 'PROVA' &&
+      (assessment.status === 'AWAITING_GRADING' ||
+        assessment.status === 'COMPLETED')
+
+    if (!canEdit) {
       return NextResponse.json(
         {
           error:
-            'Somente avaliações aguardando correção de discursivas podem ser pontuadas aqui',
+            'Somente provas (aguardando correção ou concluídas) permitem revisar a nota das discursivas.',
         },
         { status: 400 }
       )
@@ -76,7 +82,7 @@ export async function POST(
       score_percent: scorePercent,
       grading_feedback:
         feedback ||
-        `Nota atribuída pelo administrador: ${scorePercent}%.`,
+        `Nota revisada pelo professor: ${scorePercent}%.`,
       is_correct: scorePercent >= 70,
       answered_at: existing?.answered_at ?? new Date(),
     }
