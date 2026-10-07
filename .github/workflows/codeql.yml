@@ -1,0 +1,90 @@
+# Análise estática de segurança (CodeQL).
+# Falha o job se houver findings error/warning — evita merge/deploy com
+# alertas do tipo js/polynomial-redos, insecure-randomness, etc.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Revarre com queries novas mesmo sem commits.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # Inclui as queries que pegaram ReDoS / RNG fraco / Actions permissivas.
+          queries: security-extended
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          output: sarif-results
+          upload: always
+          wait-for-processing: true
+
+      - name: Fail on security findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(sarif-results/*.sarif)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "Nenhum SARIF gerado — nada a validar."
+            exit 0
+          fi
+
+          total=0
+          for f in "${files[@]}"; do
+            count="$(jq '[.runs[]?.results[]? | select((.level // "warning") != "note")] | length' "$f")"
+            total=$((total + count))
+            if [ "$count" -gt 0 ]; then
+              echo "::error::CodeQL encontrou $count alerta(s) em $f"
+              jq -r '
+                .runs[]?.results[]?
+                | select((.level // "warning") != "note")
+                | "- [\(.level // "warning")] \(.ruleId): \(.message.text)
+                  @ \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine // 0)"
+              ' "$f"
+            fi
+          done
+
+          if [ "$total" -gt 0 ]; then
+            echo "::error::CI bloqueado: $total alerta(s) CodeQL (error/warning). Corrija antes de merge/deploy."
+            exit 1
+          fi
+
+          echo "Nenhum alerta error/warning — OK."

@@ -1,3 +1,5 @@
+# Qualidade (lint/types/build). Segurança fica em codeql.yml — ambos devem
+# estar como required checks na branch main (Settings → Rules / Branches).
 name: CI
 
 on:
@@ -9,9 +11,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
