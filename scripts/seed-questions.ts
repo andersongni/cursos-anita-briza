@@ -234,7 +234,7 @@ async function main() {
     { key: 'platform.name', value: '"Plataforma de Estudos"', description: 'Nome da plataforma' },
     { key: 'platform.course_name', value: '"Informática Básica"', description: 'Nome do curso' },
     { key: 'platform.institution', value: '"Núcleo Assistencial Anita Briza"', description: 'Nome da instituição' },
-    { key: 'platform.logo_url', value: '"/logo.jpg"', description: 'URL do logo da plataforma' },
+    { key: 'platform.logo_url', value: '"/logo.png"', description: 'URL do logo e ícone do site' },
     { key: 'certificate.title', value: '"CERTIFICADO"', description: 'Título do certificado' },
     {
       key: 'certificate.subtitle',

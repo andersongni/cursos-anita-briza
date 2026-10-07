@@ -7,7 +7,8 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Spinner from '@/components/ui/Spinner'
 import PlatformLogo from '@/components/ui/PlatformLogo'
-import { DEFAULT_LOGO_URL } from '@/lib/platform/logo'
+import { DEFAULT_LOGO_URL, isDefaultLogoUrl, normalizeLogoUrl } from '@/lib/platform/logo'
+import { setSiteFavicon } from '@/lib/platform/favicon'
 import toast from 'react-hot-toast'
 
 type GeminiStatus = {
@@ -47,11 +48,9 @@ export default function AdminConfiguracoesPage() {
       const logo = (data.settings ?? []).find(
         (s: { key: string }) => s.key === 'platform.logo_url'
       )
-      if (typeof logo?.value === 'string' && logo.value) {
-        setLogoUrl(String(logo.value))
-      } else {
-        setLogoUrl(DEFAULT_LOGO_URL)
-      }
+      const nextLogo = normalizeLogoUrl(logo?.value)
+      setLogoUrl(nextLogo)
+      setSiteFavicon(nextLogo)
       setLogoKey((k) => k + 1)
 
       if (geminiRes.ok) {
@@ -101,13 +100,14 @@ export default function AdminConfiguracoesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Falha ao enviar logo')
       setLogoUrl(data.logo_url)
+      setSiteFavicon(data.logo_url)
       setLogoKey((k) => k + 1)
       if (data.compressed) {
         const from = Math.round((data.original_bytes || 0) / 1024)
         const to = Math.round((data.final_bytes || 0) / 1024)
-        toast.success(`Logo comprimido (${from} KB → ${to} KB) e atualizado.`)
+        toast.success(`Logo e ícone comprimidos (${from} KB → ${to} KB).`)
       } else {
-        toast.success('Logo atualizado.')
+        toast.success('Logo e ícone do site atualizados.')
       }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao enviar logo')
@@ -118,15 +118,17 @@ export default function AdminConfiguracoesPage() {
   }
 
   const handleLogoReset = async () => {
-    if (!window.confirm('Restaurar o logo padrão da plataforma?')) return
+    if (!window.confirm('Restaurar o logo e o ícone padrão da plataforma?')) return
     setUploadingLogo(true)
     try {
       const res = await fetch('/api/admin/logo', { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Falha ao restaurar logo')
-      setLogoUrl(data.logo_url || DEFAULT_LOGO_URL)
+      const restored = data.logo_url || DEFAULT_LOGO_URL
+      setLogoUrl(restored)
+      setSiteFavicon(restored)
       setLogoKey((k) => k + 1)
-      toast.success('Logo padrão restaurado.')
+      toast.success('Logo e ícone padrão restaurados.')
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao restaurar logo')
     } finally {
@@ -205,24 +207,20 @@ export default function AdminConfiguracoesPage() {
 
       <Card>
         <CardHeader className="flex flex-row justify-between items-center flex-wrap gap-2">
-          <CardTitle>Logo da Plataforma</CardTitle>
+          <CardTitle>Logo e ícone do site</CardTitle>
           <div className="flex gap-2">
             <Button
               variant="outline"
               loading={uploadingLogo}
               onClick={() => fileInputRef.current?.click()}
             >
-              Enviar novo logo
+              Enviar nova imagem
             </Button>
             <Button
               variant="ghost"
               loading={uploadingLogo}
               onClick={handleLogoReset}
-              disabled={
-                logoUrl === DEFAULT_LOGO_URL ||
-                logoUrl.startsWith('/logo.png') ||
-                logoUrl.startsWith('/logo.jpg')
-              }
+              disabled={isDefaultLogoUrl(logoUrl)}
             >
               Restaurar padrão
             </Button>
@@ -232,14 +230,17 @@ export default function AdminConfiguracoesPage() {
           <Image
             key={logoKey}
             src={logoUrl}
-            alt="Logo atual"
+            alt="Logo e ícone atuais"
             width={112}
             height={112}
             unoptimized
             className="w-28 h-28 rounded-full object-cover border border-slate-200 shadow-sm bg-white"
           />
           <div className="text-sm text-slate-600 space-y-2">
-            <p>Este logo aparece no login, cadastro e menus da plataforma.</p>
+            <p>
+              Esta imagem é o logo nos menus/login e o ícone da aba do navegador
+              (favicon).
+            </p>
             <p className="text-xs text-slate-500">
               Formatos: JPG, PNG, WEBP ou GIF · até 20 MB · acima de 2 MB a imagem é
               comprimida automaticamente · imagem quadrada fica melhor.
@@ -251,10 +252,29 @@ export default function AdminConfiguracoesPage() {
               className="hidden"
               onChange={(e) => handleLogoUpload(e.target.files?.[0] ?? null)}
             />
-            <p className="text-xs text-slate-400 flex items-center gap-2">
-              Prévia nos menus:
-              <PlatformLogo key={`nav-${logoKey}`} width={32} height={32} className="rounded-full" />
-            </p>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+              <span className="inline-flex items-center gap-2">
+                Menu:
+                <PlatformLogo
+                  key={`nav-${logoKey}`}
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+              </span>
+              <span className="inline-flex items-center gap-2">
+                Ícone da aba:
+                <Image
+                  key={`favicon-${logoKey}`}
+                  src={logoUrl}
+                  alt="Prévia do favicon"
+                  width={20}
+                  height={20}
+                  unoptimized
+                  className="w-5 h-5 rounded-sm object-cover border border-slate-200 bg-white"
+                />
+              </span>
+            </div>
           </div>
         </div>
       </Card>

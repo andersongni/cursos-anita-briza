@@ -49,12 +49,16 @@ async function saveLogoSetting(userId: string, logoUrl: string) {
   const value = JSON.stringify(logoUrl)
   await prisma.systemSetting.upsert({
     where: { key: PLATFORM_LOGO_SETTING_KEY },
-    update: { value, updated_by: userId, description: 'URL do logo da plataforma' },
+    update: {
+      value,
+      updated_by: userId,
+      description: 'URL do logo e ícone do site',
+    },
     create: {
       key: PLATFORM_LOGO_SETTING_KEY,
       value,
       updated_by: userId,
-      description: 'URL do logo da plataforma',
+      description: 'URL do logo e ícone do site',
     },
   })
 }
