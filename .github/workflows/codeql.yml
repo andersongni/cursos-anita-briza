@@ -48,13 +48,15 @@ jobs:
           queries: security-extended
           config-file: ./.github/codeql/codeql-config.yml
 
+      # Não faz upload para Code Scanning: o default setup do GitHub já cobre isso.
+      # Upload de advanced + default setup habilitado quebra o job (SARIF rejeitado).
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
-          upload: always
-          wait-for-processing: true
+          upload: never
+          wait-for-processing: false
 
       - name: Fail on security findings
         shell: bash

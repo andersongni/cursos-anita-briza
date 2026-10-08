@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Card, { CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -15,6 +16,7 @@ type Course = {
 }
 
 export default function StudentMatriculasPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [requesting, setRequesting] = useState<string | null>(null)
   const [switching, setSwitching] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export default function StudentMatriculasPage() {
     }
   }, [])
 
-  const useCourse = async (courseId: string) => {
+  const switchCourse = async (courseId: string) => {
     if (courseId === activeCourseId) return
     setSwitching(courseId)
     try {
@@ -56,7 +58,7 @@ export default function StudentMatriculasPage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Erro ao alternar curso')
       toast.success('Curso alterado.')
-      window.location.href = '/dashboard'
+      router.push('/dashboard')
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao alternar curso')
       setSwitching(null)
@@ -150,7 +152,7 @@ export default function StudentMatriculasPage() {
                       variant={inUse ? 'outline' : 'primary'}
                       disabled={inUse || switching === c.id}
                       loading={switching === c.id}
-                      onClick={() => void useCourse(c.id)}
+                      onClick={() => void switchCourse(c.id)}
                     >
                       {inUse ? 'Curso atual' : 'Usar este curso'}
                     </Button>

@@ -91,8 +91,14 @@ function AdminDimensoesContent() {
   const nameDraftsRef = useRef(nameDrafts)
   const descDraftsRef = useRef(descDrafts)
   const savedMetaRef = useRef<Record<string, { name: string; description: string }>>({})
-  nameDraftsRef.current = nameDrafts
-  descDraftsRef.current = descDrafts
+
+  useEffect(() => {
+    nameDraftsRef.current = nameDrafts
+  }, [nameDrafts])
+
+  useEffect(() => {
+    descDraftsRef.current = descDrafts
+  }, [descDrafts])
 
   const load = useCallback(async () => {
     try {
@@ -335,8 +341,13 @@ function AdminDimensoesContent() {
     })
   }, [dimensoes, pctDrafts, savedPcts])
 
-  dirtyRef.current = isDirty
-  draftTotalRef.current = draftTotal
+  useEffect(() => {
+    dirtyRef.current = isDirty
+  }, [isDirty])
+
+  useEffect(() => {
+    draftTotalRef.current = draftTotal
+  }, [draftTotal])
 
   const canSaveDistribution =
     isDirty && allDraftsValid && activeDims.length > 0 && draftTotal === 100

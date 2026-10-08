@@ -100,7 +100,6 @@ export default function AdminCertificateTemplateEditorPage() {
   const editableVariablesRef = useRef(editableVariables)
   const [stageHeightPx, setStageHeightPx] = useState(0)
 
-  editableVariablesRef.current = editableVariables
   const layoutRef = useRef(layout)
   const selectedIdsRef = useRef(selectedIds)
   const pastRef = useRef<CertificateLayout[]>([])
@@ -114,8 +113,17 @@ export default function AdminCertificateTemplateEditorPage() {
     historyPushed: boolean
   } | null>(null)
 
-  layoutRef.current = layout
-  selectedIdsRef.current = selectedIds
+  useEffect(() => {
+    editableVariablesRef.current = editableVariables
+  }, [editableVariables])
+
+  useEffect(() => {
+    layoutRef.current = layout
+  }, [layout])
+
+  useEffect(() => {
+    selectedIdsRef.current = selectedIds
+  }, [selectedIds])
 
   const syncHistoryFlags = () => {
     setCanUndo(pastRef.current.length > 0)

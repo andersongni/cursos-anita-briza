@@ -14,7 +14,9 @@ export async function POST(req: Request) {
     await verifyAdmin()
     const body = await req.json().catch(() => ({}))
     const ids = Array.isArray(body.ids)
-      ? body.ids.filter((id: unknown): id is string => typeof id === 'string' && id.trim())
+      ? body.ids.filter(
+          (id: unknown): id is string => typeof id === 'string' && id.trim().length > 0
+        )
       : []
 
     if (ids.length === 0) {

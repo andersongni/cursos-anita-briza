@@ -204,7 +204,7 @@ export async function setAssessmentSettingsForCourse(
     )
   )
 
-  let mcWeightPercent = Math.max(
+  const mcWeightPercent = Math.max(
     0,
     Math.min(
       100,
