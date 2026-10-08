@@ -1,0 +1,80 @@
+# One-shot: remove ambientes de deploy legados (nomes antigos do projeto Vercel).
+# Pode ser apagado depois que rodar com sucesso.
+name: Cleanup stale deploy envs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-stale-deploy-envs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete stale GitHub deployment environments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stale = new Set([
+              'Production - introducao-a-informatica',
+              'Production - avaliacao-anita-briza',
+            ])
+
+            let page = 1
+            let removedDeployments = 0
+            while (page <= 20) {
+              const { data: deployments } = await github.rest.repos.listDeployments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+                page,
+              })
+              if (!deployments.length) break
+
+              for (const deployment of deployments) {
+                if (!stale.has(deployment.environment)) continue
+                try {
+                  await github.rest.repos.createDeploymentStatus({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    deployment_id: deployment.id,
+                    state: 'inactive',
+                  })
+                } catch (_) {
+                  // status opcional; a exclusão do deployment é o que limpa a UI
+                }
+                await github.rest.repos.deleteDeployment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  deployment_id: deployment.id,
+                })
+                removedDeployments++
+                console.log(`Deleted deployment ${deployment.id} (${deployment.environment})`)
+              }
+
+              if (deployments.length < 100) break
+              page++
+            }
+
+            for (const name of stale) {
+              try {
+                await github.rest.repos.deleteAnEnvironment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  environment_name: name,
+                })
+                console.log(`Deleted environment: ${name}`)
+              } catch (error) {
+                const status = error?.status || error?.response?.status
+                console.log(`Environment "${name}" not deleted (status ${status}): ${error.message}`)
+              }
+            }
+
+            console.log(`Done. Removed ${removedDeployments} stale deployment(s).`)

@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
 import Modal from '@/components/ui/Modal'
 import Link from 'next/link'
-import { Download, Upload } from 'lucide-react'
+import { Download, Pencil, Trash2, Upload } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { useAdminCourse } from '@/components/courses/AdminCourseProvider'
@@ -122,19 +122,18 @@ export default function AdminPerguntasPage() {
     })
   }
 
-  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Excluir esta pergunta? Se ela já foi usada em avaliações, será apenas desativada.')) {
+      return
+    }
     try {
-      const res = await fetch(`/api/admin/questions/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: !currentStatus }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar')
-      toast.success(`Pergunta ${currentStatus ? 'desativada' : 'ativada'} com sucesso.`)
+      const res = await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir')
+      toast.success(data.message || 'Pergunta excluída.')
       await load()
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar')
+      toast.error(e instanceof Error ? e.message : 'Erro ao excluir')
     }
   }
 
@@ -392,19 +391,30 @@ export default function AdminPerguntasPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDate(p.created_at)}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleToggleActive(p.id, p.active)}
-                      >
-                        {p.active ? 'Desativar' : 'Ativar'}
-                      </Button>
-                      <Link href={`/admin/perguntas/${p.id}`}>
-                        <Button size="sm" variant="outline">
-                          Editar
+                    <TableCell className="text-right">
+                      <div className="inline-flex items-center gap-1">
+                        <Link href={`/admin/perguntas/${p.id}`}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="px-2"
+                            aria-label="Editar pergunta"
+                            title="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-error hover:text-error"
+                          onClick={() => void handleDelete(p.id)}
+                          aria-label="Excluir pergunta"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
