@@ -20,8 +20,8 @@ Roda **localmente e offline** em desenvolvimento: SQLite (arquivo) + autenticaç
 ### Passo 1 — Instale as dependências
 
 ```bash
-git clone https://github.com/seu-usuario/avaliacao-anita-briza.git
-cd avaliacao-anita-briza
+git clone https://github.com/andersongni/cursos-anita-briza.git
+cd cursos-anita-briza
 npm install
 ```
 
@@ -90,7 +90,7 @@ Faça login com `admin` / `admin123`.
 ## Estrutura do projeto
 
 ```
-avaliacao-anita-briza/
+cursos-anita-briza/
 ├── data/questions/            # JSON com as 400 perguntas
 ├── prisma/
 │   ├── schema.prisma          # Schema SQLite
