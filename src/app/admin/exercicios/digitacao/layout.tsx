@@ -2,6 +2,8 @@ import { resolveAdminCourse, courseHasTypingExercise } from '@/lib/courses'
 import { COURSE_FEATURES } from '@/lib/courses/capabilities'
 import CourseFeatureUnavailable from '@/components/courses/CourseFeatureUnavailable'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDigitacaoLayout({
   children,
 }: {

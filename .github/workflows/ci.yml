@@ -39,6 +39,12 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # Build pode tocar páginas admin que leem o banco — precisa do schema local.
+      - name: Prepare SQLite schema
+        run: npx prisma db push
+        env:
+          DATABASE_URL: file:./prisma/dev.db
+
       - name: Build
         run: npm run build
         env:

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getDatabaseUrl } from '@/lib/db-url'
 import bcrypt from 'bcryptjs'
 import { createToken, setSessionCookie } from '@/lib/auth/session'
 import {
@@ -11,6 +10,34 @@ import {
   incrementLoginFailCount,
   verifyCaptchaFromBody,
 } from '@/lib/auth/login-captcha'
+
+type LoginBody = {
+  username: string
+  password: string
+  captchaToken?: string
+  captchaAnswer?: string
+  recaptchaToken?: string
+}
+
+function parseLoginBody(raw: unknown): LoginBody | null {
+  if (!raw || typeof raw !== 'object') return null
+  const body = raw as Record<string, unknown>
+  const username =
+    typeof body.username === 'string' ? body.username.toLowerCase().trim() : ''
+  const password = typeof body.password === 'string' ? body.password : ''
+  if (!username || !password) return null
+
+  return {
+    username,
+    password,
+    captchaToken:
+      typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+    captchaAnswer:
+      typeof body.captchaAnswer === 'string' ? body.captchaAnswer : undefined,
+    recaptchaToken:
+      typeof body.recaptchaToken === 'string' ? body.recaptchaToken : undefined,
+  }
+}
 
 async function failedLoginResponse(username: string, message = 'Usuário ou senha incorretos') {
   const failedAttempts = await incrementLoginFailCount(username)
@@ -29,19 +56,21 @@ async function failedLoginResponse(username: string, message = 'Usuário ou senh
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { username, password, captchaToken, captchaAnswer, recaptchaToken } = body
-
-    if (!username || !password) {
+    const credentials = parseLoginBody(await req.json())
+    if (!credentials) {
       return NextResponse.json(
         { error: 'Usuário e senha são obrigatórios' },
         { status: 400 }
       )
     }
 
-    const normalizedUsername = String(username).toLowerCase().trim()
-    const failCount = await getLoginFailCount(normalizedUsername)
+    const { username, password, captchaToken, captchaAnswer, recaptchaToken } =
+      credentials
 
+    const failCount = await getLoginFailCount(username)
+
+    // Captcha após N falhas por usuário — esperado, não é bypass de autenticação.
+    // codeql[js/user-controlled-bypass]
     if (failCount >= LOGIN_FAIL_THRESHOLD) {
       const captchaOk = await verifyCaptchaFromBody({
         recaptchaToken,
@@ -61,30 +90,17 @@ export async function POST(req: Request) {
     }
 
     const profile = await prisma.profile.findUnique({
-      where: { username: normalizedUsername },
+      where: { username },
     })
 
     if (!profile) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(`[login] user=${normalizedUsername} → not found`)
-      }
-      return failedLoginResponse(normalizedUsername)
+      return failedLoginResponse(username)
     }
 
     const isPasswordValid = await bcrypt.compare(password, profile.password_hash)
 
     if (!isPasswordValid) {
-      if (process.env.NODE_ENV === 'development') {
-        const db = getDatabaseUrl()
-        console.info(
-          `[login] user=${normalizedUsername} → password mismatch | db=${db.startsWith('file:') ? 'sqlite' : 'turso'}`
-        )
-      }
-      return failedLoginResponse(normalizedUsername)
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.info(`[login] user=${normalizedUsername} → ok`)
+      return failedLoginResponse(username)
     }
 
     if (profile.deleted_at) {
@@ -129,8 +145,8 @@ export async function POST(req: Request) {
       full_name: profile.full_name,
       must_change_password: mustChangePassword,
     })
-  } catch (error) {
-    console.error('Login error:', error)
+  } catch {
+    console.error('Login error')
     return NextResponse.json(
       { error: 'Ocorreu um erro ao fazer login' },
       { status: 500 }
