@@ -10,8 +10,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   deployments: write
+  # necessário para DELETE /environments/{name}
+  administration: write
 
 jobs:
   cleanup:
@@ -22,13 +25,27 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const stale = new Set([
-              'Production - introducao-a-informatica',
-              'Production - avaliacao-anita-briza',
+            // Vercel usava "Production – {nome-antigo}" com EN DASH (U+2013), não hífen.
+            const enDash = '\u2013'
+            const staleExact = new Set([
+              `Production ${enDash} introducao-a-informatica`,
+              `Production ${enDash} avaliacao-anita-briza`,
             ])
+            const isStale = (name) => {
+              if (!name) return false
+              if (staleExact.has(name)) return true
+              // fallback: qualquer ambiente Production com nome antigo do projeto
+              const normalized = name.replace(/\u2013|\u2014/g, '-').toLowerCase()
+              return (
+                normalized.includes('introducao-a-informatica') ||
+                normalized.includes('avaliacao-anita-briza')
+              )
+            }
 
             let page = 1
             let removedDeployments = 0
+            const seenEnvs = new Set()
+
             while (page <= 20) {
               const { data: deployments } = await github.rest.repos.listDeployments({
                 owner: context.repo.owner,
@@ -39,7 +56,9 @@ jobs:
               if (!deployments.length) break
 
               for (const deployment of deployments) {
-                if (!stale.has(deployment.environment)) continue
+                seenEnvs.add(deployment.environment)
+                if (!isStale(deployment.environment)) continue
+
                 try {
                   await github.rest.repos.createDeploymentStatus({
                     owner: context.repo.owner,
@@ -47,9 +66,10 @@ jobs:
                     deployment_id: deployment.id,
                     state: 'inactive',
                   })
-                } catch (_) {
-                  // status opcional; a exclusão do deployment é o que limpa a UI
+                } catch (error) {
+                  console.log(`status skip ${deployment.id}: ${error.message}`)
                 }
+
                 await github.rest.repos.deleteDeployment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -63,7 +83,9 @@ jobs:
               page++
             }
 
-            for (const name of stale) {
+            console.log('Environments seen:', [...seenEnvs].join(' | '))
+
+            for (const name of [...seenEnvs].filter(isStale)) {
               try {
                 await github.rest.repos.deleteAnEnvironment({
                   owner: context.repo.owner,
@@ -77,4 +99,8 @@ jobs:
               }
             }
 
-            console.log(`Done. Removed ${removedDeployments} stale deployment(s).`)
+            if (removedDeployments === 0) {
+              core.setFailed('No stale deployments were removed — check environment name matching.')
+            } else {
+              console.log(`Done. Removed ${removedDeployments} stale deployment(s).`)
+            }
