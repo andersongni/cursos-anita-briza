@@ -48,21 +48,21 @@ export default function AdminAlunosPage() {
     try {
       const params = new URLSearchParams()
       params.set('courseId', activeCourseId)
-      // Cadastro cria matrícula PENDING; aprovar a conta NÃO ativa a matrícula.
-      // Por isso a listagem padrão precisa incluir PENDING + ACTIVE (ANY).
+      // Padrão ALL: lista todos os alunos (mesmo sem matrícula no curso).
+      // Matrícula PENDING/ACTIVE só filtra quando o admin pede explicitamente.
       if (statusFilter === 'Excluídos') {
         params.set('deleted', 'only')
-        params.set('enrollment', 'ANY')
+        params.set('enrollment', 'ALL')
       } else if (statusFilter === 'Todos') {
         params.set('deleted', 'include')
-        params.set('enrollment', 'ANY')
+        params.set('enrollment', 'ALL')
       } else if (statusFilter === 'Matrículas pendentes') {
         params.set('enrollment', 'PENDING')
       } else if (statusFilter === 'Matriculados') {
         params.set('enrollment', 'ACTIVE')
       } else {
         // Ativos / Conta pendente / Aprovados / Bloqueados
-        params.set('enrollment', 'ANY')
+        params.set('enrollment', 'ALL')
       }
       const res = await fetch(`/api/admin/students?${params}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar alunos')
@@ -191,11 +191,11 @@ export default function AdminAlunosPage() {
       <div>
         <h1 className="text-3xl font-bold text-secondary">Gerenciar Alunos</h1>
         <p className="text-slate-500 mt-1">
-          Matriculados em{' '}
+          Todos os alunos cadastrados. A coluna Matrículas reflete o curso{' '}
           <strong className="text-secondary">
-            {activeCourse?.name ?? 'curso ativo'}
+            {activeCourse?.name ?? 'ativo'}
           </strong>
-          . Troque o curso no topo para ver outra turma.
+          {' '}(troque no topo). Filtros “Matrícula ativa / pendente” restringem por esse curso.
         </p>
       </div>
 

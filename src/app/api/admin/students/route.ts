@@ -10,22 +10,30 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
     const deleted = searchParams.get('deleted') // 'only' | 'include' | default active only
-    /** ANY (padrão) | ACTIVE | PENDING — matrícula no curso ativo */
-    const enrollment = (searchParams.get('enrollment') || 'ANY').toUpperCase()
+    /** ALL (padrão) | ANY | ACTIVE | PENDING — filtro de matrícula no curso */
+    const enrollment = (searchParams.get('enrollment') || 'ALL').toUpperCase()
     const courseId =
       searchParams.get('courseId') || (await resolveAdminCourseId())
     const course = await getCourseById(courseId, { includeInactive: true })
 
-    const enrollmentWhere =
-      enrollment === 'PENDING'
-        ? { course_id: courseId, status: 'PENDING' }
-        : enrollment === 'ACTIVE'
-          ? { course_id: courseId, status: 'ACTIVE' }
-          : { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } }
-
     const where: Record<string, unknown> = {
       role: 'STUDENT',
-      enrollments: { some: enrollmentWhere },
+    }
+
+    // ALL = todos os alunos (não exige matrícula no curso). Necessário para
+    // cadastros antigos sem CourseEnrollment e para a tela "Gerenciar Alunos".
+    if (enrollment === 'PENDING') {
+      where.enrollments = {
+        some: { course_id: courseId, status: 'PENDING' },
+      }
+    } else if (enrollment === 'ACTIVE') {
+      where.enrollments = {
+        some: { course_id: courseId, status: 'ACTIVE' },
+      }
+    } else if (enrollment === 'ANY') {
+      where.enrollments = {
+        some: { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } },
+      }
     }
     if (deleted === 'only') {
       where.deleted_at = { not: null }
