@@ -10,11 +10,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
   deployments: write
-  # necessário para DELETE /environments/{name}
-  administration: write
 
 jobs:
   cleanup:
@@ -34,7 +31,6 @@ jobs:
             const isStale = (name) => {
               if (!name) return false
               if (staleExact.has(name)) return true
-              // fallback: qualquer ambiente Production com nome antigo do projeto
               const normalized = name.replace(/\u2013|\u2014/g, '-').toLowerCase()
               return (
                 normalized.includes('introducao-a-informatica') ||
@@ -83,8 +79,10 @@ jobs:
               page++
             }
 
-            console.log('Environments seen:', [...seenEnvs].join(' | '))
+            console.log('Environments seen:', [...seenEnvs].join(' | ') || '(none)')
 
+            // DELETE environment exige admin; GITHUB_TOKEN pode falhar — ok se os
+            // deployments já foram removidos (some da UI de Deployments).
             for (const name of [...seenEnvs].filter(isStale)) {
               try {
                 await github.rest.repos.deleteAnEnvironment({
@@ -95,12 +93,21 @@ jobs:
                 console.log(`Deleted environment: ${name}`)
               } catch (error) {
                 const status = error?.status || error?.response?.status
-                console.log(`Environment "${name}" not deleted (status ${status}): ${error.message}`)
+                console.log(
+                  `Environment "${name}" not deleted (status ${status}): ${error.message}`
+                )
               }
             }
 
             if (removedDeployments === 0) {
-              core.setFailed('No stale deployments were removed — check environment name matching.')
+              const stillStale = [...seenEnvs].filter(isStale)
+              if (stillStale.length > 0) {
+                core.setFailed(
+                  `Found stale env(s) but deleted 0 deployments: ${stillStale.join(', ')}`
+                )
+              } else {
+                console.log('No stale deployments left — nothing to clean.')
+              }
             } else {
               console.log(`Done. Removed ${removedDeployments} stale deployment(s).`)
             }
