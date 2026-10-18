@@ -48,16 +48,21 @@ export default function AdminAlunosPage() {
     try {
       const params = new URLSearchParams()
       params.set('courseId', activeCourseId)
+      // Cadastro cria matrícula PENDING; aprovar a conta NÃO ativa a matrícula.
+      // Por isso a listagem padrão precisa incluir PENDING + ACTIVE (ANY).
       if (statusFilter === 'Excluídos') {
         params.set('deleted', 'only')
         params.set('enrollment', 'ANY')
       } else if (statusFilter === 'Todos') {
         params.set('deleted', 'include')
-        params.set('enrollment', 'ACTIVE')
+        params.set('enrollment', 'ANY')
       } else if (statusFilter === 'Matrículas pendentes') {
         params.set('enrollment', 'PENDING')
-      } else {
+      } else if (statusFilter === 'Matriculados') {
         params.set('enrollment', 'ACTIVE')
+      } else {
+        // Ativos / Conta pendente / Aprovados / Bloqueados
+        params.set('enrollment', 'ANY')
       }
       const res = await fetch(`/api/admin/students?${params}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar alunos')
@@ -101,6 +106,9 @@ export default function AdminAlunosPage() {
     }
     if (statusFilter === 'Matrículas pendentes') {
       return matchesSearch && !isDeleted && (a.pending_enrollments ?? 0) > 0
+    }
+    if (statusFilter === 'Matriculados') {
+      return matchesSearch && !isDeleted && (a.active_enrollments ?? 0) > 0
     }
     return matchesSearch
   })
@@ -202,10 +210,11 @@ export default function AdminAlunosPage() {
         <div className="w-full sm:w-48">
           <Select
             options={[
-              { value: 'Ativos', label: 'Ativos' },
+              { value: 'Ativos', label: 'Ativos (não excluídos)' },
               { value: 'Pendentes', label: 'Conta pendente' },
               { value: 'Matrículas pendentes', label: 'Matrículas pendentes' },
-              { value: 'Aprovados', label: 'Aprovados' },
+              { value: 'Matriculados', label: 'Matrícula ativa' },
+              { value: 'Aprovados', label: 'Conta aprovada' },
               { value: 'Bloqueados', label: 'Bloqueados' },
               { value: 'Excluídos', label: 'Excluídos' },
               { value: 'Todos', label: 'Todos' },
@@ -310,7 +319,10 @@ export default function AdminAlunosPage() {
               {filteredAlunos.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6 text-gray-500">
-                    Nenhum aluno encontrado.
+                    Nenhum aluno encontrado neste curso com o filtro atual.
+                    {statusFilter === 'Matriculados'
+                      ? ' Alunos com matrícula ainda pendente aparecem em “Matrículas pendentes” ou “Ativos”.'
+                      : ' Confira o curso selecionado no topo da página.'}
                   </TableCell>
                 </TableRow>
               )}

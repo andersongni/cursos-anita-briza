@@ -10,8 +10,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
     const deleted = searchParams.get('deleted') // 'only' | 'include' | default active only
-    /** ACTIVE (padrão) | PENDING | ANY — matrícula no curso ativo */
-    const enrollment = (searchParams.get('enrollment') || 'ACTIVE').toUpperCase()
+    /** ANY (padrão) | ACTIVE | PENDING — matrícula no curso ativo */
+    const enrollment = (searchParams.get('enrollment') || 'ANY').toUpperCase()
     const courseId =
       searchParams.get('courseId') || (await resolveAdminCourseId())
     const course = await getCourseById(courseId, { includeInactive: true })
@@ -19,9 +19,9 @@ export async function GET(req: Request) {
     const enrollmentWhere =
       enrollment === 'PENDING'
         ? { course_id: courseId, status: 'PENDING' }
-        : enrollment === 'ANY'
-          ? { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } }
-          : { course_id: courseId, status: 'ACTIVE' }
+        : enrollment === 'ACTIVE'
+          ? { course_id: courseId, status: 'ACTIVE' }
+          : { course_id: courseId, status: { in: ['PENDING', 'ACTIVE'] } }
 
     const where: Record<string, unknown> = {
       role: 'STUDENT',
