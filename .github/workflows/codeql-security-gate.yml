@@ -1,7 +1,7 @@
-# Análise estática de segurança (CodeQL).
-# Falha o job se houver findings error/warning — evita merge/deploy com
-# alertas do tipo js/polynomial-redos, insecure-randomness, etc.
-name: CodeQL
+﻿# Gate de segurança do projeto (CodeQL advanced setup).
+# Nome distinto do CodeQL nativo/default do GitHub para não confundir checks.
+# Falha o job se houver findings error/warning.
+name: CodeQL security gate
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: Security gate (${{ matrix.language }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -74,7 +74,7 @@ jobs:
             count="$(jq '[.runs[]?.results[]? | select((.level // "warning") != "note")] | length' "$f")"
             total=$((total + count))
             if [ "$count" -gt 0 ]; then
-              echo "::error::CodeQL encontrou $count alerta(s) em $f"
+              echo "::error::CodeQL security gate encontrou $count alerta(s) em $f"
               jq -r '
                 .runs[]?.results[]?
                 | select((.level // "warning") != "note")
@@ -85,8 +85,8 @@ jobs:
           done
 
           if [ "$total" -gt 0 ]; then
-            echo "::error::CI bloqueado: $total alerta(s) CodeQL (error/warning). Corrija antes de merge/deploy."
+            echo "::error::CodeQL security gate bloqueado: $total alerta(s) (error/warning). Corrija antes de merge/deploy."
             exit 1
           fi
 
-          echo "Nenhum alerta error/warning — OK."
+          echo "CodeQL security gate: nenhum alerta error/warning — OK."

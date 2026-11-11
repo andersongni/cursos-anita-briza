@@ -45,14 +45,17 @@ const courseSelect = {
 
 /** Gera slug URL-safe a partir do nome. */
 export function slugifyCourseName(name: string): string {
-  return name
+  const slug = name
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    // Duas substituições simples evitam ReDoS de /^-+|-+$/ em hífens repetidos
+    .replace(/^-+/, '')
+    .replace(/-+$/, '')
     .slice(0, 64)
+  return slug
 }
 
 export async function listActiveCourses(): Promise<CourseSummary[]> {

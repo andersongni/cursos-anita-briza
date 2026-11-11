@@ -107,13 +107,14 @@ export async function GET(
 
       // Retomada idempotente se o job em background não concluiu (ex.: restart)
       if (pendingDiscursive > 0 && elapsedMs > 15_000) {
-        const idForAfter = assessment.id
+        const idForAfter = assessment.id.replace(/[^\w-]/g, '').slice(0, 64)
         after(async () => {
           try {
             await processPendingDiscursiveGrading(idForAfter)
           } catch (err) {
             console.error(
-              `[assessments/get] retomada de correção falhou (${idForAfter}):`,
+              '[assessments/get] retomada de correção falhou',
+              idForAfter,
               err
             )
           }

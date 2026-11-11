@@ -151,13 +151,15 @@ export async function POST(req: Request) {
         sampleCount: eta.sampleCount,
       }
 
-      const idForAfter = assessment_id
+      // Só o id já validado no banco (cuid) — evita log injection / format string
+      const idForAfter = updatedAssessment.id.replace(/[^\w-]/g, '').slice(0, 64)
       after(async () => {
         try {
           await processPendingDiscursiveGrading(idForAfter)
         } catch (err) {
           console.error(
-            `[submit] falha na correção em background de ${idForAfter}:`,
+            '[submit] falha na correção em background',
+            idForAfter,
             err
           )
         }
