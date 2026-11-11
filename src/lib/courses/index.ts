@@ -43,19 +43,38 @@ const courseSelect = {
   active: true,
 } as const
 
-/** Gera slug URL-safe a partir do nome. */
+/** Gera slug URL-safe a partir do nome (sem regex quantificada — evita ReDoS). */
 export function slugifyCourseName(name: string): string {
-  const slug = name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    // Duas substituições simples evitam ReDoS de /^-+|-+$/ em hífens repetidos
-    .replace(/^-+/, '')
-    .replace(/-+$/, '')
-    .slice(0, 64)
-  return slug
+  const normalized = name.normalize('NFD')
+  let out = ''
+  let prevDash = false
+
+  for (let i = 0; i < normalized.length; i++) {
+    const ch = normalized[i]
+    const code = ch.charCodeAt(0)
+    // Descarta marcas diacríticas (Mn)
+    if (code >= 0x0300 && code <= 0x036f) continue
+
+    const lower = ch.toLowerCase()
+    const isAlpha = lower >= 'a' && lower <= 'z'
+    const isDigit = lower >= '0' && lower <= '9'
+
+    if (isAlpha || isDigit) {
+      out += lower
+      prevDash = false
+      if (out.length >= 64) break
+      continue
+    }
+
+    // Qualquer outro caractere vira um único hífen (sem colapsar via regex)
+    if (out.length === 0 || prevDash) continue
+    out += '-'
+    prevDash = true
+    if (out.length >= 64) break
+  }
+
+  if (out.endsWith('-')) out = out.slice(0, -1)
+  return out
 }
 
 export async function listActiveCourses(): Promise<CourseSummary[]> {
