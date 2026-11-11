@@ -48,7 +48,7 @@ export default function AdminConfiguracoesPage() {
       )
       const nextLogo = normalizeLogoUrl(logo?.value)
       setLogoUrl(nextLogo)
-      setSiteFavicon(nextLogo)
+      setSiteFavicon('/api/platform/icon')
       setLogoKey((k) => k + 1)
 
       if (geminiRes.ok) {
@@ -98,7 +98,7 @@ export default function AdminConfiguracoesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Falha ao enviar logo')
       setLogoUrl(data.logo_url)
-      setSiteFavicon(data.logo_url)
+      setSiteFavicon('/api/platform/icon')
       setLogoKey((k) => k + 1)
       if (data.compressed) {
         const from = Math.round((data.original_bytes || 0) / 1024)
@@ -124,7 +124,7 @@ export default function AdminConfiguracoesPage() {
       if (!res.ok) throw new Error(data.error || 'Falha ao restaurar logo')
       const restored = data.logo_url || DEFAULT_LOGO_URL
       setLogoUrl(restored)
-      setSiteFavicon(restored)
+      setSiteFavicon('/api/platform/icon')
       setLogoKey((k) => k + 1)
       toast.success('Logo e ícone padrão restaurados.')
     } catch (e: unknown) {

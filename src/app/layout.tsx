@@ -15,8 +15,8 @@ export const metadata: Metadata = {
   description: "Plataforma de estudos do Núcleo Assistencial Anita Briza",
   icons: {
     icon: [{ url: '/api/platform/icon', type: 'image/png' }],
-    shortcut: '/api/platform/icon',
-    apple: [{ url: '/apple-icon.png', type: 'image/png', sizes: '180x180' }],
+    shortcut: [{ url: '/api/platform/icon', type: 'image/png' }],
+    apple: [{ url: '/api/platform/icon', type: 'image/png', sizes: '180x180' }],
   },
 }
 

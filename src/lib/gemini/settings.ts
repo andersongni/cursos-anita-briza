@@ -128,7 +128,8 @@ export async function setGeminiApiKey(
   })
 }
 
-export async function clearGeminiApiKey(_userId: string): Promise<void> {
+export async function clearGeminiApiKey(userId: string): Promise<void> {
+  void userId
   await prisma.systemSetting.deleteMany({
     where: { key: GEMINI_API_KEY_SETTING },
   })

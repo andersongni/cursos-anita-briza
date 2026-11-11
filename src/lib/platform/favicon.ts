@@ -4,28 +4,23 @@ export function setSiteFavicon(url: string) {
 
   const href = url.includes('?') ? url : `${url}?v=${Date.now()}`
 
-  const ensureLink = (rel: string, sizes?: string) => {
-    let link = document.querySelector<HTMLLinkElement>(
-      sizes
-        ? `link[rel="${rel}"][sizes="${sizes}"]`
-        : `link[rel="${rel}"]:not([sizes])`
+  // Remove qualquer favicon estático antigo (favicon.ico, apple-icon.png do Next, etc.)
+  document
+    .querySelectorAll<HTMLLinkElement>(
+      'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"], link[rel="apple-touch-icon-precomposed"]'
     )
-    if (!link) {
-      link = document.createElement('link')
-      link.rel = rel
-      if (sizes) link.sizes = sizes
-      document.head.appendChild(link)
-    }
+    .forEach((el) => el.remove())
+
+  const add = (rel: string, sizes?: string) => {
+    const link = document.createElement('link')
+    link.rel = rel
     link.type = 'image/png'
     link.href = href
+    if (sizes) link.setAttribute('sizes', sizes)
+    document.head.appendChild(link)
   }
 
-  // Substitui qualquer favicon injetado pelo Next (icon.png etc.)
-  document.querySelectorAll<HTMLLinkElement>('link[rel*="icon"]').forEach((el) => {
-    el.href = href
-  })
-
-  ensureLink('icon')
-  ensureLink('shortcut icon')
-  ensureLink('apple-touch-icon')
+  add('icon')
+  add('shortcut icon')
+  add('apple-touch-icon', '180x180')
 }

@@ -217,7 +217,9 @@ export default function ResultadoPage() {
       }
     })
 
-  const pendingDiscursive = discursiveResults.filter((d) => d.pending).length
+  const pendingDiscursive = discursiveResults.filter(
+    (d: { pending: boolean }) => d.pending
+  ).length
   const etaLabel =
     grading?.etaLabel ||
     (pendingDiscursive > 0 ? 'alguns instantes' : null)

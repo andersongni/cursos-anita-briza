@@ -421,7 +421,7 @@ function AdminDimensoesContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ distributions }),
       })
-      const data = await res.json().catch(() => ({}))
+      await res.json().catch(() => ({}))
       if (seq !== saveSeqRef.current) return
 
       if (!res.ok) {

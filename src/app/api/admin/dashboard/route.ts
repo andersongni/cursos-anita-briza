@@ -105,7 +105,12 @@ async function getDesempenhoPorTema(courseId: string) {
         row.active
     )
     .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'pt-BR'))
-    .map(({ order: _order, ...rest }) => rest)
+    .map(({ name, active, prova, simulado }) => ({
+      name,
+      active,
+      prova,
+      simulado,
+    }))
 }
 
 export async function GET(req: Request) {

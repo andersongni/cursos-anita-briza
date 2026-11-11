@@ -62,9 +62,11 @@ export default function AdminParametrosPage() {
   useEffect(() => {
     if (courseLoading || !activeCourseId) return
     void load()
+    const timers = debounceTimers.current
+    const savedTimer = savedLabelTimer
     return () => {
-      Object.values(debounceTimers.current).forEach(clearTimeout)
-      if (savedLabelTimer.current) clearTimeout(savedLabelTimer.current)
+      Object.values(timers).forEach(clearTimeout)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
     }
   }, [load, courseLoading, activeCourseId])
 

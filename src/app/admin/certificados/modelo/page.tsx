@@ -130,11 +130,11 @@ export default function AdminCertificateTemplateEditorPage() {
     setCanRedo(futureRef.current.length > 0)
   }
 
-  const clearHistory = () => {
+  const clearHistory = useCallback(() => {
     pastRef.current = []
     futureRef.current = []
     syncHistoryFlags()
-  }
+  }, [])
 
   const pushHistory = useCallback((snapshot?: CertificateLayout) => {
     pastRef.current.push(cloneLayout(snapshot ?? layoutRef.current))
@@ -202,7 +202,7 @@ export default function AdminCertificateTemplateEditorPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [clearHistory])
 
   useEffect(() => {
     void load()
