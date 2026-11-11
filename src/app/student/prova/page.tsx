@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import Spinner from '@/components/ui/Spinner'
 import CompositionSummary from '@/components/assessment/CompositionSummary'
 import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -39,7 +40,7 @@ export default function ProvaStartPage() {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
   const [passingScore, setPassingScore] = useState(70)
 
-  const loadEligibility = async () => {
+  const loadEligibility = useCallback(async (opts?: { silent?: boolean }) => {
     try {
       const res = await fetch('/api/assessments/check-eligibility?type=PROVA', {
         cache: 'no-store',
@@ -75,16 +76,40 @@ export default function ProvaStartPage() {
       if (Number.isFinite(p) && p >= 0) setPassingScore(p)
     } catch (error) {
       console.error(error)
-      setEnrolled(false)
-      setBlockReason('Erro ao verificar disponibilidade da prova.')
+      if (!opts?.silent) {
+        setEnrolled(false)
+        setBlockReason('Erro ao verificar disponibilidade da prova.')
+      }
     } finally {
       setChecking(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadEligibility()
-  }, [])
+  }, [loadEligibility])
+
+  // Enquanto a prova estiver bloqueada, consulta a liberação a cada 3s (e ao focar a aba).
+  const waitingForUnlock =
+    enrolled && !unlocked && !inProgressId && !awaitingGradingId && !checking
+
+  useEffect(() => {
+    if (!waitingForUnlock) return
+
+    const interval = setInterval(() => {
+      void loadEligibility({ silent: true })
+    }, 3000)
+
+    const onFocus = () => {
+      void loadEligibility({ silent: true })
+    }
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [waitingForUnlock, loadEligibility])
 
   useEffect(() => {
     if (!unlockUntil || !unlocked || !enrolled) return
@@ -94,13 +119,14 @@ export default function ProvaStartPage() {
         setUnlocked(false)
         setRemainingMs(0)
         if (!inProgressId) setEligible(false)
-        void loadEligibility()
+        void loadEligibility({ silent: true })
         return
       }
       setRemainingMs(left)
     }, 30_000)
     return () => clearInterval(id)
-  }, [unlockUntil, unlocked, inProgressId, enrolled])
+  }, [unlockUntil, unlocked, inProgressId, enrolled, loadEligibility])
+
 
   const unlockLabel = useMemo(() => {
     if (!unlockUntil || !unlocked) return null
@@ -235,12 +261,20 @@ export default function ProvaStartPage() {
         <CardContent className="px-5 sm:px-6 py-5 space-y-4">
           {isBlocked && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 px-4 py-3.5 rounded-xl border border-slate-200">
-              <p className="flex-1 text-slate-700 font-medium text-sm sm:text-base leading-snug">
-                {blockReason ||
-                  (notEnrolled
-                    ? 'Você não possui matrícula ativa neste curso.'
-                    : 'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.')}
-              </p>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <p className="text-slate-700 font-medium text-sm sm:text-base leading-snug">
+                  {blockReason ||
+                    (notEnrolled
+                      ? 'Você não possui matrícula ativa neste curso.'
+                      : 'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.')}
+                </p>
+                {waitingForUnlock && (
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Spinner size="sm" className="text-slate-500" />
+                    <span>Esta página atualiza sozinha quando a prova for liberada.</span>
+                  </div>
+                )}
+              </div>
               {notEnrolled && (
                 <Link href="/student/matriculas" className="shrink-0">
                   <Button variant="primary" size="sm">
@@ -250,6 +284,7 @@ export default function ProvaStartPage() {
               )}
             </div>
           )}
+
 
           {!isBlocked && unlocked && unlockLabel && !inProgressId && (
             <div className="md:hidden bg-green-50 px-4 py-2.5 rounded-xl border border-green-200 text-sm text-green-800 text-center">

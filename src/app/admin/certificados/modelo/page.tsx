@@ -29,6 +29,8 @@ import {
   type CertificateEditableVariable,
 } from '@/lib/certificate/variables'
 import toast from 'react-hot-toast'
+import { Download, Upload } from 'lucide-react'
+import type { CertificateTransferFile } from '@/lib/certificate/certificate-transfer'
 
 type Meta = {
   courseName: string
@@ -79,6 +81,8 @@ function elementPreviewSrc(el: CertificateLayoutElement, logoUrl?: string | null
 export default function AdminCertificateTemplateEditorPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [uploadingBg, setUploadingBg] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [layout, setLayout] = useState<CertificateLayout>(() => createDefaultCertificateLayout())
@@ -96,6 +100,7 @@ export default function AdminCertificateTemplateEditorPage() {
   const stageRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const imageFileRef = useRef<HTMLInputElement>(null)
+  const transferFileRef = useRef<HTMLInputElement>(null)
   const variablesTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editableVariablesRef = useRef(editableVariables)
   const [stageHeightPx, setStageHeightPx] = useState(0)
@@ -550,6 +555,93 @@ export default function AdminCertificateTemplateEditorPage() {
     }
   }
 
+  const downloadTransferFile = (file: CertificateTransferFile) => {
+    const blob = new Blob([JSON.stringify(file, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `modelo-certificado-${stamp}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExport = async () => {
+    if (dirty) {
+      const ok = window.confirm(
+        'Há alterações não salvas. O export usa o modelo já salvo no servidor. Continuar?'
+      )
+      if (!ok) return
+    }
+    setExporting(true)
+    try {
+      const res = await fetch('/api/admin/certificate-template/export', {
+        cache: 'no-store',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Falha ao exportar')
+      downloadTransferFile(data.file as CertificateTransferFile)
+      const missing = Array.isArray(data.missingAssets) ? data.missingAssets.length : 0
+      if (missing > 0) {
+        toast.error(
+          `Modelo exportado, mas ${missing} imagem(ns) de upload não foram encontradas no servidor.`
+        )
+      } else {
+        toast.success('Modelo do certificado exportado.')
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao exportar modelo')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true)
+    try {
+      const text = await file.text()
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        throw new Error('Arquivo JSON inválido')
+      }
+
+      const res = await fetch('/api/admin/certificate-template/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: parsed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Falha ao importar')
+
+      if (data.layout) setLayout(data.layout)
+      if (Array.isArray(data.editableVariables)) {
+        setEditableVariables(data.editableVariables)
+      }
+      setDirty(false)
+      clearHistory()
+      setSelectedIds([])
+
+      const skipped = Array.isArray(data.skippedAssets) ? data.skippedAssets.length : 0
+      if (skipped > 0) {
+        toast(
+          `Modelo importado. ${skipped} imagem(ns) do arquivo não puderam ser restauradas.`,
+          { icon: 'ℹ️' }
+        )
+      } else {
+        toast.success('Modelo do certificado importado.')
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao importar modelo')
+    } finally {
+      setImporting(false)
+      if (transferFileRef.current) transferFileRef.current.value = ''
+    }
+  }
+
   const handleReset = async () => {
     if (!window.confirm('Restaurar o layout padrão? As posições e elementos do modelo serão redefinidos.')) {
       return
@@ -752,11 +844,41 @@ export default function AdminCertificateTemplateEditorPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <input
+            ref={transferFileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void handleImportFile(file)
+            }}
+          />
           <Button variant="outline" disabled={!canUndo} onClick={undo} title="Ctrl+Z">
             Desfazer
           </Button>
           <Button variant="outline" disabled={!canRedo} onClick={redo} title="Ctrl+Y">
             Refazer
+          </Button>
+          <Button
+            variant="outline"
+            loading={importing}
+            disabled={saving || exporting}
+            onClick={() => transferFileRef.current?.click()}
+            title="Importar JSON de modelo"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Importar
+          </Button>
+          <Button
+            variant="outline"
+            loading={exporting}
+            disabled={saving || importing}
+            onClick={() => void handleExport()}
+            title="Exportar modelo atual (salvo no servidor)"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
           </Button>
           <Button variant="outline" loading={saving} onClick={() => void handleReset()}>
             Restaurar padrão

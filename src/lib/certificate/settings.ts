@@ -38,6 +38,8 @@ function parseSettingNumber(raw: string, fallback: number): number {
   }
 }
 
+
+
 export const CERTIFICATE_SETTING_DEFAULTS = {
   title: 'CERTIFICADO',
   subtitle: 'DE CONCLUSÃO DE CURSO',

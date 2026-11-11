@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "testRunner": "vitest",
+  "checkers": [],
+  "mutate": [
+    "src/lib/utils/index.ts",
+    "src/lib/accessibility/font-scale.ts",
+    "src/lib/crypto/secret.ts",
+    "src/lib/courses/capabilities.ts",
+    "src/lib/exercises/typing.ts",
+    "src/lib/platform/logo.ts",
+    "src/lib/students/soft-delete.ts",
+    "src/lib/settings/assessment-constants.ts",
+    "src/lib/assessment/finalize-score.ts"
+  ],
+  "ignoreStatic": true,
+  "coverageAnalysis": "perTest",
+  "timeoutMS": 60000,
+  "reporters": ["clear-text", "progress", "html", "json"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "thresholds": {
+    "high": 90,
+    "low": 80,
+    "break": 80
+  },
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "concurrency": 4
+}

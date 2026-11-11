@@ -1,4 +1,4 @@
-# Qualidade (lint/types/build). Segurança fica em codeql.yml — ambos devem
+# Qualidade (lint/types/tests/build). Segurança fica em codeql.yml — ambos devem
 # estar como required checks na branch main (Settings → Rules / Branches).
 name: CI
 
@@ -10,15 +10,145 @@ on:
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint-and-build:
+  unit-tests:
+    name: Unit tests + coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests with 100% coverage gate
+        run: npm run test:coverage
+
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            reports/junit.xml
+            reports/vitest.json
+          retention-days: 14
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Vitest Results
+          path: reports/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Coverage summary (PR / job summary)
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
+          vite-config-path: vitest.config.ts
+
+  mutation-tests:
+    name: Mutation testing (Stryker)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    needs: unit-tests
+
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stryker
+        run: npm run test:mutation
+
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 14
+
+      - name: Mutation score on job summary
+        if: always()
+        run: |
+          node <<'EOF'
+          const fs = require('fs')
+          const path = 'reports/mutation/mutation.json'
+          if (!fs.existsSync(path)) {
+            console.log('Mutation report missing')
+            process.exit(0)
+          }
+          const report = JSON.parse(fs.readFileSync(path, 'utf8'))
+          let killed = 0, survived = 0, timeout = 0, noCov = 0, total = 0
+          for (const file of Object.values(report.files || {})) {
+            for (const mutant of file.mutants || []) {
+              total += 1
+              if (mutant.status === 'Killed') killed += 1
+              else if (mutant.status === 'Survived') survived += 1
+              else if (mutant.status === 'Timeout') timeout += 1
+              else if (mutant.status === 'NoCoverage') noCov += 1
+            }
+          }
+          const detected = killed + timeout
+          const scored = detected + survived
+          const score = scored > 0 ? (detected / scored) * 100 : 0
+
+          const summary = [
+            '## Stryker mutation testing',
+            '',
+            `| Metric | Value |`,
+            `| --- | --- |`,
+            `| Mutation score | ${score.toFixed(2)}% |`,
+            `| Killed | ${killed} |`,
+            `| Timeout | ${timeout} |`,
+            `| Survived | ${survived} |`,
+            `| No coverage | ${noCov} |`,
+            `| Total mutants | ${total} |`,
+            '',
+            'Artefato completo: `mutation-report` (HTML + JSON).',
+            '',
+          ].join('\n')
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+          EOF
+
+
+  lint-and-build:
+    name: Lint, types and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: [unit-tests, mutation-tests]
 
     steps:
       - name: Checkout
@@ -35,6 +165,7 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
 
       - name: Type check
         run: npx tsc --noEmit
