@@ -236,32 +236,40 @@ export async function POST(req: Request) {
 
     let selectedMc: QWithOpts[] = []
 
+    const mcPool = await prisma.question.findMany({
+      where: {
+        course_id: courseId,
+        type,
+        active: true,
+        format: 'MULTIPLE_CHOICE',
+      },
+      include: { options: true, dimension: true },
+    })
+
     if (dimensions.length > 0) {
       const dist = calculateDistribution(dimensions, mcCount)
+      const picked = new Set<string>()
       for (const d of dist) {
-        const qs = await prisma.question.findMany({
-          where: {
-            course_id: courseId,
-            dimension_id: d.dimension_id,
-            type,
-            active: true,
-            format: 'MULTIPLE_CHOICE',
-          },
-          include: { options: true, dimension: true },
-        })
-        selectedMc.push(...shuffle(qs).slice(0, d.count))
+        const qs = shuffle(
+          mcPool.filter((q) => q.dimension_id === d.dimension_id && !picked.has(q.id))
+        )
+        for (const q of qs.slice(0, d.count)) {
+          selectedMc.push(q)
+          picked.add(q.id)
+        }
+      }
+
+      // Completa até o parâmetro quando algum tema não tinha perguntas suficientes
+      if (selectedMc.length < mcCount) {
+        const fillers = shuffle(mcPool.filter((q) => !picked.has(q.id)))
+        for (const q of fillers) {
+          if (selectedMc.length >= mcCount) break
+          selectedMc.push(q)
+          picked.add(q.id)
+        }
       }
     } else {
-      const qs = await prisma.question.findMany({
-        where: {
-          course_id: courseId,
-          type,
-          active: true,
-          format: 'MULTIPLE_CHOICE',
-        },
-        include: { options: true, dimension: true },
-      })
-      selectedMc = shuffle(qs).slice(0, mcCount)
+      selectedMc = shuffle(mcPool).slice(0, mcCount)
     }
 
     selectedMc = shuffle(selectedMc).slice(0, mcCount)
@@ -280,7 +288,7 @@ export async function POST(req: Request) {
       selectedDiscursive = shuffle(discursivePool).slice(0, discursiveCount)
     }
 
-    // Objetivas primeiro; discursivas no final (ordem sorteada dentro de cada bloco)
+    // Múltipla escolha primeiro; discursivas no final (ordem sorteada dentro de cada bloco)
     const selectedQuestions = [...selectedMc, ...selectedDiscursive]
 
     if (selectedQuestions.length === 0) {
@@ -295,7 +303,7 @@ export async function POST(req: Request) {
 
     if (selectedMc.length < mcCount) {
       console.warn(
-        `Avaliação ${type}: pedidas ${mcCount} objetivas, disponíveis ${selectedMc.length}`
+        `Avaliação ${type}: pedidas ${mcCount} de múltipla escolha, disponíveis ${selectedMc.length}`
       )
     }
 

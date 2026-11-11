@@ -8,30 +8,24 @@ function clampScore(n: number): number {
 }
 
 const SYSTEM_PROMPT = [
-  'Você é um professor paciente. Avalie a resposta do aluno com bom senso pedagógico.',
-  'Use apenas a pergunta, os critérios/exemplos do professor e a resposta do aluno.',
-  'Não invente regras de domínio que não estejam nesses dados ou no conhecimento geral do tema da pergunta.',
-  '',
-  'Responda APENAS JSON válido com este formato:',
-  '{"scorePercent": number, "feedback": string}',
-  '',
-  'Campo feedback = comentário didático ao aluno (português do Brasil):',
-  '- 2 a 4 frases, tom acolhedor.',
-  '- Explique o que estava certo e o que estava errado.',
-  '- Se houver confusão conceitual, explique com base no tema da pergunta e nos critérios do professor.',
-  '- NÃO use a palavra "feedback".',
-  '- NÃO mencione IA, inteligência artificial, Gemini, OpenAI, sistema automático ou correção provisória.',
-  '- NÃO fale de critérios cadastrados, banco de dados ou prompt.',
-  '',
-  'Regras de nota (scorePercent inteiro 0–100):',
-  '- Interprete significado (sinônimos, typos leves, exemplos equivalentes).',
-  '- Critérios/exemplos do professor orientam a correção, sem serem lista exclusiva se equivalentes claros existirem.',
-  '- Se a pergunta pede N exemplos: classifique cada item citado como correto ou incorreto.',
-  '- Fórmula: (quantidade_de_corretos / max(total_de_itens_citados, N)) * 100.',
-  '- Exemplo numérico genérico: pediu 2, citou 3 e acertou 1 → ≈ 33%; pediu 2, citou 3 e acertou 2 → ≈ 67%.',
-  '- Não dê 100% se houver itens claramente errados misturados aos certos.',
-  '- Justifique a nota no comentário.',
+  'Professor. Avalie respostas discursivas.',
+  'Responda APENAS JSON: {"grades":[{"id":string,"scorePercent":number,"feedback":string}]}',
+  'feedback: 1–2 frases em PT-BR, sem mencionar IA/Gemini/sistema.',
+  'Nota 0–100. Aceite sinônimos/equivalentes. Se pedir N exemplos: (corretos/max(citados,N))*100.',
 ].join('\n')
+
+/** Critérios suficientes para correção local (fallback / modo opcional). */
+function hasLocalCriteria(expectedAnswer: string): boolean {
+  return parseCriteria(expectedAnswer).length >= 2
+}
+
+/**
+ * Opt-in: pular IA e usar só critérios locais (mais rápido, menos flexível).
+ * Padrão: sempre IA em lote (1 chamada).
+ */
+function preferLocalGrading(): boolean {
+  return process.env.DISCURSIVE_LOCAL_FIRST === '1'
+}
 
 function normalize(t: string): string {
   return t
@@ -196,33 +190,6 @@ function gradeByCriteriaFallback(
   }
 }
 
-function extractJsonObject(text: string): {
-  scorePercent?: unknown
-  feedback?: unknown
-  comentario?: unknown
-} | null {
-  const trimmed = text.trim()
-  try {
-    return JSON.parse(trimmed) as {
-      scorePercent?: unknown
-      feedback?: unknown
-      comentario?: unknown
-    }
-  } catch {
-    const match = trimmed.match(/\{[\s\S]*\}/)
-    if (!match) return null
-    try {
-      return JSON.parse(match[0]) as {
-        scorePercent?: unknown
-        feedback?: unknown
-        comentario?: unknown
-      }
-    } catch {
-      return null
-    }
-  }
-}
-
 function sanitizeStudentFacingComment(text: string): string {
   return text
     .replace(/\b(IA|inteligência artificial|Gemini|OpenAI)\b/gi, '')
@@ -232,41 +199,18 @@ function sanitizeStudentFacingComment(text: string): string {
     .trim()
 }
 
-async function gradeWithGemini(
-  questionText: string,
-  expectedAnswer: string,
-  studentAnswer: string
-): Promise<DiscursiveGrade | null> {
-  const { generateGeminiText } = await import('@/lib/gemini/client')
-
-  const result = await generateGeminiText({
-    systemPrompt: SYSTEM_PROMPT,
-    userText: JSON.stringify({
-      pergunta: questionText,
-      criteriosDoProfessor: expectedAnswer || null,
-      respostaDoAluno: studentAnswer,
-    }),
-    temperature: 0,
-    maxOutputTokens: 1024,
-    responseMimeType: 'application/json',
-  })
-
-  if (!result.ok) {
-    console.warn('[grade-discursive]', result.error)
-    return null
-  }
-
-  const parsed = extractJsonObject(result.text)
+function parseGradeFromObject(parsed: {
+  scorePercent?: unknown
+  feedback?: unknown
+  comentario?: unknown
+} | null): DiscursiveGrade | null {
   if (!parsed) return null
-
   const score = Number(parsed.scorePercent)
   if (!Number.isFinite(score)) return null
-
   const rawComment =
     (typeof parsed.feedback === 'string' && parsed.feedback.trim()) ||
     (typeof parsed.comentario === 'string' && parsed.comentario.trim()) ||
     ''
-
   return {
     scorePercent: clampScore(score),
     feedback:
@@ -275,24 +219,194 @@ async function gradeWithGemini(
   }
 }
 
+function extractGradesArray(text: string): Array<{
+  id?: unknown
+  scorePercent?: unknown
+  feedback?: unknown
+  comentario?: unknown
+}> | null {
+  const trimmed = text.trim()
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      grades?: unknown
+      scorePercent?: unknown
+    }
+    if (Array.isArray(parsed.grades)) {
+      return parsed.grades as Array<{
+        id?: unknown
+        scorePercent?: unknown
+        feedback?: unknown
+        comentario?: unknown
+      }>
+    }
+    // Resposta no formato antigo (1 item)
+    if (parsed.scorePercent != null) return [parsed]
+  } catch {
+    const match = trimmed.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    try {
+      const parsed = JSON.parse(match[0]) as { grades?: unknown }
+      if (Array.isArray(parsed.grades)) {
+        return parsed.grades as Array<{
+          id?: unknown
+          scorePercent?: unknown
+          feedback?: unknown
+          comentario?: unknown
+        }>
+      }
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 /**
- * Avalia resposta discursiva (Gemini). Fallback local se a API falhar.
+ * Uma única chamada Gemini para várias discursivas (muito mais rápido que N idas).
+ */
+async function gradeBatchWithGemini(
+  items: Array<{
+    id: string
+    questionText: string
+    expectedAnswer: string
+    studentAnswer: string
+  }>
+): Promise<Map<string, DiscursiveGrade>> {
+  const out = new Map<string, DiscursiveGrade>()
+  if (items.length === 0) return out
+
+  const { generateGeminiText, gradingModelsToTry } = await import(
+    '@/lib/gemini/client'
+  )
+
+  const result = await generateGeminiText({
+    systemPrompt: SYSTEM_PROMPT,
+    userText: JSON.stringify({
+      items: items.map((it) => ({
+        id: it.id,
+        pergunta: it.questionText.slice(0, 400),
+        criterios: (it.expectedAnswer || '').slice(0, 600) || null,
+        resposta: it.studentAnswer.slice(0, 800),
+      })),
+    }),
+    temperature: 0,
+    // 1–2 frases por item
+    maxOutputTokens: Math.min(160 * items.length, 512),
+    responseMimeType: 'application/json',
+    models: gradingModelsToTry(),
+    maxModelAttempts: 1,
+    timeoutMs: 8_000,
+  })
+
+  if (!result.ok) {
+    console.warn('[grade-discursive] batch:', result.error)
+    return out
+  }
+
+  const grades = extractGradesArray(result.text)
+  if (!grades) return out
+
+  for (const row of grades) {
+    const id = typeof row.id === 'string' ? row.id : null
+    const grade = parseGradeFromObject(row)
+    if (!id || !grade) continue
+    out.set(id, grade)
+  }
+
+  // Fallback: se veio 1 grade sem id e só há 1 item
+  if (out.size === 0 && grades.length === 1 && items.length === 1) {
+    const grade = parseGradeFromObject(grades[0])
+    if (grade) out.set(items[0].id, grade)
+  }
+
+  return out
+}
+
+export type DiscursiveGradeInput = {
+  id: string
+  questionText: string
+  expectedAnswer: string
+  studentAnswer: string
+}
+
+/**
+ * Corrige várias discursivas sempre com IA (1 chamada em lote), de forma rápida:
+ * 1) resposta em branco → 0
+ * 2) opcional DISCURSIVE_LOCAL_FIRST=1 → só critérios locais
+ * 3) 1 chamada Gemini para todas; se falhar/timeout → local
+ */
+export async function gradeDiscursiveAnswers(
+  inputs: DiscursiveGradeInput[]
+): Promise<Map<string, DiscursiveGrade>> {
+  const out = new Map<string, DiscursiveGrade>()
+  const needAi: DiscursiveGradeInput[] = []
+  const localFirst = preferLocalGrading()
+
+  for (const input of inputs) {
+    const studentAnswer = (input.studentAnswer || '').trim()
+    const expectedAnswer = (input.expectedAnswer || '').trim()
+    const questionText = (input.questionText || '').trim()
+
+    if (!studentAnswer) {
+      out.set(input.id, { scorePercent: 0, feedback: 'Resposta em branco.' })
+      continue
+    }
+
+    if (localFirst && hasLocalCriteria(expectedAnswer)) {
+      out.set(
+        input.id,
+        gradeByCriteriaFallback(questionText, expectedAnswer, studentAnswer)
+      )
+      continue
+    }
+
+    needAi.push({
+      id: input.id,
+      questionText,
+      expectedAnswer,
+      studentAnswer,
+    })
+  }
+
+  if (needAi.length > 0) {
+    const aiGrades = await gradeBatchWithGemini(needAi)
+    for (const item of needAi) {
+      const ai = aiGrades.get(item.id)
+      out.set(
+        item.id,
+        ai ??
+          gradeByCriteriaFallback(
+            item.questionText,
+            item.expectedAnswer,
+            item.studentAnswer
+          )
+      )
+    }
+  }
+
+  return out
+}
+
+/**
+ * Avalia uma discursiva (via lote de 1). Sempre IA, com fallback local.
  */
 export async function gradeDiscursiveAnswer(input: {
   questionText: string
   expectedAnswer: string
   studentAnswer: string
 }): Promise<DiscursiveGrade> {
-  const studentAnswer = (input.studentAnswer || '').trim()
-  const expectedAnswer = (input.expectedAnswer || '').trim()
-  const questionText = (input.questionText || '').trim()
-
-  if (!studentAnswer) {
-    return { scorePercent: 0, feedback: 'Resposta em branco.' }
-  }
-
-  const ai = await gradeWithGemini(questionText, expectedAnswer, studentAnswer)
-  if (ai) return ai
-
-  return gradeByCriteriaFallback(questionText, expectedAnswer, studentAnswer)
+  const map = await gradeDiscursiveAnswers([
+    {
+      id: 'single',
+      questionText: input.questionText,
+      expectedAnswer: input.expectedAnswer,
+      studentAnswer: input.studentAnswer,
+    },
+  ])
+  return (
+    map.get('single') ?? {
+      scorePercent: 0,
+      feedback: 'Não foi possível corrigir esta resposta.',
+    }
+  )
 }

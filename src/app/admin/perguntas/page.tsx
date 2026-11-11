@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -9,11 +9,35 @@ import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
 import Modal from '@/components/ui/Modal'
 import Link from 'next/link'
-import { Download, Pencil, Trash2, Upload } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Download, Pencil, Trash2, Upload, Eraser } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { useAdminCourse } from '@/components/courses/AdminCourseProvider'
 import type { QuestionTransferFile } from '@/lib/assessment/question-transfer'
+
+const DEFAULT_TYPE = 'Todos'
+const DEFAULT_FORMAT = 'Todos'
+const DEFAULT_THEME = 'Todos'
+const DEFAULT_STATUS = 'Ativas'
+
+function buildPerguntasListPath(filters: {
+  searchTerm: string
+  typeFilter: string
+  formatFilter: string
+  themeFilter: string
+  statusFilter: string
+}) {
+  const params = new URLSearchParams()
+  const q = filters.searchTerm.trim()
+  if (q) params.set('q', q)
+  if (filters.typeFilter !== DEFAULT_TYPE) params.set('type', filters.typeFilter)
+  if (filters.formatFilter !== DEFAULT_FORMAT) params.set('format', filters.formatFilter)
+  if (filters.themeFilter !== DEFAULT_THEME) params.set('theme', filters.themeFilter)
+  if (filters.statusFilter !== DEFAULT_STATUS) params.set('status', filters.statusFilter)
+  const qs = params.toString()
+  return qs ? `/admin/perguntas?${qs}` : '/admin/perguntas'
+}
 
 type Question = {
   id: string
@@ -38,21 +62,68 @@ type ImportResult = {
   errorQuestions: { index: number; question_text: string; reason: string }[]
 }
 
-export default function AdminPerguntasPage() {
+function AdminPerguntasContent() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { activeCourseId, activeCourse, loading: courseLoading } = useAdminCourse()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [typeFilter, setTypeFilter] = useState('Todos')
-  const [formatFilter, setFormatFilter] = useState('Todos')
-  const [themeFilter, setThemeFilter] = useState('Todos')
-  const [statusFilter, setStatusFilter] = useState('Ativas')
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') ?? '')
+  const [typeFilter, setTypeFilter] = useState(
+    () => searchParams.get('type') ?? DEFAULT_TYPE
+  )
+  const [formatFilter, setFormatFilter] = useState(
+    () => searchParams.get('format') ?? DEFAULT_FORMAT
+  )
+  const [themeFilter, setThemeFilter] = useState(
+    () => searchParams.get('theme') ?? DEFAULT_THEME
+  )
+  const [statusFilter, setStatusFilter] = useState(
+    () => searchParams.get('status') ?? DEFAULT_STATUS
+  )
   const [loading, setLoading] = useState(true)
   const [perguntas, setPerguntas] = useState<Question[]>([])
   const [dimensions, setDimensions] = useState<Dimension[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [purging, setPurging] = useState(false)
+  const [purgeModalOpen, setPurgeModalOpen] = useState(false)
+  const [purgeConfirmText, setPurgeConfirmText] = useState('')
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
+
+  const downloadTransferFile = (file: QuestionTransferFile, filenamePrefix: string) => {
+    const blob = new Blob([JSON.stringify(file, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 10)
+    const slug = file.courseSlug || 'perguntas'
+    a.href = url
+    a.download = `${filenamePrefix}-${slug}-${stamp}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const listPath = useMemo(
+    () =>
+      buildPerguntasListPath({
+        searchTerm,
+        typeFilter,
+        formatFilter,
+        themeFilter,
+        statusFilter,
+      }),
+    [searchTerm, typeFilter, formatFilter, themeFilter, statusFilter]
+  )
+
+  // Mantém os filtros na URL para sobreviver à navegação (editar → voltar).
+  useEffect(() => {
+    const current = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+    if (current === listPath) return
+    router.replace(listPath, { scroll: false })
+  }, [listPath, pathname, router, searchParams])
 
   const load = useCallback(async () => {
     if (!activeCourseId) return
@@ -84,14 +155,16 @@ export default function AdminPerguntasPage() {
   const filtered = useMemo(() => {
     return perguntas.filter((p) => {
       const matchesSearch = p.question_text.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesType = typeFilter === 'Todos' || p.type === typeFilter
+      const matchesType = typeFilter === DEFAULT_TYPE || p.type === typeFilter
       const format = p.format === 'DISCURSIVE' ? 'DISCURSIVE' : 'MULTIPLE_CHOICE'
-      const matchesFormat = formatFilter === 'Todos' || format === formatFilter
+      const matchesFormat = formatFilter === DEFAULT_FORMAT || format === formatFilter
       const matchesTheme =
-        themeFilter === 'Todos' || p.dimension?.id === themeFilter || p.dimension?.name === themeFilter
+        themeFilter === DEFAULT_THEME ||
+        p.dimension?.id === themeFilter ||
+        p.dimension?.name === themeFilter
       const matchesStatus =
         statusFilter === 'Todas' ||
-        (statusFilter === 'Ativas' && p.active) ||
+        (statusFilter === DEFAULT_STATUS && p.active) ||
         (statusFilter === 'Inativas' && !p.active)
       return matchesSearch && matchesType && matchesFormat && matchesTheme && matchesStatus
     })
@@ -156,17 +229,7 @@ export default function AdminPerguntasPage() {
       if (!res.ok) throw new Error(data.error || 'Falha ao exportar')
 
       const file = data.file as QuestionTransferFile
-      const blob = new Blob([JSON.stringify(file, null, 2)], {
-        type: 'application/json',
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const stamp = new Date().toISOString().slice(0, 10)
-      const slug = file.courseSlug || 'perguntas'
-      a.href = url
-      a.download = `perguntas-${slug}-${stamp}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadTransferFile(file, 'perguntas')
 
       toast.success(`${data.exported} pergunta(s) exportada(s).`)
       if (data.missing > 0) {
@@ -176,6 +239,74 @@ export default function AdminPerguntasPage() {
       toast.error(e instanceof Error ? e.message : 'Erro ao exportar')
     } finally {
       setExporting(false)
+    }
+  }
+
+  const openPurgeModal = () => {
+    if (!activeCourseId || perguntas.length === 0) {
+      toast.error('Não há perguntas neste curso para remover.')
+      return
+    }
+    setPurgeConfirmText('')
+    setPurgeModalOpen(true)
+  }
+
+  const handlePurgeAll = async () => {
+    if (!activeCourseId) return
+    if (purgeConfirmText.trim().toUpperCase() !== 'APAGAR') {
+      toast.error('Digite APAGAR para confirmar.')
+      return
+    }
+
+    setPurging(true)
+    try {
+      // 1) Backup obrigatório (mesmo formato da exportação) — só apaga depois do download
+      const exportRes = await fetch('/api/admin/questions/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: activeCourseId,
+          all: true,
+        }),
+      })
+      const exportData = await exportRes.json()
+      if (!exportRes.ok) {
+        throw new Error(exportData.error || 'Falha ao gerar o backup')
+      }
+
+      const file = exportData.file as QuestionTransferFile
+      if (!file?.questions?.length) {
+        throw new Error('Backup vazio — exclusão cancelada')
+      }
+      downloadTransferFile(file, 'backup-perguntas')
+      toast.success(`Backup baixado (${exportData.exported} pergunta(s)).`)
+
+      // 2) Só então remove as perguntas do curso selecionado
+      const purgeRes = await fetch('/api/admin/questions/purge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: activeCourseId,
+          confirm: 'APAGAR',
+        }),
+      })
+      const purgeData = await purgeRes.json()
+      if (!purgeRes.ok) {
+        throw new Error(
+          purgeData.error ||
+            'Backup baixado, mas a exclusão falhou. Reimporte o arquivo se necessário.'
+        )
+      }
+
+      toast.success(purgeData.message || `${purgeData.deleted} pergunta(s) removida(s).`)
+      setPurgeModalOpen(false)
+      setPurgeConfirmText('')
+      setSelectedIds(new Set())
+      await load()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao esvaziar o banco')
+    } finally {
+      setPurging(false)
     }
   }
 
@@ -267,12 +398,23 @@ export default function AdminPerguntasPage() {
           <Button
             variant="outline"
             onClick={() => void handleExport()}
-            disabled={exporting || selectedIds.size === 0}
+            disabled={exporting || selectedIds.size === 0 || purging}
           >
             <Download className="h-4 w-4 mr-2" />
             {exporting ? 'Exportando…' : `Exportar${selectedIds.size ? ` (${selectedIds.size})` : ''}`}
           </Button>
-          <Link href="/admin/perguntas/nova">
+          <Button
+            variant="outline"
+            className="text-error border-error/30 hover:bg-error/5"
+            onClick={openPurgeModal}
+            disabled={purging || importing || exporting || perguntas.length === 0 || !activeCourseId}
+          >
+            <Eraser className="h-4 w-4 mr-2" />
+            Esvaziar banco
+          </Button>
+          <Link
+            href={`/admin/perguntas/nova?returnTo=${encodeURIComponent(listPath)}`}
+          >
             <Button variant="primary">Nova Pergunta</Button>
           </Link>
         </div>
@@ -286,7 +428,7 @@ export default function AdminPerguntasPage() {
         />
         <Select
           options={[
-            { value: 'Todos', label: 'Todos os Tipos' },
+            { value: DEFAULT_TYPE, label: 'Todos os Tipos' },
             { value: 'PROVA', label: 'Prova' },
             { value: 'SIMULADO', label: 'Simulado' },
           ]}
@@ -295,7 +437,7 @@ export default function AdminPerguntasPage() {
         />
         <Select
           options={[
-            { value: 'Todos', label: 'Todos os formatos' },
+            { value: DEFAULT_FORMAT, label: 'Todos os formatos' },
             { value: 'MULTIPLE_CHOICE', label: 'Múltipla escolha' },
             { value: 'DISCURSIVE', label: 'Discursiva' },
           ]}
@@ -304,7 +446,7 @@ export default function AdminPerguntasPage() {
         />
         <Select
           options={[
-            { value: 'Todos', label: 'Todos os Temas' },
+            { value: DEFAULT_THEME, label: 'Todos os Temas' },
             ...dimensions.map((d) => ({ value: d.id, label: d.name })),
           ]}
           value={themeFilter}
@@ -313,7 +455,7 @@ export default function AdminPerguntasPage() {
         <Select
           options={[
             { value: 'Todas', label: 'Qualquer Status' },
-            { value: 'Ativas', label: 'Ativas' },
+            { value: DEFAULT_STATUS, label: 'Ativas' },
             { value: 'Inativas', label: 'Inativas' },
           ]}
           value={statusFilter}
@@ -380,7 +522,7 @@ export default function AdminPerguntasPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={p.format === 'DISCURSIVE' ? 'info' : 'default'}>
-                        {p.format === 'DISCURSIVE' ? 'Discursiva' : 'Objetiva'}
+                        {p.format === 'DISCURSIVE' ? 'Discursiva' : 'Múltipla escolha'}
                       </Badge>
                     </TableCell>
                     <TableCell>{p.dimension?.name ?? '—'}</TableCell>
@@ -393,7 +535,9 @@ export default function AdminPerguntasPage() {
                     <TableCell>{formatDate(p.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-1">
-                        <Link href={`/admin/perguntas/${p.id}`}>
+                        <Link
+                          href={`/admin/perguntas/${p.id}?returnTo=${encodeURIComponent(listPath)}`}
+                        >
                           <Button
                             size="sm"
                             variant="ghost"
@@ -433,6 +577,60 @@ export default function AdminPerguntasPage() {
           </>
         )}
       </div>
+
+      <Modal
+        isOpen={purgeModalOpen}
+        onClose={() => {
+          if (purging) return
+          setPurgeModalOpen(false)
+          setPurgeConfirmText('')
+        }}
+        title="Esvaziar banco de perguntas"
+        size="md"
+      >
+        <div className="space-y-4 text-sm">
+          <p className="text-slate-700 leading-relaxed">
+            Esta ação remove <strong>todas</strong> as perguntas do curso{' '}
+            <strong>{activeCourse?.name || 'selecionado'}</strong> ({perguntas.length} no
+            total). Outros cursos não são afetados.
+          </p>
+          <p className="text-slate-700 leading-relaxed">
+            Antes de apagar, o sistema gera e baixa um backup JSON (mesmo formato da
+            exportação). Avaliações já feitas continuam com o enunciado em snapshot.
+          </p>
+          <Input
+            label='Digite APAGAR para confirmar'
+            value={purgeConfirmText}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setPurgeConfirmText(e.target.value)
+            }
+            placeholder="APAGAR"
+            disabled={purging}
+            autoComplete="off"
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPurgeModalOpen(false)
+                setPurgeConfirmText('')
+              }}
+              disabled={purging}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-error hover:bg-error/90"
+              onClick={() => void handlePurgeAll()}
+              disabled={purging || purgeConfirmText.trim().toUpperCase() !== 'APAGAR'}
+              loading={purging}
+            >
+              {purging ? 'Backup e exclusão…' : 'Baixar backup e apagar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={Boolean(importResult)}
@@ -516,5 +714,19 @@ export default function AdminPerguntasPage() {
         )}
       </Modal>
     </div>
+  )
+}
+
+export default function AdminPerguntasPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center p-12">
+          <Spinner size="lg" />
+        </div>
+      }
+    >
+      <AdminPerguntasContent />
+    </Suspense>
   )
 }

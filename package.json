@@ -10,6 +10,8 @@
     "postinstall": "prisma generate",
     "lint": "eslint",
     "seed": "npx tsx scripts/seed-questions.ts",
+    "seed:prova-oficial": "npx tsx scripts/apply-prova-oficial-informatica.ts",
+    "seed:prova-oficial:remote": "npx tsx scripts/apply-prova-oficial-informatica.ts --remote",
     "seed:eletrica": "npx tsx scripts/seed-eletrica-questions.ts",
     "seed:typing": "npx tsx scripts/seed-typing-passages.ts",
     "seed:typing:remote": "npx tsx scripts/seed-typing-passages.ts --remote",

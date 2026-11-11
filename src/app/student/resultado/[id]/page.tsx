@@ -1,13 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Card, { CardContent, CardHeader, CardFooter } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
-import { CheckCircle2, XCircle, Award, ArrowLeft, BookOpen, Clock } from 'lucide-react'
+import { CheckCircle2, XCircle, Award, ArrowLeft, BookOpen, Clock, Loader2 } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 import { formatDuration } from '@/lib/utils'
+import toast from 'react-hot-toast'
+
+type GradingInfo = {
+  pendingDiscursive: number
+  estimatedSeconds: number
+  estimatedSecondsRemaining: number
+  etaLabel: string
+  sampleCount: number
+}
 
 export default function ResultadoPage() {
   const params = useParams<{ id: string }>()
@@ -15,45 +24,107 @@ export default function ResultadoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [result, setResult] = useState<any>(null)
+  const [grading, setGrading] = useState<GradingInfo | null>(null)
   const [passingScore, setPassingScore] = useState(70)
+  const wasAwaitingRef = useRef(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => {
-    const fetchResult = async () => {
+  const applyAssessment = useCallback(
+    (assessment: any, gradingPayload: GradingInfo | null | undefined) => {
+      if (assessment.status === 'IN_PROGRESS') {
+        router.replace(`/student/avaliacao/${id}`)
+        return assessment.status as string
+      }
+
+      if (
+        wasAwaitingRef.current &&
+        assessment.status === 'COMPLETED'
+      ) {
+        toast.success('Correção concluída! Confira seu resultado.')
+        wasAwaitingRef.current = false
+      }
+
+      if (assessment.status === 'AWAITING_GRADING') {
+        wasAwaitingRef.current = true
+      }
+
+      setResult(assessment)
+      setGrading(
+        assessment.status === 'AWAITING_GRADING' ? gradingPayload ?? null : null
+      )
+      return assessment.status as string
+    },
+    [id, router]
+  )
+
+  const fetchResult = useCallback(
+    async (opts?: { silent?: boolean }) => {
       try {
         const res = await fetch(`/api/assessments/${id}`, { cache: 'no-store' })
         if (!res.ok) throw new Error('Falha ao carregar resultado')
         const payload = await res.json()
         const assessment = payload.assessment ?? payload
+        const status = applyAssessment(assessment, payload.grading)
 
-        if (assessment.status === 'IN_PROGRESS') {
-          router.replace(`/student/avaliacao/${id}`)
-          return
+        if (!opts?.silent) {
+          const type = assessment.type === 'PROVA' ? 'PROVA' : 'SIMULADO'
+          const elig = await fetch(
+            `/api/assessments/check-eligibility?type=${type}`,
+            { cache: 'no-store' }
+          )
+          if (elig.ok) {
+            const data = await elig.json()
+            const p = Number(data.passingScore)
+            if (Number.isFinite(p)) setPassingScore(p)
+          }
         }
 
-        if (assessment.status === 'CANCELLED') {
-          setResult(assessment)
-          return
-        }
-
-        setResult(assessment)
-
-        const type = assessment.type === 'PROVA' ? 'PROVA' : 'SIMULADO'
-        const elig = await fetch(`/api/assessments/check-eligibility?type=${type}`, {
-          cache: 'no-store',
-        })
-        if (elig.ok) {
-          const data = await elig.json()
-          const p = Number(data.passingScore)
-          if (Number.isFinite(p)) setPassingScore(p)
-        }
+        return status
       } catch (error) {
         console.error(error)
+        return null
       } finally {
-        setLoading(false)
+        if (!opts?.silent) setLoading(false)
+      }
+    },
+    [applyAssessment, id]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    const start = async () => {
+      const status = await fetchResult()
+      if (cancelled) return
+
+      if (status === 'AWAITING_GRADING') {
+        pollRef.current = setInterval(() => {
+          void fetchResult({ silent: true })
+        }, 3000)
       }
     }
-    fetchResult()
-  }, [id, router])
+
+    void start()
+
+    const onFocus = () => {
+      void fetchResult({ silent: true })
+    }
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      cancelled = true
+      if (pollRef.current) clearInterval(pollRef.current)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [fetchResult])
+
+  // Para o polling quando sair de AWAITING_GRADING
+  useEffect(() => {
+    if (result?.status && result.status !== 'AWAITING_GRADING' && pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }, [result?.status])
 
   if (loading) {
     return (
@@ -146,6 +217,11 @@ export default function ResultadoPage() {
       }
     })
 
+  const pendingDiscursive = discursiveResults.filter((d) => d.pending).length
+  const etaLabel =
+    grading?.etaLabel ||
+    (pendingDiscursive > 0 ? 'alguns instantes' : null)
+
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
       <Card
@@ -182,7 +258,7 @@ export default function ResultadoPage() {
             >
               <div className="text-center px-2">
                 {awaitingGrading ? (
-                  <Clock className="w-12 h-12 text-amber-600 mx-auto" />
+                  <Loader2 className="w-12 h-12 text-amber-600 mx-auto animate-spin" />
                 ) : (
                   <span
                     className={`text-5xl font-bold ${
@@ -206,7 +282,7 @@ export default function ResultadoPage() {
             }`}
           >
             {awaitingGrading
-              ? 'AGUARDANDO CORREÇÃO'
+              ? 'EM PROCESSAMENTO'
               : isApproved
                 ? 'APROVADO'
                 : 'REPROVADO'}
@@ -221,18 +297,26 @@ export default function ResultadoPage() {
             }`}
           >
             {awaitingGrading
-              ? 'As questões de múltipla escolha já foram corrigidas. As discursivas ainda estão em correção; a nota final sai depois disso.'
+              ? `As questões de múltipla escolha já foram corrigidas. As discursivas estão sendo analisadas${
+                  etaLabel ? ` — tempo estimado: ${etaLabel}` : ''
+                }.`
               : isApproved
                 ? 'Parabéns! Você alcançou a nota necessária.'
                 : `Você não alcançou a nota mínima de ${passingScore}%.`}
           </p>
+          {awaitingGrading ? (
+            <p className="mt-3 text-sm text-amber-600 flex items-center justify-center gap-2">
+              <Clock className="w-4 h-4" />
+              Esta página atualiza sozinha quando a correção terminar.
+            </p>
+          ) : null}
         </CardHeader>
 
         <CardContent className="pt-8">
           <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
               <div className="text-sm font-medium text-slate-500 uppercase mb-1">
-                Acertos (objetivas)
+                Acertos (múltipla escolha)
               </div>
               <div className="text-2xl font-bold text-green-600 flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-6 h-6" /> {correctAnswers}
@@ -240,7 +324,7 @@ export default function ResultadoPage() {
             </div>
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
               <div className="text-sm font-medium text-slate-500 uppercase mb-1">
-                Erros (objetivas)
+                Erros (múltipla escolha)
               </div>
               <div className="text-2xl font-bold text-red-600 flex items-center justify-center gap-2">
                 <XCircle className="w-6 h-6" /> {wrongAnswers}
@@ -315,8 +399,12 @@ export default function ResultadoPage() {
             </h3>
             <p className="text-sm text-slate-500 mt-1">
               {awaitingGrading
-                ? 'Aguardando correção.'
-                : 'Corrigidas ao enviar a avaliação.'}
+                ? pendingDiscursive > 0
+                  ? `Em análise (${pendingDiscursive} pendente${pendingDiscursive === 1 ? '' : 's'})${
+                      etaLabel ? ` · ${etaLabel}` : ''
+                    }.`
+                  : 'Finalizando nota…'
+                : 'Corrigidas automaticamente após o envio.'}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -332,7 +420,7 @@ export default function ResultadoPage() {
                   </p>
                   <Badge variant={d.pending ? 'warning' : 'info'}>
                     {d.pending
-                      ? 'Pendente'
+                      ? 'Em processamento'
                       : `${Math.round(d.scorePercent ?? 0)}%`}
                   </Badge>
                 </div>

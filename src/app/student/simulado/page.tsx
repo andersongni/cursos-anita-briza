@@ -192,8 +192,8 @@ export default function SimuladoStartPage() {
               <h3 className="font-semibold text-secondary mb-1">Instruções</h3>
               <p className="text-sm text-slate-700 leading-relaxed">
                 O simulado é uma ferramenta de estudo. Após finalizar, você poderá revisar as
-                objetivas e ver as explicações. A nota combina múltipla escolha e discursivas
-                conforme os pesos acima e não afeta a nota final do curso.
+                questões de múltipla escolha e ver as explicações. A nota combina múltipla
+                escolha e discursivas conforme os pesos acima e não afeta a nota final do curso.
               </p>
             </div>
             <Button

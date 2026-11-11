@@ -1,9 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
 import { computeScoreBreakdown } from '@/lib/assessment/finalize-score'
-import { gradeDiscursiveAnswer } from '@/lib/assessment/grade-discursive'
+import { processPendingDiscursiveGrading } from '@/lib/assessment/process-discursive-grading'
+import {
+  estimateDiscursiveGrading,
+  formatGradingEta,
+} from '@/lib/assessment/grading-latency'
+
+/** Tempo para a correção em background (Gemini) após a resposta HTTP. */
+export const maxDuration = 300
 
 export async function POST(req: Request) {
   try {
@@ -53,34 +60,18 @@ export async function POST(req: Request) {
       assessment.course_id
     )
 
+    const discursiveQuestions = assessment.questions.filter(
+      (q) => q.format === 'DISCURSIVE'
+    )
+    const hasDiscursive = discursiveQuestions.length > 0
+
+    // Múltipla escolha: correção imediata. Discursivas: em background.
     for (const question of assessment.questions) {
+      if (question.format === 'DISCURSIVE') continue
+
       const answer = assessment.answers.find(
         (a) => a.assessment_question_id === question.id
       )
-
-      if (question.format === 'DISCURSIVE') {
-        const text = answer?.text_answer?.trim() || ''
-        const grade = await gradeDiscursiveAnswer({
-          questionText: question.question_text_snapshot,
-          expectedAnswer: question.expected_answer_snapshot || '',
-          studentAnswer: text,
-        })
-        if (answer) {
-          await prisma.assessmentAnswer.update({
-            where: { id: answer.id },
-            data: {
-              score_percent: grade.scorePercent,
-              grading_feedback: grade.feedback,
-              is_correct: grade.scorePercent >= 70,
-              answered_at: text
-                ? answer.answered_at ?? new Date()
-                : answer.answered_at,
-            },
-          })
-        }
-        continue
-      }
-
       const selected = answer?.selected_option
       const isCorrect = Boolean(selected) && selected === question.correct_option
       const scorePercent = isCorrect ? 100 : 0
@@ -123,25 +114,55 @@ export async function POST(req: Request) {
     let durationSeconds = 0
     if (assessment.started_at) {
       durationSeconds = Math.floor(
-        (completedAt.getTime() - new Date(assessment.started_at).getTime()) /
-          1000
+        (completedAt.getTime() - new Date(assessment.started_at).getTime()) / 1000
       )
     }
 
     const hasMc = assessment.questions.some((q) => q.format !== 'DISCURSIVE')
+    const status = hasDiscursive ? 'AWAITING_GRADING' : 'COMPLETED'
 
     const updatedAssessment = await prisma.assessment.update({
       where: { id: assessment_id },
       data: {
-        status: 'COMPLETED',
+        status,
         completed_at: completedAt,
         duration_seconds: durationSeconds,
-        score: breakdown.score,
+        // Nota definitiva só quando não há discursivas pendentes
+        score: hasDiscursive ? null : breakdown.score,
         correct_count: breakdown.mcCorrect,
         wrong_count: breakdown.mcWrong,
-        passed: breakdown.passed,
+        passed: hasDiscursive ? null : breakdown.passed,
       },
     })
+
+    let gradingEta: {
+      pendingCount: number
+      estimatedSeconds: number
+      etaLabel: string
+      sampleCount: number
+    } | null = null
+
+    if (hasDiscursive) {
+      const eta = await estimateDiscursiveGrading(discursiveQuestions.length)
+      gradingEta = {
+        pendingCount: eta.pendingCount,
+        estimatedSeconds: eta.estimatedSeconds,
+        etaLabel: formatGradingEta(eta.estimatedSeconds),
+        sampleCount: eta.sampleCount,
+      }
+
+      const idForAfter = assessment_id
+      after(async () => {
+        try {
+          await processPendingDiscursiveGrading(idForAfter)
+        } catch (err) {
+          console.error(
+            `[submit] falha na correção em background de ${idForAfter}:`,
+            err
+          )
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,
@@ -154,14 +175,15 @@ export async function POST(req: Request) {
         correct_count: updatedAssessment.correct_count,
         wrong_count: updatedAssessment.wrong_count,
         total_questions: updatedAssessment.total_questions,
-        awaiting_grading: false,
-        review_available: hasMc,
+        awaiting_grading: hasDiscursive,
+        review_available: hasMc && !hasDiscursive,
+        grading_eta: gradingEta,
         scoring: {
           mcWeight: breakdown.mcWeight,
           discursiveWeight: breakdown.discursiveWeight,
           mcAvg: Math.round(breakdown.mcAvg * 10) / 10,
           discursiveAvg: Math.round(breakdown.discursiveAvg * 10) / 10,
-          pendingDiscursive: 0,
+          pendingDiscursive: hasDiscursive ? discursiveQuestions.length : 0,
         },
       },
     })

@@ -178,7 +178,7 @@ export default function AdminParametrosPage() {
         <CardHeader>
           <CardTitle>Quantidade, tempo e nota</CardTitle>
           <CardDescription>
-            Quantidade de perguntas objetivas e discursivas, tempo limite e nota mínima.
+            Quantidade de perguntas de múltipla escolha e discursivas, tempo limite e nota mínima.
           </CardDescription>
         </CardHeader>
         <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,13 +230,13 @@ export default function AdminParametrosPage() {
         <CardHeader>
           <CardTitle>Peso na nota final</CardTitle>
           <CardDescription>
-            A soma dos pesos deve ser 100%. A nota final combina a média das objetivas e a
-            média das discursivas conforme esses pesos.
+            A soma dos pesos deve ser 100%. A nota final combina a média das questões de
+            múltipla escolha e a média das discursivas conforme esses pesos.
           </CardDescription>
         </CardHeader>
         <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Peso das múltiplas escolhas (%)"
+            label="Peso de múltipla escolha (%)"
             type="number"
             min={0}
             max={100}

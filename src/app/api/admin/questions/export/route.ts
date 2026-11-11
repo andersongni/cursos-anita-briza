@@ -13,13 +13,14 @@ export async function POST(req: Request) {
   try {
     await verifyAdmin()
     const body = await req.json().catch(() => ({}))
+    const exportAll = body.all === true
     const ids = Array.isArray(body.ids)
       ? body.ids.filter(
           (id: unknown): id is string => typeof id === 'string' && id.trim().length > 0
         )
       : []
 
-    if (ids.length === 0) {
+    if (!exportAll && ids.length === 0) {
       return NextResponse.json(
         { error: 'Selecione ao menos uma pergunta para exportar' },
         { status: 400 }
@@ -39,7 +40,9 @@ export async function POST(req: Request) {
     }
 
     const rows = await prisma.question.findMany({
-      where: { id: { in: ids }, course_id: courseId },
+      where: exportAll
+        ? { course_id: courseId }
+        : { id: { in: ids }, course_id: courseId },
       include: {
         dimension: { select: { name: true } },
         options: {
@@ -57,7 +60,11 @@ export async function POST(req: Request) {
 
     if (rows.length === 0) {
       return NextResponse.json(
-        { error: 'Nenhuma das perguntas selecionadas foi encontrada neste curso' },
+        {
+          error: exportAll
+            ? 'Não há perguntas neste curso para exportar'
+            : 'Nenhuma das perguntas selecionadas foi encontrada neste curso',
+        },
         { status: 404 }
       )
     }
@@ -86,11 +93,12 @@ export async function POST(req: Request) {
       questions,
     }
 
-    const missing = ids.length - rows.length
+    const missing = exportAll ? 0 : ids.length - rows.length
     return NextResponse.json({
       file: payload,
       exported: rows.length,
       missing,
+      all: exportAll,
     })
   } catch (error: unknown) {
     console.error('Error exporting questions:', error)

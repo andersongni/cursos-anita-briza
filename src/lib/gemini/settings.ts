@@ -13,8 +13,20 @@ export const GEMINI_FREE_MODELS = [
   'gemini-3.1-flash-lite',
 ] as const
 
+/**
+ * Modelos otimizados para correção de discursivas (latência).
+ * Só lites — a correção usa 1 tentativa; flash “cheio” fica de fora de propósito.
+ */
+export const GEMINI_GRADING_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+] as const
+
 /** Modelo preferencial (não configurável pela interface). */
 export const DEFAULT_GEMINI_MODEL = GEMINI_FREE_MODELS[0]
+
+/** Preferido para correção automática (mais rápido). */
+export const DEFAULT_GEMINI_GRADING_MODEL = GEMINI_GRADING_MODELS[0]
 
 export type GeminiSettingsStatus = {
   configured: boolean

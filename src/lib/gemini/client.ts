@@ -1,6 +1,8 @@
 import {
   DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_GRADING_MODEL,
   GEMINI_FREE_MODELS,
+  GEMINI_GRADING_MODELS,
   getGeminiApiKey,
   getGeminiModel,
 } from '@/lib/gemini/settings'
@@ -8,6 +10,20 @@ import {
 export type GeminiTextResult =
   | { ok: true; text: string; model: string }
   | { ok: false; error: string; status?: number }
+
+export type GenerateGeminiOptions = {
+  systemPrompt: string
+  userText: string
+  temperature?: number
+  maxOutputTokens?: number
+  responseMimeType?: string
+  /** Lista explícita de modelos (senão usa free padrão). */
+  models?: string[]
+  /** Limite de tentativas de modelo (útil na correção). */
+  maxModelAttempts?: number
+  /** Timeout por tentativa HTTP (ms). */
+  timeoutMs?: number
+}
 
 function friendlyGeminiError(status: number, body: string): string {
   const lower = body.toLowerCase()
@@ -55,12 +71,22 @@ function extractText(data: unknown): string | null {
 }
 
 /** Ordem: preferido (env/padrão) + os três free, sem duplicar. */
-function modelsToTry(preferred: string): string[] {
-  const free = [...GEMINI_FREE_MODELS]
+function modelsToTry(preferred: string, extras: readonly string[] = GEMINI_FREE_MODELS): string[] {
   const list = [
     preferred,
     DEFAULT_GEMINI_MODEL,
-    ...free,
+    ...extras,
+  ].filter((m): m is string => Boolean(m && m.trim()))
+  return [...new Set(list)]
+}
+
+/** Cadeia curta e rápida para correção de discursivas. */
+export function gradingModelsToTry(preferred?: string | null): string[] {
+  const list = [
+    preferred?.trim() || '',
+    process.env.GEMINI_GRADING_MODEL?.trim() || '',
+    DEFAULT_GEMINI_GRADING_MODEL,
+    ...GEMINI_GRADING_MODELS,
   ].filter((m): m is string => Boolean(m && m.trim()))
   return [...new Set(list)]
 }
@@ -78,13 +104,9 @@ function shouldTryNextModel(status: number): boolean {
 /**
  * Gera texto com Gemini (com fallbacks de modelo e mensagens de erro úteis).
  */
-export async function generateGeminiText(input: {
-  systemPrompt: string
-  userText: string
-  temperature?: number
-  maxOutputTokens?: number
-  responseMimeType?: string
-}): Promise<GeminiTextResult> {
+export async function generateGeminiText(
+  input: GenerateGeminiOptions
+): Promise<GeminiTextResult> {
   const apiKey = await getGeminiApiKey()
   if (!apiKey) {
     return {
@@ -95,7 +117,16 @@ export async function generateGeminiText(input: {
   }
 
   const preferred = await getGeminiModel()
-  const models = modelsToTry(preferred)
+  const allModels =
+    input.models && input.models.length > 0
+      ? [...new Set(input.models.filter((m) => m.trim()))]
+      : modelsToTry(preferred)
+  const maxAttempts = Math.max(
+    1,
+    Math.min(input.maxModelAttempts ?? allModels.length, allModels.length)
+  )
+  const models = allModels.slice(0, maxAttempts)
+  const timeoutMs = input.timeoutMs
   let lastError = 'Não foi possível falar com o Gemini.'
   let lastStatus = 502
 
@@ -103,6 +134,11 @@ export async function generateGeminiText(input: {
 
   for (const model of models) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+    const controller = timeoutMs ? new AbortController() : null
+    const timer =
+      timeoutMs && controller
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -110,6 +146,7 @@ export async function generateGeminiText(input: {
           'Content-Type': 'application/json',
           'x-goog-api-key': apiKey,
         },
+        signal: controller?.signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: input.systemPrompt }] },
           contents: [
@@ -165,14 +202,21 @@ export async function generateGeminiText(input: {
         continue
       }
 
-      if (model !== preferred) {
-        console.info(`[gemini] usando fallback ${model} (preferido: ${preferred})`)
+      if (model !== preferred && model !== models[0]) {
+        console.info(`[gemini] usando fallback ${model} (primeiro: ${models[0]})`)
       }
       return { ok: true, text, model }
     } catch (err) {
-      console.error('[gemini] network', model, err)
-      lastError = 'Erro de rede ao chamar o Gemini. Verifique a conexão e tente novamente.'
-      lastStatus = 502
+      const aborted =
+        err instanceof Error &&
+        (err.name === 'AbortError' || /aborted/i.test(err.message))
+      console.error('[gemini]', aborted ? 'timeout' : 'network', model, err)
+      lastError = aborted
+        ? `Timeout ao chamar o Gemini (${timeoutMs}ms).`
+        : 'Erro de rede ao chamar o Gemini. Verifique a conexão e tente novamente.'
+      lastStatus = aborted ? 504 : 502
+    } finally {
+      if (timer) clearTimeout(timer)
     }
   }
 

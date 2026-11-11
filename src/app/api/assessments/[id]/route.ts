@@ -1,6 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth/verify'
+import {
+  estimateDiscursiveGrading,
+  formatGradingEta,
+} from '@/lib/assessment/grading-latency'
+import { processPendingDiscursiveGrading } from '@/lib/assessment/process-discursive-grading'
 
 export async function GET(
   _req: Request,
@@ -63,7 +68,60 @@ export async function GET(
         }
       : assessment
 
-    return NextResponse.json({ assessment: responseAssessment })
+    let grading: {
+      pendingDiscursive: number
+      estimatedSeconds: number
+      estimatedSecondsRemaining: number
+      etaLabel: string
+      sampleCount: number
+    } | null = null
+
+    if (assessment.status === 'AWAITING_GRADING') {
+      const answerByQ = new Map(
+        assessment.answers.map((a) => [a.assessment_question_id, a])
+      )
+      const pendingDiscursive = assessment.questions.filter((q) => {
+        if (q.format !== 'DISCURSIVE') return false
+        const ans = answerByQ.get(q.id)
+        return !(ans && typeof ans.score_percent === 'number')
+      }).length
+
+      const eta = await estimateDiscursiveGrading(pendingDiscursive)
+      const submittedAt = assessment.completed_at
+        ? new Date(assessment.completed_at).getTime()
+        : Date.now()
+      const elapsedMs = Math.max(0, Date.now() - submittedAt)
+      const remainingMs = Math.max(0, eta.estimatedTotalMs - elapsedMs)
+      const remainingSeconds = Math.max(
+        pendingDiscursive > 0 ? 1 : 0,
+        Math.ceil(remainingMs / 1000)
+      )
+
+      grading = {
+        pendingDiscursive,
+        estimatedSeconds: eta.estimatedSeconds,
+        estimatedSecondsRemaining: remainingSeconds,
+        etaLabel: formatGradingEta(remainingSeconds || eta.estimatedSeconds),
+        sampleCount: eta.sampleCount,
+      }
+
+      // Retomada idempotente se o job em background não concluiu (ex.: restart)
+      if (pendingDiscursive > 0 && elapsedMs > 15_000) {
+        const idForAfter = assessment.id
+        after(async () => {
+          try {
+            await processPendingDiscursiveGrading(idForAfter)
+          } catch (err) {
+            console.error(
+              `[assessments/get] retomada de correção falhou (${idForAfter}):`,
+              err
+            )
+          }
+        })
+      }
+    }
+
+    return NextResponse.json({ assessment: responseAssessment, grading })
   } catch (error: unknown) {
     console.error('Get assessment error:', error)
     const err = error as { message?: string; status?: number }

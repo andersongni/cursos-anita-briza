@@ -109,7 +109,7 @@ export function validateTransferQuestion(
   if (!Array.isArray(q.options) || q.options.length !== 5) {
     return {
       ok: false,
-      error: `Item ${index + 1}: objetiva precisa de exatamente 5 alternativas`,
+      error: `Item ${index + 1}: múltipla escolha precisa de exatamente 5 alternativas`,
     }
   }
 
