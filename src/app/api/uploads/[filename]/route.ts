@@ -22,7 +22,19 @@ export async function GET(_req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Arquivo inválido' }, { status: 400 })
     }
 
-    // Preferência: disco (local) → banco (Vercel)
+    // Fonte canônica: banco (local e produção)
+    const stored = await readUploadFromDb(filename)
+    if (stored) {
+      return new NextResponse(Buffer.from(stored.dataBase64, 'base64'), {
+        status: 200,
+        headers: {
+          'Content-Type': stored.mime || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      })
+    }
+
+    // Fallback: uploads antigos ainda no disco
     try {
       const absolute = path.join(uploadsDir(), filename)
       const buffer = await fs.readFile(absolute)
@@ -43,21 +55,8 @@ export async function GET(_req: Request, { params }: RouteParams) {
         },
       })
     } catch {
-      // fallback DB
-    }
-
-    const stored = await readUploadFromDb(filename)
-    if (!stored) {
       return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
     }
-
-    return new NextResponse(Buffer.from(stored.dataBase64, 'base64'), {
-      status: 200,
-      headers: {
-        'Content-Type': stored.mime || 'application/octet-stream',
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    })
   } catch (error: unknown) {
     console.error('Upload serve error:', error)
     return NextResponse.json({ error: 'Erro ao servir arquivo' }, { status: 500 })

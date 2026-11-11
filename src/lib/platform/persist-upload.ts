@@ -25,35 +25,15 @@ export function sanitizeUploadFilename(filename: string): string | null {
   return base
 }
 
-export function publicUploadUrl(filename: string, opts?: { api?: boolean }): string {
-  const bust = `?v=${Date.now()}`
-  if (opts?.api) return `/api/uploads/${filename}${bust}`
-  return `/uploads/${filename}${bust}`
+/** URL canônica em todos os ambientes (local e produção). */
+export function publicUploadUrl(filename: string): string {
+  return `/api/uploads/${filename}?v=${Date.now()}`
 }
 
 export function filenameFromUploadUrl(url: string): string | null {
   const cleaned = url.split('?')[0].split('#')[0]
   const match = cleaned.match(/\/(?:api\/)?uploads\/([^/]+)$/)
   return match?.[1] ? sanitizeUploadFilename(match[1]) : null
-}
-
-let writeProbe: boolean | null = null
-
-/** Em Vercel/serverless o FS de deploy é somente leitura. */
-export async function canWriteUploadsDir(): Promise<boolean> {
-  if (process.env.VERCEL === '1') return false
-  if (writeProbe != null) return writeProbe
-  try {
-    const dir = uploadsDir()
-    await fs.mkdir(dir, { recursive: true })
-    const probe = path.join(dir, `.write-probe-${process.pid}`)
-    await fs.writeFile(probe, 'ok')
-    await fs.unlink(probe)
-    writeProbe = true
-  } catch {
-    writeProbe = false
-  }
-  return writeProbe
 }
 
 export async function saveUploadToDb(
@@ -72,15 +52,16 @@ export async function saveUploadToDb(
     where: { key },
     update: {
       value: JSON.stringify(payload),
-      description: `Upload persistido (serverless): ${safe}`,
+      description: `Upload persistido: ${safe}`,
     },
     create: {
       key,
       value: JSON.stringify(payload),
-      description: `Upload persistido (serverless): ${safe}`,
+      description: `Upload persistido: ${safe}`,
     },
   })
 }
+
 
 export async function deleteUploadFromDb(filename: string): Promise<void> {
   const safe = sanitizeUploadFilename(filename)
@@ -109,46 +90,37 @@ export async function readUploadFromDb(filename: string): Promise<StoredUpload |
 }
 
 /**
- * Grava em `public/uploads` quando possível; no Vercel persiste no banco
- * e devolve URL `/api/uploads/...`.
+ * Persiste no banco e devolve `/api/uploads/...` — mesmo fluxo em local e produção.
+ * (Evita divergência com o FS somente-leitura da Vercel.)
  */
 export async function persistUpload(input: {
   filename: string
   buffer: Buffer
   mime: string
-}): Promise<{ url: string; storage: 'disk' | 'database' }> {
+}): Promise<{ url: string; storage: 'database' }> {
   const safe = sanitizeUploadFilename(input.filename)
   if (!safe) throw new Error('Nome de arquivo inválido')
   if (input.buffer.byteLength <= 0) throw new Error('Arquivo vazio')
 
-  if (await canWriteUploadsDir()) {
-    const absolute = path.join(uploadsDir(), safe)
-    await fs.writeFile(absolute, input.buffer)
-    // Espelha no DB para export em qualquer ambiente
-    await saveUploadToDb(safe, input.buffer, input.mime).catch(() => undefined)
-    return { url: publicUploadUrl(safe), storage: 'disk' }
-  }
-
   await saveUploadToDb(safe, input.buffer, input.mime)
-  return { url: publicUploadUrl(safe, { api: true }), storage: 'database' }
+  return { url: publicUploadUrl(safe), storage: 'database' }
 }
 
 export async function clearUploadsByPrefix(prefix: string): Promise<void> {
   const safePrefix = prefix.replace(/[^a-zA-Z0-9._-]/g, '')
   if (!safePrefix) return
 
-  if (await canWriteUploadsDir()) {
-    try {
-      const dir = uploadsDir()
-      const files = await fs.readdir(dir)
-      await Promise.all(
-        files
-          .filter((f) => f.startsWith(safePrefix))
-          .map((f) => fs.unlink(path.join(dir, f)).catch(() => undefined))
-      )
-    } catch {
-      // pasta inexistente
-    }
+  // Limpa resíduos antigos em disco (uploads locais legados), se existirem.
+  try {
+    const dir = uploadsDir()
+    const files = await fs.readdir(dir)
+    await Promise.all(
+      files
+        .filter((f) => f.startsWith(safePrefix))
+        .map((f) => fs.unlink(path.join(dir, f)).catch(() => undefined))
+    )
+  } catch {
+    // pasta inexistente
   }
 
   const rows = await prisma.systemSetting.findMany({
@@ -161,6 +133,7 @@ export async function clearUploadsByPrefix(prefix: string): Promise<void> {
     })
   }
 }
+
 
 export async function loadUploadBytes(
   urlOrPath: string
@@ -176,9 +149,16 @@ export async function loadUploadBytes(
 
   const filename = filenameFromUploadUrl(raw)
   if (filename) {
-    const absolute = path.join(uploadsDir(), filename)
+    const fromDb = await readUploadFromDb(filename)
+    if (fromDb) {
+      return {
+        buffer: Buffer.from(fromDb.dataBase64, 'base64'),
+        mime: fromDb.mime,
+      }
+    }
+    // Fallback: arquivos legados ainda em public/uploads
     try {
-      const buffer = await fs.readFile(absolute)
+      const buffer = await fs.readFile(path.join(uploadsDir(), filename))
       const ext = path.extname(filename).toLowerCase()
       const mime =
         ext === '.png'
@@ -190,14 +170,10 @@ export async function loadUploadBytes(
               : 'image/jpeg'
       return { buffer, mime }
     } catch {
-      const fromDb = await readUploadFromDb(filename)
-      if (!fromDb) return null
-      return {
-        buffer: Buffer.from(fromDb.dataBase64, 'base64'),
-        mime: fromDb.mime,
-      }
+      return null
     }
   }
+
 
   // Arquivo estático em /public (ex.: /certificate-template.jpg, /logo.png)
   if (raw.startsWith('/') && !raw.startsWith('//')) {
