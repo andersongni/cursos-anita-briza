@@ -34,6 +34,8 @@ export default defineConfig({
         'src/lib/certificate/open-pdf.ts',
         'src/lib/platform/compress-logo.ts',
         'src/lib/platform/compress-certificate-bg.ts',
+        'src/lib/platform/persist-upload.ts',
+
         'src/lib/gemini/client.ts',
         'src/lib/assessment/process-discursive-grading.ts',
         'src/lib/assessment/prova-oficial-informatica.ts',

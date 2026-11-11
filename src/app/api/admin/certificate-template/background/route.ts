@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import {
@@ -14,6 +12,10 @@ import {
   CERT_BG_MAX_UPLOAD_BYTES,
   compressCertificateBackground,
 } from '@/lib/platform/compress-certificate-bg'
+import {
+  clearUploadsByPrefix,
+  persistUpload,
+} from '@/lib/platform/persist-upload'
 
 export const runtime = 'nodejs'
 
@@ -24,28 +26,6 @@ const ALLOWED_TYPES = new Set([
   'image/webp',
   'image/gif',
 ])
-
-function uploadsDir() {
-  return path.join(process.cwd(), 'public', 'uploads')
-}
-
-async function ensureUploadsDir() {
-  await fs.mkdir(uploadsDir(), { recursive: true })
-}
-
-async function clearPreviousBackgrounds() {
-  try {
-    const dir = uploadsDir()
-    const files = await fs.readdir(dir)
-    await Promise.all(
-      files
-        .filter((f) => f.startsWith('certificate-background.'))
-        .map((f) => fs.unlink(path.join(dir, f)).catch(() => undefined))
-    )
-  } catch {
-    // pasta ainda não existe
-  }
-}
 
 async function upsertSetting(key: string, value: unknown, userId: string, description: string) {
   const stringified = JSON.stringify(value)
@@ -118,17 +98,18 @@ export async function POST(req: Request) {
       )
     }
 
-    await ensureUploadsDir()
-    await clearPreviousBackgrounds()
-
+    await clearUploadsByPrefix('certificate-background')
     const filename = `certificate-background${result.ext}`
-    await fs.writeFile(path.join(uploadsDir(), filename), result.buffer)
-    const backgroundUrl = `/uploads/${filename}?v=${Date.now()}`
-    const layout = await patchLayoutBackground(user.id, backgroundUrl)
+    const saved = await persistUpload({
+      filename,
+      buffer: result.buffer,
+      mime: result.mime,
+    })
+    const layout = await patchLayoutBackground(user.id, saved.url)
 
     return NextResponse.json({
       success: true,
-      backgroundUrl,
+      backgroundUrl: saved.url,
       layout,
       original_bytes: result.originalBytes,
       final_bytes: result.finalBytes,
@@ -146,7 +127,7 @@ export async function POST(req: Request) {
 export async function DELETE() {
   try {
     const { user } = await verifyAdmin()
-    await clearPreviousBackgrounds()
+    await clearUploadsByPrefix('certificate-background')
     const layout = await patchLayoutBackground(user.id, DEFAULT_CERTIFICATE_BACKGROUND)
     return NextResponse.json({
       success: true,

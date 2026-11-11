@@ -35,10 +35,11 @@ export function assetPathOnly(url: string): string {
   return url.slice(0, end)
 }
 
-/** Caminhos `/uploads/...` que precisam ser embutidos no export. */
+/** Caminhos `/uploads/...` ou `/api/uploads/...` que precisam ser embutidos no export. */
 export function isUploadAssetPath(url: string): boolean {
   const path = assetPathOnly(url)
-  return path.startsWith('/uploads/') && !path.includes('..')
+  if (path.includes('..')) return false
+  return path.startsWith('/uploads/') || path.startsWith('/api/uploads/')
 }
 
 export function collectLayoutAssetPaths(layout: CertificateLayout): string[] {

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import jsPDF from 'jspdf'
 import { DEFAULT_LOGO_URL } from '@/lib/platform/logo'
+import { loadUploadAsDataUrl } from '@/lib/platform/persist-upload'
 import {
   CERT_PAGE_HEIGHT_MM,
   CERT_PAGE_WIDTH_MM,
@@ -34,28 +35,6 @@ export interface CertificateData {
 const GOLD: [number, number, number] = [227, 193, 59]
 const BLUE: [number, number, number] = [0, 120, 168]
 const CREAM: [number, number, number] = [255, 255, 255]
-
-function resolvePublicFile(urlPath: string): string | null {
-  const cleaned = urlPath.split('?')[0].replace(/^\//, '')
-  if (!cleaned || cleaned.includes('..')) return null
-  const absolute = path.join(process.cwd(), 'public', cleaned)
-  return fs.existsSync(absolute) ? absolute : null
-}
-
-function loadImageAsDataUrl(filePath: string): { dataUrl: string; format: 'JPEG' | 'PNG' } | null {
-  try {
-    const ext = path.extname(filePath).toLowerCase()
-    const format: 'JPEG' | 'PNG' = ext === '.png' ? 'PNG' : 'JPEG'
-    const mime = format === 'PNG' ? 'image/png' : 'image/jpeg'
-    const buffer = fs.readFileSync(filePath)
-    return {
-      dataUrl: `data:${mime};base64,${buffer.toString('base64')}`,
-      format,
-    }
-  } catch {
-    return null
-  }
-}
 
 function registerFonts(doc: jsPDF) {
   const fonts = [
@@ -175,7 +154,7 @@ function applyPlaceholders(text: string, vars: Record<string, string>) {
   return out
 }
 
-export function generateCertificatePDF(data: CertificateData): jsPDF {
+export async function generateCertificatePDF(data: CertificateData): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
@@ -209,13 +188,14 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
 
   const layout = data.layout ?? createDefaultCertificateLayout()
 
-  const templatePath = resolvePublicFile(layout.backgroundUrl || '/certificate-template.jpg')
-  const template = templatePath ? loadImageAsDataUrl(templatePath) : null
+  const template =
+    (await loadUploadAsDataUrl(layout.backgroundUrl || '/certificate-template.jpg')) ||
+    (await loadUploadAsDataUrl('/certificate-template.jpg'))
 
-  const platformLogoPath =
-    resolvePublicFile(data.logoUrl || DEFAULT_LOGO_URL) ||
-    resolvePublicFile(DEFAULT_LOGO_URL)
   const platformLogoUrl = data.logoUrl || DEFAULT_LOGO_URL
+  const platformLogo =
+    (await loadUploadAsDataUrl(platformLogoUrl)) ||
+    (await loadUploadAsDataUrl(DEFAULT_LOGO_URL))
 
   if (template) {
     doc.addImage(template.dataUrl, template.format, 0, 0, pageWidth, pageHeight)
@@ -236,10 +216,9 @@ export function generateCertificatePDF(data: CertificateData): jsPDF {
     if (isImageElement(el)) {
       const url = resolveElementImageUrl(el, platformLogoUrl)
       if (!url) continue
-      const filePath =
-        resolvePublicFile(url) ||
-        (url.includes('logo') ? platformLogoPath : null)
-      const image = filePath ? loadImageAsDataUrl(filePath) : null
+      const image =
+        (await loadUploadAsDataUrl(url)) ||
+        (url.includes('logo') ? platformLogo : null)
       if (!image) continue
 
       const x = (el.x / 100) * pageWidth

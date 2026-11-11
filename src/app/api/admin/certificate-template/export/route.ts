@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { verifyAdmin } from '@/lib/auth/verify'
 import {
   CERTIFICATE_TRANSFER_KIND,
   CERTIFICATE_TRANSFER_VERSION,
+  assetPathOnly,
   collectLayoutAssetPaths,
-  mimeFromExt,
   stripLayoutAssetQueries,
   type CertificateTransferAsset,
   type CertificateTransferFile,
@@ -15,33 +13,9 @@ import {
   getCertificateEditableVariables,
   getCertificateLayout,
 } from '@/lib/certificate/settings'
+import { loadUploadBytes } from '@/lib/platform/persist-upload'
 
 export const runtime = 'nodejs'
-
-function publicRoot() {
-  return path.join(process.cwd(), 'public')
-}
-
-async function readUploadAsset(
-  assetPath: string
-): Promise<CertificateTransferAsset | null> {
-  const relative = assetPath.replace(/^\//, '').replace(/\//g, path.sep)
-  const root = path.resolve(publicRoot())
-  const absolute = path.resolve(root, relative)
-  // Garante que o arquivo fica sob public/
-  if (absolute !== root && !absolute.startsWith(root + path.sep)) return null
-  try {
-    const buffer = await fs.readFile(absolute)
-    const ext = path.extname(absolute)
-    return {
-      mime: mimeFromExt(ext),
-      dataBase64: buffer.toString('base64'),
-    }
-  } catch {
-    return null
-  }
-}
-
 
 export async function GET() {
   try {
@@ -57,19 +31,38 @@ export async function GET() {
     const missingAssets: string[] = []
 
     for (const assetPath of assetPaths) {
-      const asset = await readUploadAsset(assetPath)
-      if (!asset) {
+      const loaded = await loadUploadBytes(assetPath)
+      if (!loaded) {
         missingAssets.push(assetPath)
         continue
       }
-      assets[assetPath] = asset
+      // Canonicaliza a chave sem /api para portabilidade entre ambientes
+      const key = assetPathOnly(assetPath).replace(/^\/api\/uploads\//, '/uploads/')
+      assets[key] = {
+        mime: loaded.mime,
+        dataBase64: loaded.buffer.toString('base64'),
+      }
+    }
+
+    // Também reescreve o layout para /uploads/... (import remapeia de qualquer forma)
+    const portableLayout = {
+      ...cleaned,
+      backgroundUrl: cleaned.backgroundUrl.replace(/^\/api\/uploads\//, '/uploads/'),
+      elements: cleaned.elements.map((el) =>
+        el.type === 'image'
+          ? {
+              ...el,
+              imageUrl: el.imageUrl.replace(/^\/api\/uploads\//, '/uploads/'),
+            }
+          : el
+      ),
     }
 
     const file: CertificateTransferFile = {
       kind: CERTIFICATE_TRANSFER_KIND,
       version: CERTIFICATE_TRANSFER_VERSION,
       exportedAt: new Date().toISOString(),
-      layout: cleaned,
+      layout: portableLayout,
       editableVariables,
       assets,
     }

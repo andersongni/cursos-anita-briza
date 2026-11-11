@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import {
@@ -12,6 +10,10 @@ import {
   compressLogoImage,
   LOGO_MAX_UPLOAD_BYTES,
 } from '@/lib/platform/compress-logo'
+import {
+  clearUploadsByPrefix,
+  persistUpload,
+} from '@/lib/platform/persist-upload'
 
 export const runtime = 'nodejs'
 
@@ -23,27 +25,6 @@ const ALLOWED_TYPES = new Set([
   'image/gif',
 ])
 
-function uploadsDir() {
-  return path.join(process.cwd(), 'public', 'uploads')
-}
-
-async function ensureUploadsDir() {
-  await fs.mkdir(uploadsDir(), { recursive: true })
-}
-
-async function clearPreviousLogos() {
-  try {
-    const dir = uploadsDir()
-    const files = await fs.readdir(dir)
-    await Promise.all(
-      files
-        .filter((f) => f.startsWith('platform-logo.'))
-        .map((f) => fs.unlink(path.join(dir, f)).catch(() => undefined))
-    )
-  } catch {
-    // pasta ainda não existe
-  }
-}
 
 async function saveLogoSetting(userId: string, logoUrl: string) {
   const value = JSON.stringify(logoUrl)
@@ -125,19 +106,19 @@ export async function POST(req: Request) {
       )
     }
 
-    await ensureUploadsDir()
-    await clearPreviousLogos()
+    await clearUploadsByPrefix('platform-logo')
 
     const filename = `platform-logo${result.ext}`
-    const diskPath = path.join(uploadsDir(), filename)
-    await fs.writeFile(diskPath, result.buffer)
-
-    const logoUrl = `/uploads/${filename}?v=${Date.now()}`
-    await saveLogoSetting(user.id, logoUrl)
+    const saved = await persistUpload({
+      filename,
+      buffer: result.buffer,
+      mime: result.mime || 'image/png',
+    })
+    await saveLogoSetting(user.id, saved.url)
 
     return NextResponse.json({
       success: true,
-      logo_url: logoUrl,
+      logo_url: saved.url,
       compressed: result.compressed || file.size > result.finalBytes,
       original_bytes: result.originalBytes,
       final_bytes: result.finalBytes,
@@ -154,7 +135,7 @@ export async function POST(req: Request) {
 export async function DELETE() {
   try {
     const { user } = await verifyAdmin()
-    await clearPreviousLogos()
+    await clearUploadsByPrefix('platform-logo')
     await saveLogoSetting(user.id, DEFAULT_LOGO_URL)
     return NextResponse.json({ success: true, logo_url: DEFAULT_LOGO_URL })
   } catch (error: any) {
@@ -165,3 +146,4 @@ export async function DELETE() {
     )
   }
 }
+

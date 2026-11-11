@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import {
@@ -16,16 +14,12 @@ import {
   type CertificateLayout,
 } from '@/lib/certificate/layout'
 import { saveCertificateEditableVariables } from '@/lib/certificate/settings'
+import {
+  clearUploadsByPrefix,
+  persistUpload,
+} from '@/lib/platform/persist-upload'
 
 export const runtime = 'nodejs'
-
-function uploadsDir() {
-  return path.join(process.cwd(), 'public', 'uploads')
-}
-
-async function ensureUploadsDir() {
-  await fs.mkdir(uploadsDir(), { recursive: true })
-}
 
 async function upsertSetting(
   key: string,
@@ -50,26 +44,14 @@ async function upsertSetting(
   })
 }
 
-async function clearPreviousBackgrounds() {
-  try {
-    const dir = uploadsDir()
-    const files = await fs.readdir(dir)
-    await Promise.all(
-      files
-        .filter((f) => f.startsWith('certificate-background.'))
-        .map((f) => fs.unlink(path.join(dir, f)).catch(() => undefined))
-    )
-  } catch {
-    // pasta ainda não existe
-  }
-}
-
 function safeUploadBasename(assetPath: string, mime: string): string {
-  const base = path.basename(assetPathOnly(assetPath))
-  const parsed = path.parse(base)
-  const name = parsed.name.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || 'asset'
-  const ext = parsed.ext && /^\.(jpe?g|png|webp|gif)$/i.test(parsed.ext)
-    ? parsed.ext.toLowerCase().replace('.jpeg', '.jpg')
+  const base = assetPathOnly(assetPath).split('/').pop() || 'asset'
+  const dot = base.lastIndexOf('.')
+  const nameRaw = dot > 0 ? base.slice(0, dot) : base
+  const extRaw = dot > 0 ? base.slice(dot) : ''
+  const name = nameRaw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || 'asset'
+  const ext = /^\.(jpe?g|png|webp|gif)$/i.test(extRaw)
+    ? extRaw.toLowerCase().replace('.jpeg', '.jpg')
     : extFromMime(mime)
   if (name.startsWith('certificate-background')) {
     return `certificate-background${ext}`
@@ -95,8 +77,6 @@ export async function POST(req: Request) {
     }
 
     const { file } = validated
-    await ensureUploadsDir()
-
     const remapped = new Map<string, string>()
     const written: string[] = []
     const skippedAssets: string[] = []
@@ -123,15 +103,20 @@ export async function POST(req: Request) {
       }
 
       if (assetPath.includes('certificate-background')) {
-        await clearPreviousBackgrounds()
+        await clearUploadsByPrefix('certificate-background')
       }
 
       const filename = safeUploadBasename(assetPath, asset.mime)
-      const absolute = path.join(uploadsDir(), filename)
-      await fs.writeFile(absolute, buffer)
-      const publicUrl = `/uploads/${filename}?v=${Date.now()}`
-      remapped.set(assetPath, publicUrl)
-      written.push(publicUrl)
+      const saved = await persistUpload({
+        filename,
+        buffer,
+        mime: asset.mime,
+      })
+      remapped.set(assetPath, saved.url)
+      // Também mapeia variantes /api/uploads/... se o export veio de produção
+      const bare = assetPathOnly(assetPath)
+      remapped.set(bare, saved.url)
+      written.push(saved.url)
     }
 
     const applyUrl = (url: string) => {
@@ -144,9 +129,7 @@ export async function POST(req: Request) {
       ...file.layout,
       backgroundUrl: applyUrl(file.layout.backgroundUrl),
       elements: file.layout.elements.map((el) =>
-        el.type === 'image'
-          ? { ...el, imageUrl: applyUrl(el.imageUrl) }
-          : el
+        el.type === 'image' ? { ...el, imageUrl: applyUrl(el.imageUrl) } : el
       ),
     }
 

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const settings = await getCertificateSettings({ courseId: certificate.course_id })
 
-    const doc = generateCertificatePDF({
+    const doc = await generateCertificatePDF({
       studentName: formatFullName(certificate.student_name_snapshot),
       courseName:
         certificate.course_name_snapshot ||

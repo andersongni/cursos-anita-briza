@@ -18,8 +18,10 @@ describe('certificate-transfer', () => {
   it('detecta paths de upload', () => {
     expect(assetPathOnly('/uploads/a.png?v=1#x')).toBe('/uploads/a.png')
     expect(isUploadAssetPath('/uploads/a.png?v=1')).toBe(true)
+    expect(isUploadAssetPath('/api/uploads/a.png?v=1')).toBe(true)
     expect(isUploadAssetPath('/certificate-template.jpg')).toBe(false)
     expect(isUploadAssetPath('/uploads/../etc/passwd')).toBe(false)
+
   })
 
   it('coleta e limpa assets do layout', () => {

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { compressLogoImage, LOGO_MAX_UPLOAD_BYTES } from '@/lib/platform/compress-logo'
+import { persistUpload } from '@/lib/platform/persist-upload'
 
 export const runtime = 'nodejs'
 
@@ -13,14 +12,6 @@ const ALLOWED_TYPES = new Set([
   'image/webp',
   'image/gif',
 ])
-
-function uploadsDir() {
-  return path.join(process.cwd(), 'public', 'uploads')
-}
-
-async function ensureUploadsDir() {
-  await fs.mkdir(uploadsDir(), { recursive: true })
-}
 
 export async function POST(req: Request) {
   try {
@@ -60,14 +51,16 @@ export async function POST(req: Request) {
       )
     }
 
-    await ensureUploadsDir()
     const filename = `certificate-element-${Date.now()}${result.ext}`
-    await fs.writeFile(path.join(uploadsDir(), filename), result.buffer)
-    const imageUrl = `/uploads/${filename}?v=${Date.now()}`
+    const saved = await persistUpload({
+      filename,
+      buffer: result.buffer,
+      mime: result.mime || 'image/jpeg',
+    })
 
     return NextResponse.json({
       success: true,
-      imageUrl,
+      imageUrl: saved.url,
       original_bytes: result.originalBytes,
       final_bytes: result.finalBytes,
     })
