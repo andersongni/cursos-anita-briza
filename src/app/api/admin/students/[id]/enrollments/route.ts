@@ -88,7 +88,7 @@ export async function PUT(
 
     const student = await prisma.profile.findFirst({
       where: { id: studentId, role: 'STUDENT' },
-      select: { id: true },
+      select: { id: true, status: true },
     })
     if (!student) {
       return NextResponse.json({ error: 'Aluno não encontrado' }, { status: 404 })
@@ -120,6 +120,15 @@ export async function PUT(
         status: nextStatus,
       },
     })
+
+    // Matrícula ativa implica conta liberada — senão a aluna fica presa em
+    // /aguardando-aprovacao (que olha Profile.status, não a matrícula).
+    if (nextStatus === 'ACTIVE' && student.status === 'PENDING') {
+      await prisma.profile.update({
+        where: { id: studentId },
+        data: { status: 'APPROVED' },
+      })
+    }
 
     const enrollments = await listEnrollments(studentId)
     return NextResponse.json({ success: true, enrollments, status: nextStatus })

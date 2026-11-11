@@ -180,6 +180,14 @@ export async function PATCH(req: Request) {
       data: { status },
     })
 
+    // Ao aprovar a conta, libera matrículas que estavam só solicitadas
+    if (status === 'APPROVED') {
+      await prisma.courseEnrollment.updateMany({
+        where: { student_id: id, status: 'PENDING' },
+        data: { status: 'ACTIVE' },
+      })
+    }
+
     await prisma.auditLog.create({
       data: {
         user_id: user.id,

@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import {
-  clearSessionCookie,
+  COOKIE_NAME,
   createToken,
   getSession,
   isSessionIdle,
   refreshSessionActivity,
-  setSessionCookie,
+  sessionCookieOptions,
   shouldRefreshActivity,
 } from '@/lib/auth/session'
+
+function jsonWithClearedSession(
+  body: Record<string, unknown>,
+  status: number
+) {
+  const res = NextResponse.json(body, { status })
+  res.cookies.set(COOKIE_NAME, '', {
+    ...sessionCookieOptions(),
+    maxAge: 0,
+  })
+  return res
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,10 +31,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (isSessionIdle(session)) {
-      await clearSessionCookie()
-      return NextResponse.json(
-        { error: 'Sessão expirada por inatividade. Faça login novamente.', code: 'IDLE' },
-        { status: 401 }
+      return jsonWithClearedSession(
+        {
+          error: 'Sessão expirada por inatividade. Faça login novamente.',
+          code: 'IDLE',
+        },
+        401
       )
     }
 
@@ -47,22 +61,22 @@ export async function GET(request: NextRequest) {
     })
 
     if (!profile) {
-      await clearSessionCookie()
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+      return jsonWithClearedSession({ error: 'Não autenticado' }, 401)
     }
 
     const tokenVersion = session.sessionVersion ?? 0
     if (tokenVersion !== profile.session_version) {
-      await clearSessionCookie()
-      return NextResponse.json(
-        { error: 'Sessão invalidada. Faça login novamente.' },
-        { status: 401 }
+      return jsonWithClearedSession(
+        { error: 'Sessão invalidada. Faça login novamente.', code: 'SESSION_REVOKED' },
+        401
       )
     }
 
     if (profile.deleted_at) {
-      await clearSessionCookie()
-      return NextResponse.json({ error: 'Conta excluída', code: 'DELETED' }, { status: 401 })
+      return jsonWithClearedSession(
+        { error: 'Conta excluída', code: 'DELETED' },
+        401
+      )
     }
 
     const mustChangePassword = Boolean(profile.must_change_password)
@@ -71,37 +85,7 @@ export async function GET(request: NextRequest) {
       session.role !== profile.role ||
       Boolean(session.mustChangePassword) !== mustChangePassword
 
-    // Sincroniza JWT (aprovação, bloqueio ou troca obrigatória de senha)
-    if (sessionNeedsSync) {
-      if (profile.status === 'BLOCKED') {
-        await clearSessionCookie()
-        return NextResponse.json({ error: 'Conta bloqueada' }, { status: 403 })
-      }
-
-      const token = await createToken({
-        userId: profile.id,
-        username: profile.username,
-        role: profile.role,
-        status: profile.status,
-        sessionVersion: profile.session_version ?? 0,
-        mustChangePassword,
-        // Sync de perfil não conta como atividade; touch renova abaixo
-        lastActivityAt: session.lastActivityAt,
-      })
-      await setSessionCookie(token)
-    } else if (touch && shouldRefreshActivity(session)) {
-      // Só renova idle com sinal explícito de interação do usuário
-      const token = await refreshSessionActivity({
-        ...session,
-        role: profile.role,
-        status: profile.status,
-        sessionVersion: profile.session_version ?? 0,
-        mustChangePassword,
-      })
-      await setSessionCookie(token)
-    }
-
-    return NextResponse.json({
+    const body = {
       id: profile.id,
       username: profile.username,
       full_name: profile.full_name,
@@ -112,7 +96,43 @@ export async function GET(request: NextRequest) {
       must_change_password: profile.must_change_password,
       last_login_at: profile.last_login_at,
       created_at: profile.created_at,
-    })
+    }
+
+    // Sincroniza JWT (aprovação, bloqueio ou troca obrigatória de senha)
+    // Cookie precisa ir no NextResponse — cookies().set() pode não chegar no browser.
+    if (sessionNeedsSync) {
+      if (profile.status === 'BLOCKED') {
+        return jsonWithClearedSession({ error: 'Conta bloqueada' }, 403)
+      }
+
+      const token = await createToken({
+        userId: profile.id,
+        username: profile.username,
+        role: profile.role,
+        status: profile.status,
+        sessionVersion: profile.session_version ?? 0,
+        mustChangePassword,
+        lastActivityAt: session.lastActivityAt,
+      })
+      const res = NextResponse.json(body)
+      res.cookies.set(COOKIE_NAME, token, sessionCookieOptions())
+      return res
+    }
+
+    if (touch && shouldRefreshActivity(session)) {
+      const token = await refreshSessionActivity({
+        ...session,
+        role: profile.role,
+        status: profile.status,
+        sessionVersion: profile.session_version ?? 0,
+        mustChangePassword,
+      })
+      const res = NextResponse.json(body)
+      res.cookies.set(COOKIE_NAME, token, sessionCookieOptions())
+      return res
+    }
+
+    return NextResponse.json(body)
   } catch (error) {
     console.error('Me error:', error)
     return NextResponse.json(

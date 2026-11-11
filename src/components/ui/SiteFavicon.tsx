@@ -14,8 +14,8 @@ export default function SiteFavicon() {
       if (!cancelled) setSiteFavicon('/api/platform/icon')
     }
 
-    // Aplica já no mount (mesmo ícone do metadata) e revalida após branding.
     apply()
+    // Reaplica após branding (sem recriar nós do head)
     void fetch('/api/platform/branding', { cache: 'no-store' })
       .then(() => apply())
       .catch(() => apply())

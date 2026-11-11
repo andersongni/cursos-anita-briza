@@ -6,58 +6,58 @@ import { Clock } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import PlatformLogo from '@/components/ui/PlatformLogo'
+import Spinner from '@/components/ui/Spinner'
 import toast from 'react-hot-toast'
 
 export default function AguardandoAprovacaoPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null)
   const redirectedRef = useRef(false)
 
-  const checkStatus = useCallback(
-    async (opts?: { manual?: boolean }) => {
-      if (redirectedRef.current) return
-      if (opts?.manual) setLoading(true)
+  const goApproved = useCallback((role?: string) => {
+    if (redirectedRef.current) return
+    redirectedRef.current = true
+    toast.success('Seu cadastro foi aprovado!')
+    // Hard navigation garante uso do cookie JWT já sincronizado
+    const dest = role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'
+    window.location.assign(dest)
+  }, [])
 
-      try {
-        const res = await fetch('/api/auth/me', { cache: 'no-store' })
-        if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
-            router.push('/login')
-          }
-          return
-        }
+  const checkStatus = useCallback(async () => {
+    if (redirectedRef.current) return
+    setChecking(true)
 
-        const profile = await res.json()
-
-        if (profile.status === 'APPROVED') {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' })
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
           redirectedRef.current = true
-          toast.success('Seu cadastro foi aprovado!')
-          if (profile.role === 'ADMIN') {
-            router.replace('/admin/dashboard')
-          } else {
-            router.replace('/dashboard')
-          }
-          return
+          router.replace('/login')
         }
-
-        if (profile.status === 'BLOCKED') {
-          redirectedRef.current = true
-          router.replace('/login?blocked=true')
-          return
-        }
-
-        if (opts?.manual) {
-          toast('Cadastro ainda em análise. Aguarde a aprovação do administrador.')
-        }
-      } catch (error) {
-        console.error(error)
-        if (opts?.manual) toast.error('Erro ao verificar status.')
-      } finally {
-        if (opts?.manual) setLoading(false)
+        return
       }
-    },
-    [router]
-  )
+
+      const profile = await res.json()
+
+      if (profile.status === 'APPROVED') {
+        goApproved(profile.role)
+        return
+      }
+
+      if (profile.status === 'BLOCKED') {
+        redirectedRef.current = true
+        router.replace('/login?blocked=true')
+        return
+      }
+
+      setLastCheckedAt(new Date())
+    } catch (error) {
+      console.error(error)
+    } finally {
+      if (!redirectedRef.current) setChecking(false)
+    }
+  }, [goApproved, router])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -72,7 +72,7 @@ export default function AguardandoAprovacaoPage() {
     void checkStatus()
     const interval = setInterval(() => {
       void checkStatus()
-    }, 5000)
+    }, 3000)
 
     const onFocus = () => {
       void checkStatus()
@@ -84,6 +84,14 @@ export default function AguardandoAprovacaoPage() {
       window.removeEventListener('focus', onFocus)
     }
   }, [checkStatus])
+
+  const lastCheckedLabel = lastCheckedAt
+    ? lastCheckedAt.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : null
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -106,29 +114,39 @@ export default function AguardandoAprovacaoPage() {
               Cadastro Realizado!
             </h2>
 
-            <p className="text-gray-700 mb-4">
-              Seu cadastro foi realizado com sucesso e está aguardando aprovação do administrador.
+            <p className="text-gray-700 mb-6">
+              Seu cadastro foi realizado com sucesso e está aguardando aprovação do
+              administrador.
             </p>
+
+            <div
+              className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 mb-6"
+              aria-live="polite"
+              aria-busy={checking}
+            >
+              <div className="flex flex-col items-center gap-3">
+                <Spinner size="md" className="text-amber-700" />
+                <p className="text-sm font-medium text-amber-900">
+                  {checking
+                    ? 'Verificando aprovação…'
+                    : 'Aguardando aprovação — esta página atualiza sozinha'}
+                </p>
+                <p className="text-xs text-amber-800/80">
+                  {lastCheckedLabel
+                    ? `Última verificação: ${lastCheckedLabel}`
+                    : 'Consultando status do cadastro…'}
+                </p>
+              </div>
+            </div>
 
             <p className="text-sm text-gray-500 mb-8">
-              Assim que seu cadastro for aprovado, você será redirecionado automaticamente
-              para a área logada. Esta página verifica a cada 5 segundos.
+              Quando o administrador aprovar, você será redirecionado automaticamente
+              para a área logada.
             </p>
 
-            <div className="w-full space-y-3">
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => checkStatus({ manual: true })}
-                loading={loading}
-              >
-                Verificar status agora
-              </Button>
-
-              <Button variant="outline" className="w-full" onClick={handleLogout}>
-                Sair
-              </Button>
-            </div>
+            <Button variant="outline" className="w-full" onClick={handleLogout}>
+              Sair
+            </Button>
           </div>
         </Card>
       </div>

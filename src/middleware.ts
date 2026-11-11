@@ -89,14 +89,16 @@ export async function middleware(request: NextRequest) {
     return withOptionalActivityRefresh(request, session, NextResponse.redirect(url))
   }
 
-  // Pendente: só pode ficar em /aguardando-aprovacao
+  // Pendente: só pode ficar em /aguardando-aprovacao.
+  // Não renovar o JWT aqui — evita sobrescrever um cookie já sincronizado
+  // por /api/auth/me após a aprovação do admin (status APPROVED).
   if (session.status === 'PENDING') {
     if (!isWaitingPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/aguardando-aprovacao'
-      return withOptionalActivityRefresh(request, session, NextResponse.redirect(url))
+      return NextResponse.redirect(url)
     }
-    return withOptionalActivityRefresh(request, session, NextResponse.next())
+    return NextResponse.next()
   }
 
   // Aprovado/admin na página de espera → área logada
