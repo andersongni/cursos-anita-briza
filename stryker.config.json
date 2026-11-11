@@ -30,7 +30,7 @@
     "break": 80
   },
   "vitest": {
-    "configFile": "vitest.config.ts"
+    "configFile": "vitest.config.mts"
   },
   "concurrency": 4
 }

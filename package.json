@@ -32,7 +32,6 @@
     "test:coverage": "vitest run --coverage",
     "test:mutation": "stryker run"
   },
-
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@prisma/adapter-libsql": "^7.10.0",
@@ -41,7 +40,7 @@
     "jose": "^6.2.12",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.49.0",
-    "next": "16.3.8",
+    "next": "16.4.6",
     "prisma": "^7.10.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -56,16 +55,25 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^3.2.7",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.6",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "mysql2": "^3.24.5",
-    "deepmerge-ts": "^8.0.2"
+    "deepmerge-ts": "^8.0.2",
+    "dompurify": "^3.4.17",
+    "fast-uri": "^3.1.9",
+    "qs": "^6.17.1",
+    "minimatch@9": "11.0.7",
+    "minimatch@10": "11.0.7",
+    "minimatch@11": "11.0.7",
+    "tinypool": "^2.2.0",
+    "zod": "^4.6.6"
   }
 }

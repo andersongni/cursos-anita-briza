@@ -57,7 +57,7 @@ describe('recordDiscursiveGradingSample', () => {
 
 describe('getDiscursiveGradingAvgMs / estimate', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   it('usa default sem amostras', async () => {
@@ -75,10 +75,13 @@ describe('getDiscursiveGradingAvgMs / estimate', () => {
 
 
   it('estima com amostras', async () => {
-    prisma.systemSetting.findUnique.mockResolvedValue({ value: '[2000,4000]' })
+    prisma.systemSetting.findUnique.mockImplementation(async () => ({
+      value: '[2000,4000]',
+    }))
     const est = await estimateDiscursiveGrading(2)
     expect(est.pendingCount).toBe(2)
     expect(est.avgMsPerQuestion).toBe(3000)
+    expect(est.sampleCount).toBe(2)
     expect(est.estimatedSeconds).toBe(6)
 
     const neg = await estimateDiscursiveGrading(-3)
