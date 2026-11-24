@@ -486,57 +486,71 @@ export function normalizeCertificateLayout(raw: unknown): CertificateLayout {
   const defaults = createDefaultCertificateLayout()
   if (!raw || typeof raw !== 'object') return defaults
 
-  const obj = raw as Partial<CertificateLayout>
-  const incoming = Array.isArray(obj.elements) ? obj.elements : []
-  const byId = new Map(
-    incoming
-      .filter((e): e is CertificateLayoutElement => !!e && typeof e === 'object' && 'id' in e)
-      .map((e) => [String((e as CertificateLayoutElement).id), e as CertificateLayoutElement])
-  )
-
-  // Mantém ordem padrão e mescla elementos salvos; inclui extras do usuário no fim
-  const merged = defaults.elements.map((def) => {
-    const saved = byId.get(def.id)
-    if (def.id === 'logo' && !saved) {
-      // Migra o antigo checkbox showLogo para o elemento logo
-      const migratedVisible =
-        obj.showLogo === undefined ? true : Boolean(obj.showLogo)
-      return normalizeLayoutElement({ ...def, visible: migratedVisible }, def)
-    }
-    return normalizeLayoutElement(saved, def)
-  })
-
-  for (const [id, el] of byId) {
-    if (merged.some((m) => m.id === id)) continue
-    const isImage = el.type === 'image'
-    merged.push(
-      normalizeLayoutElement(
-        el,
-        isImage
-          ? createImageElement({ id, label: el.label || id, visible: true })
-          : createTextElement({
-              id,
-              label: el.label || id,
-              text: el.text || '',
-              visible: true,
-            })
-      )
-    )
-  }
-
+  const obj = raw as Partial<CertificateLayout> & { elements?: unknown }
   const bg =
     typeof obj.backgroundUrl === 'string' && obj.backgroundUrl.trim()
       ? obj.backgroundUrl.trim()
       : DEFAULT_CERTIFICATE_BACKGROUND
+  const backgroundUrl = bg.startsWith('/') ? bg : DEFAULT_CERTIFICATE_BACKGROUND
 
-  const logoEl = merged.find((e) => e.id === 'logo')
-  const showLogo = logoEl ? logoEl.visible : obj.showLogo === undefined ? true : Boolean(obj.showLogo)
+  // Sem array `elements` no payload: layout legado → defaults (+ migração showLogo).
+  if (!Array.isArray(obj.elements)) {
+    if (obj.showLogo === undefined) {
+      return { ...defaults, backgroundUrl }
+    }
+    const elements = defaults.elements.map((el) =>
+      el.id === 'logo'
+        ? normalizeLayoutElement({ ...el, visible: Boolean(obj.showLogo) }, el)
+        : el
+    )
+    const logoEl = elements.find((e) => e.id === 'logo')
+    return {
+      version: 1,
+      backgroundUrl,
+      showLogo: logoEl ? logoEl.visible : Boolean(obj.showLogo),
+      elements,
+    }
+  }
+
+  // Com `elements` (mesmo vazio): a lista salva é a fonte da verdade.
+  // Nada do default é reintroduzido se o admin removeu.
+  const defaultsById = new Map(defaults.elements.map((el) => [el.id, el]))
+  const elements: CertificateLayoutElement[] = []
+  const seen = new Set<string>()
+
+  for (const item of obj.elements) {
+    if (!item || typeof item !== 'object' || !('id' in item)) continue
+    const rawEl = item as Partial<CertificateLayoutElement>
+    const id = typeof rawEl.id === 'string' && rawEl.id ? rawEl.id : ''
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+
+    const fallback =
+      defaultsById.get(id) ??
+      (rawEl.type === 'image'
+        ? createImageElement({
+            id,
+            label: typeof rawEl.label === 'string' ? rawEl.label : id,
+            visible: true,
+          })
+        : createTextElement({
+            id,
+            label: typeof rawEl.label === 'string' ? rawEl.label : id,
+            text: typeof rawEl.text === 'string' ? rawEl.text : '',
+            visible: true,
+          }))
+
+    elements.push(normalizeLayoutElement(rawEl, fallback))
+  }
+
+  const logoEl = elements.find((e) => e.id === 'logo')
+  const showLogo = logoEl ? logoEl.visible : false
 
   return {
     version: 1,
-    backgroundUrl: bg.startsWith('/') ? bg : DEFAULT_CERTIFICATE_BACKGROUND,
+    backgroundUrl,
     showLogo,
-    elements: merged,
+    elements,
   }
 }
 

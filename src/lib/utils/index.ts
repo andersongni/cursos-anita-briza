@@ -11,6 +11,11 @@ export function isValidUsername(username: string): boolean {
   return USERNAME_REGEX.test(username)
 }
 
+/** Máscara de digitação do usuário: minúsculas, números e ponto. */
+export function normalizeUsernameInput(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9.]/g, '')
+}
+
 /** Nome completo: ao menos duas palavras separadas por espaço. */
 export function isValidFullName(name: string): boolean {
   const parts = name

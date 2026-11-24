@@ -32,7 +32,9 @@ vi.mock('@/lib/courses/ensure-courses', () => ({
 
 import {
   allocateUniqueCourseSlug,
+  assertAdminMouseAccuracyExerciseAccess,
   assertAdminTypingExerciseAccess,
+  assertMouseAccuracyExerciseAccess,
   assertStudentEnrolled,
   assertTypingExerciseAccess,
   COURSE_COOKIE,
@@ -200,6 +202,26 @@ describe('resolve admin/student course', () => {
 
     prisma.course.findFirst.mockResolvedValueOnce(course)
     await assertAdminTypingExerciseAccess()
+
+    prisma.courseEnrollment.findFirst.mockResolvedValueOnce(null)
+    await expect(assertMouseAccuracyExerciseAccess('s1')).rejects.toMatchObject({
+      status: 403,
+    })
+
+    prisma.courseEnrollment.findFirst.mockResolvedValueOnce({ id: 'e1' })
+    await assertMouseAccuracyExerciseAccess('s1')
+
+    prisma.course.findFirst.mockResolvedValueOnce({
+      ...course,
+      slug: 'eletrica-basica',
+      name: 'Elétrica',
+    })
+    await expect(assertAdminMouseAccuracyExerciseAccess()).rejects.toMatchObject({
+      status: 403,
+    })
+
+    prisma.course.findFirst.mockResolvedValueOnce(course)
+    await assertAdminMouseAccuracyExerciseAccess()
   })
 
   it('resolveStudentCourseId', async () => {

@@ -26,20 +26,20 @@ export default function CertificadosPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/certificates')
+      const res = await fetch('/api/certificates', { cache: 'no-store' })
       if (!res.ok) throw new Error('Falha ao carregar certificados')
       const data = await res.json()
       setCertificates(data.certificates ?? [])
       setEligibleAssessmentId(data.eligibleAssessmentId ?? null)
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar certificados')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao carregar certificados')
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
 
   const handleEmit = async () => {
@@ -55,8 +55,8 @@ export default function CertificadosPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao emitir certificado')
       toast.success('Certificado emitido com sucesso!')
       await load()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao emitir certificado')
     } finally {
       setEmitting(false)
     }

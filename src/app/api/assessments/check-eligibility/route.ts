@@ -8,8 +8,19 @@ import {
   resolveStudentCourseId,
 } from '@/lib/courses'
 
+export const dynamic = 'force-dynamic'
+
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'private, no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+}
+
 const NO_ENROLLMENT_MSG =
   'Você não possui matrícula ativa neste curso. Solicite a matrícula e aguarde a aprovação do administrador.'
+
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: NO_STORE_HEADERS })
+}
 
 function compositionFromSettings(settings: {
   questionCount: number
@@ -42,7 +53,7 @@ export async function GET(req: Request) {
     const enrolledIds = await listStudentCourseIds(user.id)
     if (enrolledIds.length === 0) {
       const defaults = await getAssessmentSettings(typeKey)
-      return NextResponse.json({
+      return json({
         eligible: false,
         enrolled: false,
         courseId: null,
@@ -59,26 +70,30 @@ export async function GET(req: Request) {
     let courseId: string
     try {
       courseId = await resolveStudentCourseId(user.id, searchParams.get('courseId'))
-    } catch {
-      const defaults = await getAssessmentSettings(typeKey)
-      return NextResponse.json({
-        eligible: false,
-        enrolled: false,
-        courseId: null,
-        courseName: null,
-        reason: NO_ENROLLMENT_MSG,
-        unlockUntil: null,
-        remainingMs: 0,
-        unlocked: false,
-        inProgressId: null,
-        ...compositionFromSettings(defaults),
-      })
+    } catch (err: unknown) {
+      const status = (err as { status?: number } | null)?.status
+      if (status === 403) {
+        const defaults = await getAssessmentSettings(typeKey)
+        return json({
+          eligible: false,
+          enrolled: false,
+          courseId: null,
+          courseName: null,
+          reason: NO_ENROLLMENT_MSG,
+          unlockUntil: null,
+          remainingMs: 0,
+          unlocked: false,
+          inProgressId: null,
+          ...compositionFromSettings(defaults),
+        })
+      }
+      throw err
     }
 
     const settings = await getAssessmentSettings(typeKey, courseId)
 
     if (!enrolledIds.includes(courseId)) {
-      return NextResponse.json({
+      return json({
         eligible: false,
         enrolled: false,
         courseId,
@@ -131,7 +146,7 @@ export async function GET(req: Request) {
         'A prova oficial está bloqueada. Aguarde a liberação pelo administrador.'
     }
 
-    return NextResponse.json({
+    return json({
       eligible,
       enrolled: true,
       courseId,
@@ -147,9 +162,9 @@ export async function GET(req: Request) {
   } catch (error: unknown) {
     console.error('Check eligibility error:', error)
     const err = error as { message?: string; status?: number }
-    return NextResponse.json(
+    return json(
       { error: err.message || 'Erro ao verificar elegibilidade' },
-      { status: err.status || 500 }
+      err.status || 500
     )
   }
 }

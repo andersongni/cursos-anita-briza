@@ -10,6 +10,8 @@ import {
   incrementLoginFailCount,
   verifyCaptchaFromBody,
 } from '@/lib/auth/login-captcha'
+import { isWeakPassword } from '@/lib/auth/weak-password'
+import { isTempPasswordActive } from '@/lib/auth/temporary-password'
 
 type LoginBody = {
   username: string
@@ -97,9 +99,18 @@ export async function POST(req: Request) {
       return failedLoginResponse(username)
     }
 
-    const isPasswordValid = await bcrypt.compare(password, profile.password_hash)
+    const primaryOk = await bcrypt.compare(password, profile.password_hash)
+    let usedTempPassword = false
 
-    if (!isPasswordValid) {
+    if (
+      !primaryOk &&
+      profile.temp_password_hash &&
+      isTempPasswordActive(profile.temp_password_expires_at)
+    ) {
+      usedTempPassword = await bcrypt.compare(password, profile.temp_password_hash)
+    }
+
+    if (!primaryOk && !usedTempPassword) {
       return failedLoginResponse(username)
     }
 
@@ -119,12 +130,29 @@ export async function POST(req: Request) {
 
     await clearLoginFailCount()
 
+    // Senha temporária não altera o status da senha original do aluno.
+    const updateData: {
+      last_login_at: Date
+      password_is_weak?: boolean
+      password_strength_checked_at?: Date
+    } = { last_login_at: new Date() }
+
+    if (primaryOk) {
+      updateData.password_is_weak = isWeakPassword(password, {
+        username: profile.username,
+      })
+      updateData.password_strength_checked_at = new Date()
+    }
+
     await prisma.profile.update({
       where: { id: profile.id },
-      data: { last_login_at: new Date() },
+      data: updateData,
     })
 
-    const mustChangePassword = Boolean(profile.must_change_password)
+    // Acesso com senha temp não força troca; a senha original permanece.
+    const mustChangePassword = usedTempPassword
+      ? false
+      : Boolean(profile.must_change_password)
 
     const token = await createToken({
       userId: profile.id,

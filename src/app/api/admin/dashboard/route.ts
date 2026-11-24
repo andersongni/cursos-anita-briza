@@ -4,6 +4,7 @@ import { verifyAdmin } from '@/lib/auth/verify'
 import { notDeleted, ofActiveStudent } from '@/lib/students/soft-delete'
 import { getProvaUnlockState } from '@/lib/settings/assessment'
 import { resolveAdminCourseId } from '@/lib/courses'
+import { scanAndFlagWeakStudentPasswords } from '@/lib/auth/scan-weak-passwords'
 
 type ThemeBucket = { total: number; correct: number }
 
@@ -339,6 +340,34 @@ export async function GET(req: Request) {
       )
     }
 
+    // Backfill gradual: marca senhas fracas ainda não verificadas neste curso.
+    await scanAndFlagWeakStudentPasswords({ courseId, limit: 15 })
+
+    const weakPasswordRows = await prisma.profile.findMany({
+      where: {
+        role: 'STUDENT',
+        deleted_at: null,
+        password_is_weak: true,
+        ...enrolledInCourse,
+      },
+      orderBy: { full_name: 'asc' },
+      take: 50,
+      select: {
+        id: true,
+        full_name: true,
+        username: true,
+        email: true,
+        phone: true,
+        updated_at: true,
+      },
+    })
+
+    if (weakPasswordRows.length > 0) {
+      alertas.push(
+        `${weakPasswordRows.length} aluno(s) com senha muito fraca (ex.: 123456) — recomenda-se resetar.`
+      )
+    }
+
     return NextResponse.json({
       courseId,
       course,
@@ -407,6 +436,14 @@ export async function GET(req: Request) {
             totalDiscursive: totalDisc,
           }
         }),
+        senhasFracas: weakPasswordRows.map((p) => ({
+          id: p.id,
+          fullName: p.full_name,
+          username: p.username,
+          email: p.email,
+          phone: p.phone,
+          updatedAt: p.updated_at,
+        })),
       },
     })
   } catch (error: unknown) {

@@ -144,7 +144,7 @@ export default async function DashboardPage() {
                   <div className="ml-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Exercícios</h2>
                     <p className="text-gray-600 mb-6">
-                      Pratique digitação em português e acompanhe seu tempo, erros, nota e ranking.
+                      Pratique digitação e precisão do mouse, e acompanhe nota e ranking.
                     </p>
                     <Link href="/student/exercicios">
                       <Button

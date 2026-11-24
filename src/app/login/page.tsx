@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
 import PlatformLogo from '@/components/ui/PlatformLogo'
 import RecaptchaWidget from '@/components/auth/RecaptchaWidget'
+import { normalizeUsernameInput } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 type CaptchaProvider = 'recaptcha' | 'math'
@@ -169,8 +170,13 @@ function LoginForm() {
             type="text"
             required
             autoComplete="username"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={username}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setUsername(normalizeUsernameInput(e.target.value))
+            }
           />
 
           <Input

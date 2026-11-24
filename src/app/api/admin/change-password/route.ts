@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { isWeakPassword } from '@/lib/auth/weak-password'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { createToken, setSessionCookie } from '@/lib/auth/session'
@@ -40,11 +41,18 @@ export async function POST(req: Request) {
 
     const profile = await prisma.profile.findUnique({
       where: { id: user.id },
-      select: { id: true, password_hash: true },
+      select: { id: true, password_hash: true, username: true },
     })
 
     if (!profile) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    }
+
+    if (isWeakPassword(new_password, { username: profile.username })) {
+      return NextResponse.json(
+        { error: 'Senha muito fraca (ex.: 123456). Escolha uma senha mais segura.' },
+        { status: 400 }
+      )
     }
 
     const valid = await bcrypt.compare(current_password, profile.password_hash)
@@ -59,6 +67,8 @@ export async function POST(req: Request) {
       data: {
         password_hash,
         must_change_password: false,
+        password_is_weak: false,
+        password_strength_checked_at: new Date(),
         session_version: { increment: 1 },
       },
     })

@@ -15,6 +15,7 @@ import {
   captchaResponseFields,
   verifyCaptchaFromBody,
 } from '@/lib/auth/login-captcha'
+import { isWeakPassword } from '@/lib/auth/weak-password'
 
 export async function POST(req: Request) {
   try {
@@ -122,6 +123,9 @@ export async function POST(req: Request) {
       )
     }
 
+    const passwordIsWeak = isWeakPassword(password, {
+      username: normalizedUsername,
+    })
     const hashedPassword = await bcrypt.hash(password, 12)
 
     const requestedCourseIds = Array.isArray(courseIds)
@@ -162,6 +166,8 @@ export async function POST(req: Request) {
         role: 'STUDENT',
         status: 'PENDING',
         password_hash: hashedPassword,
+        password_is_weak: passwordIsWeak,
+        password_strength_checked_at: new Date(),
       },
     })
 

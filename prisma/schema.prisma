@@ -50,6 +50,14 @@ model Profile {
   password_hash   String
   session_version Int       @default(0)
   must_change_password Boolean  @default(false)
+  /** Senha muito fraca (ex.: 123456) — alerta no admin para reset. */
+  password_is_weak Boolean  @default(false)
+  /** Última verificação de força da senha (backfill / login). */
+  password_strength_checked_at DateTime?
+  /** Senha temporária (hash) — não substitui password_hash. */
+  temp_password_hash String?
+  /** Expiração da senha temporária (ex.: 2h após o admin definir). */
+  temp_password_expires_at DateTime?
   last_login_at   DateTime?
   /** Soft-delete: preenchido quando o admin exclui o aluno (restaurável).
    *  Ao adicionar campos novos, registre o ALTER em src/lib/schema-migrations.ts
@@ -65,8 +73,55 @@ model Profile {
   certificates     Certificate[]
   auditLogs        AuditLog[]
   settingsUpdated  SystemSetting[]
-  feedbacks        Feedback[]
-  typingAttempts   TypingAttempt[]
+  feedbacks              Feedback[]
+  typingAttempts         TypingAttempt[]
+  mouseAccuracyAttempts  MouseAccuracyAttempt[]
+  mergesAsSurvivor       ProfileMerge[] @relation("MergeSurvivor")
+  mergesAsAbsorbed       ProfileMerge[] @relation("MergeAbsorbed")
+  mergesCreated          ProfileMerge[] @relation("MergeCreatedBy")
+  mergesUndone           ProfileMerge[] @relation("MergeUndoneBy")
+}
+
+/** Registro de merge de dois alunos (permite desfazer se o absorvido ficar sem histórico próprio). */
+model ProfileMerge {
+  id                            String    @id @default(cuid())
+  survivor_id                   String
+  absorbed_id                   String
+  keep_username_from            String
+  keep_password_from            String
+  keep_full_name_from           String    @default("survivor")
+  keep_email_from               String    @default("survivor")
+  keep_phone_from               String    @default("survivor")
+  survivor_username_before      String
+  survivor_password_hash_before String
+  survivor_full_name_before     String    @default("")
+  survivor_email_before         String    @default("")
+  survivor_phone_before         String    @default("")
+  absorbed_username_snapshot    String
+  absorbed_password_hash_snapshot String
+  absorbed_full_name_snapshot   String
+  absorbed_email_snapshot       String    @default("")
+  absorbed_phone_snapshot       String    @default("")
+  absorbed_placeholder_username String
+  moved_assessment_ids          String    @default("[]")
+  moved_certificate_ids         String    @default("[]")
+  moved_typing_ids              String    @default("[]")
+  moved_mouse_ids               String    @default("[]")
+  moved_feedback_ids            String    @default("[]")
+  moved_release_ids             String    @default("[]")
+  enrollment_snapshot           String    @default("[]")
+  created_by                    String
+  created_at                    DateTime  @default(now())
+  undone_at                     DateTime?
+  undone_by                     String?
+
+  survivor Profile  @relation("MergeSurvivor", fields: [survivor_id], references: [id])
+  absorbed Profile  @relation("MergeAbsorbed", fields: [absorbed_id], references: [id])
+  createdBy Profile @relation("MergeCreatedBy", fields: [created_by], references: [id])
+  undoneBy  Profile? @relation("MergeUndoneBy", fields: [undone_by], references: [id])
+
+  @@index([survivor_id])
+  @@index([absorbed_id])
 }
 
 model Dimension {
@@ -303,4 +358,28 @@ model TypingAttempt {
 
   @@index([passage_id, duration_ms])
   @@index([student_id, passage_id])
+}
+
+/** Tentativa concluída do exercício de precisão do mouse. */
+model MouseAccuracyAttempt {
+  id               String   @id @default(cuid())
+  student_id       String
+  duration_ms      Int
+  hits             Int
+  misses           Int
+  /** Alvos que sumiram sem serem clicados. */
+  expired          Int      @default(0)
+  points           Int
+  accuracy         Float
+  score            Float
+  max_combo        Int      @default(0)
+  /** Tempo médio de reação por acerto (ms desde o surgimento do alvo). */
+  avg_reaction_ms  Float    @default(0)
+  completed_at     DateTime @default(now())
+  created_at       DateTime @default(now())
+
+  student Profile @relation(fields: [student_id], references: [id])
+
+  @@index([score, avg_reaction_ms, accuracy, hits])
+  @@index([student_id, completed_at])
 }

@@ -5,7 +5,10 @@ import {
   INFORMATICA_COURSE_SLUG,
   STUDENT_COURSE_COOKIE,
 } from '@/lib/courses/constants'
-import { courseHasTypingExercise } from '@/lib/courses/capabilities'
+import {
+  courseHasMouseAccuracyExercise,
+  courseHasTypingExercise,
+} from '@/lib/courses/capabilities'
 import { ensureCourses } from '@/lib/courses/ensure-courses'
 
 export {
@@ -18,6 +21,7 @@ export {
   COURSE_FEATURES,
   EXERCISE_FEATURE_IDS,
   courseHasFeature,
+  courseHasMouseAccuracyExercise,
   courseHasStudentExercises,
   courseHasTypingExercise,
   listCourseFeatures,
@@ -268,6 +272,32 @@ export async function assertAdminTypingExerciseAccess(): Promise<void> {
   if (!courseHasTypingExercise(course.slug)) {
     const err = new Error(
       `A prática de digitação não está disponível para o curso ${course.name}. Troque o curso ativo para Informática Básica.`
+    ) as Error & { status?: number }
+    err.status = 403
+    throw err
+  }
+}
+
+/** Precisão do mouse pertence à Informática Básica. */
+export async function assertMouseAccuracyExerciseAccess(
+  studentId: string
+): Promise<void> {
+  const ok = await isStudentEnrolledInCourseSlug(studentId, INFORMATICA_COURSE_SLUG)
+  if (!ok) {
+    const err = new Error(
+      'O exercício de precisão do mouse está disponível apenas para alunos matriculados em Informática Básica.'
+    ) as Error & { status?: number }
+    err.status = 403
+    throw err
+  }
+}
+
+/** Admin só gerencia precisão do mouse com o curso Informática ativo. */
+export async function assertAdminMouseAccuracyExerciseAccess(): Promise<void> {
+  const course = await resolveAdminCourse()
+  if (!courseHasMouseAccuracyExercise(course.slug)) {
+    const err = new Error(
+      `A precisão do mouse não está disponível para o curso ${course.name}. Troque o curso ativo para Informática Básica.`
     ) as Error & { status?: number }
     err.status = 403
     throw err

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
 import { listCoursesForAdmin } from '@/lib/courses'
+import { issuePendingCertificatesForStudent } from '@/lib/certificate/issue'
 
 export async function GET(req: Request) {
   try {
@@ -13,6 +14,9 @@ export async function GET(req: Request) {
     const courseIdRaw = searchParams.get('courseId')?.trim() || ''
     const courseId =
       !courseIdRaw || courseIdRaw === 'all' ? null : courseIdRaw
+
+    // Garante que provas já aprovadas sem certificado apareçam em Emitidos.
+    await issuePendingCertificatesForStudent()
 
     const [certificates, courses] = await Promise.all([
       prisma.certificate.findMany({

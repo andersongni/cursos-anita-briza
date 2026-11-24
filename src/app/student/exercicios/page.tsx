@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Keyboard, ChevronRight } from 'lucide-react'
+import { Keyboard, MousePointer2, ChevronRight } from 'lucide-react'
 import Card, { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
-import { COURSE_FEATURES } from '@/lib/courses/capabilities'
+import {
+  COURSE_FEATURES,
+  type CourseFeatureId,
+} from '@/lib/courses/capabilities'
 
 const EXERCISES = [
   {
@@ -17,11 +20,20 @@ const EXERCISES = [
       'Treine velocidade e precisão em português, no estilo de uma pista de prática. Sem limite de tempo — ao terminar, veja sua nota e o ranking.',
     icon: Keyboard,
   },
+  {
+    feature: 'mouse_accuracy_exercise' as const,
+    href: '/student/exercicios/precisao-do-mouse',
+    title: COURSE_FEATURES.mouse_accuracy_exercise.label,
+    description:
+      'Acerte os alvos com o mouse em 60 segundos. Nível fácil, alvo grande, com placar ao vivo e ranking ao final.',
+    icon: MousePointer2,
+  },
 ]
 
 export default function StudentExerciciosPage() {
   const [loading, setLoading] = useState(true)
   const [hasExercises, setHasExercises] = useState(false)
+  const [features, setFeatures] = useState<CourseFeatureId[]>([])
   const [courseName, setCourseName] = useState<string | null>(null)
 
   useEffect(() => {
@@ -31,6 +43,11 @@ export default function StudentExerciciosPage() {
         if (!res.ok) return
         const data = await res.json()
         setHasExercises(Boolean(data.activeCourseHasExercises))
+        setFeatures(
+          Array.isArray(data.activeCourseFeatures)
+            ? (data.activeCourseFeatures as CourseFeatureId[])
+            : []
+        )
         setCourseName(
           typeof data.activeCourse?.name === 'string' ? data.activeCourse.name : null
         )
@@ -79,6 +96,8 @@ export default function StudentExerciciosPage() {
     )
   }
 
+  const visible = EXERCISES.filter((ex) => features.includes(ex.feature))
+
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 space-y-6">
       <div>
@@ -89,7 +108,7 @@ export default function StudentExerciciosPage() {
       </div>
 
       <div className="space-y-4">
-        {EXERCISES.map((exercise) => (
+        {visible.map((exercise) => (
           <Card key={exercise.href} className="border-t-4 border-t-primary hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-start gap-4">

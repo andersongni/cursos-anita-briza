@@ -1,17 +1,12 @@
-import { randomInt } from 'crypto'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { verifyAdmin } from '@/lib/auth/verify'
-
-function generateTempPassword(length = 8): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
-  let out = ''
-  for (let i = 0; i < length; i++) {
-    out += chars[randomInt(chars.length)]
-  }
-  return out
-}
+import { isWeakPassword } from '@/lib/auth/weak-password'
+import {
+  checkPasswordComplexity,
+  generateStrongPassword,
+} from '@/lib/auth/strong-password'
 
 export async function POST(
   req: Request,
@@ -49,14 +44,24 @@ export async function POST(
       typeof body.new_password === 'string' ? body.new_password.trim() : ''
 
     if (newPassword) {
-      if (newPassword.length < 6) {
+      const complexity = checkPasswordComplexity(newPassword)
+      if (!complexity.ok) {
+        return NextResponse.json({ error: complexity.error }, { status: 400 })
+      }
+      if (isWeakPassword(newPassword, { username: student.username })) {
         return NextResponse.json(
-          { error: 'A senha deve ter pelo menos 6 caracteres' },
+          {
+            error:
+              'Senha muito fraca (ex.: 123456). Escolha outra ou deixe em branco para gerar automaticamente.',
+          },
           { status: 400 }
         )
       }
     } else {
-      newPassword = generateTempPassword(8)
+      newPassword = generateStrongPassword(10)
+      while (isWeakPassword(newPassword, { username: student.username })) {
+        newPassword = generateStrongPassword(10)
+      }
     }
 
     const password_hash = await bcrypt.hash(newPassword, 12)
@@ -67,6 +72,13 @@ export async function POST(
       data: {
         password_hash,
         session_version: { increment: 1 },
+        password_is_weak: false,
+        password_strength_checked_at: new Date(),
+        // Senha definida pelo admin é definitiva — não força troca no login.
+        must_change_password: false,
+        // Reset definitivo invalida também a senha temporária.
+        temp_password_hash: null,
+        temp_password_expires_at: null,
       },
     })
 
@@ -85,11 +97,12 @@ export async function POST(
       username: student.username,
       temporary_password: newPassword,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Reset student password error:', error)
+    const err = error as { message?: string; status?: number }
     return NextResponse.json(
-      { error: error.message || 'Erro ao resetar senha' },
-      { status: error.status || 500 }
+      { error: err.message || 'Erro ao resetar senha' },
+      { status: err.status || 500 }
     )
   }
 }

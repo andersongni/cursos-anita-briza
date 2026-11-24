@@ -11,12 +11,20 @@ export const COURSE_FEATURES = {
     /** Slugs que oferecem este exercício (aluno e admin). */
     courseSlugs: [INFORMATICA_COURSE_SLUG] as readonly string[],
   },
+  mouse_accuracy_exercise: {
+    id: 'mouse_accuracy_exercise',
+    label: 'Precisão do mouse',
+    courseSlugs: [INFORMATICA_COURSE_SLUG] as readonly string[],
+  },
 } as const
 
 export type CourseFeatureId = keyof typeof COURSE_FEATURES
 
 /** Features que compõem o menu/hub "Exercícios". */
-export const EXERCISE_FEATURE_IDS: readonly CourseFeatureId[] = ['typing_exercise']
+export const EXERCISE_FEATURE_IDS: readonly CourseFeatureId[] = [
+  'typing_exercise',
+  'mouse_accuracy_exercise',
+]
 
 export function courseHasFeature(
   slug: string | null | undefined,
@@ -40,4 +48,10 @@ export function courseHasStudentExercises(slug: string | null | undefined): bool
 
 export function courseHasTypingExercise(slug: string | null | undefined): boolean {
   return courseHasFeature(slug, 'typing_exercise')
+}
+
+export function courseHasMouseAccuracyExercise(
+  slug: string | null | undefined
+): boolean {
+  return courseHasFeature(slug, 'mouse_accuracy_exercise')
 }

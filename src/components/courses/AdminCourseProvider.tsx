@@ -12,6 +12,7 @@ import {
 import { usePathname, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
+  courseHasMouseAccuracyExercise,
   courseHasStudentExercises,
   courseHasTypingExercise,
   listCourseFeatures,
@@ -34,6 +35,7 @@ type AdminCourseContextValue = {
   features: CourseFeatureId[]
   hasExercises: boolean
   hasTypingExercise: boolean
+  hasMouseAccuracyExercise: boolean
   loading: boolean
   setActiveCourseId: (courseId: string) => Promise<void>
   reload: () => Promise<void>
@@ -90,6 +92,7 @@ export function AdminCourseProvider({ children }: { children: ReactNode }) {
   const features = useMemo(() => listCourseFeatures(slug), [slug])
   const hasExercises = courseHasStudentExercises(slug)
   const hasTypingExercise = courseHasTypingExercise(slug)
+  const hasMouseAccuracyExercise = courseHasMouseAccuracyExercise(slug)
 
   const value = useMemo<AdminCourseContextValue>(
     () => ({
@@ -99,6 +102,7 @@ export function AdminCourseProvider({ children }: { children: ReactNode }) {
       features,
       hasExercises,
       hasTypingExercise,
+      hasMouseAccuracyExercise,
       loading,
       setActiveCourseId,
       reload,
@@ -110,6 +114,7 @@ export function AdminCourseProvider({ children }: { children: ReactNode }) {
       features,
       hasExercises,
       hasTypingExercise,
+      hasMouseAccuracyExercise,
       loading,
       setActiveCourseId,
       reload,

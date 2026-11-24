@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card'
@@ -9,6 +9,8 @@ import Spinner from '@/components/ui/Spinner'
 import CompositionSummary from '@/components/assessment/CompositionSummary'
 import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+const UNLOCK_POLL_MS = 2000
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return 'menos de 1 minuto'
@@ -39,29 +41,70 @@ export default function ProvaStartPage() {
   const [discursiveWeightPercent, setDiscursiveWeightPercent] = useState(20)
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(120)
   const [passingScore, setPassingScore] = useState(70)
+  const requestSeqRef = useRef(0)
+  const wasUnlockedRef = useRef(false)
+  const unlockedRef = useRef(false)
+  const inProgressRef = useRef<string | null>(null)
+  const awaitingRef = useRef<string | null>(null)
+  const enrolledRef = useRef(true)
 
   const loadEligibility = useCallback(async (opts?: { silent?: boolean }) => {
+    const seq = ++requestSeqRef.current
     try {
-      const res = await fetch('/api/assessments/check-eligibility?type=PROVA', {
-        cache: 'no-store',
-      })
+      const res = await fetch(
+        `/api/assessments/check-eligibility?type=PROVA&_=${Date.now()}`,
+        {
+          cache: 'no-store',
+          credentials: 'same-origin',
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        }
+      )
       const data = await res.json().catch(() => ({}))
+      // Ignora respostas fora de ordem (polls sobrepostos).
+      if (seq !== requestSeqRef.current) return
+
       if (!res.ok) {
-        setEnrolled(false)
-        setEligible(false)
-        setUnlocked(false)
-        setBlockReason(data.error || 'Não foi possível verificar a prova.')
+        if (!opts?.silent) {
+          setEnrolled(false)
+          setEligible(false)
+          setUnlocked(false)
+          setBlockReason(data.error || 'Não foi possível verificar a prova.')
+        }
         return
       }
-      setEnrolled(data.enrolled !== false)
+      const nextUnlocked = Boolean(data.unlocked)
+      const nextEnrolled = data.enrolled !== false
+      const nextInProgress = (data.inProgressId as string | null | undefined) ?? null
+      const nextAwaiting = (data.awaitingGradingId as string | null | undefined) ?? null
+
+      if (
+        opts?.silent &&
+        nextUnlocked &&
+        !wasUnlockedRef.current &&
+        nextEnrolled &&
+        !nextInProgress &&
+        !nextAwaiting
+      ) {
+        toast.success('Prova liberada! Você já pode iniciar.')
+      }
+      wasUnlockedRef.current = nextUnlocked
+      unlockedRef.current = nextUnlocked
+      enrolledRef.current = nextEnrolled
+      inProgressRef.current = nextInProgress
+      awaitingRef.current = nextAwaiting
+
+      setEnrolled(nextEnrolled)
       setCourseName(typeof data.courseName === 'string' ? data.courseName : null)
       setEligible(Boolean(data.eligible))
-      setUnlocked(Boolean(data.unlocked))
+      setUnlocked(nextUnlocked)
       setUnlockUntil(typeof data.unlockUntil === 'string' ? data.unlockUntil : null)
       setRemainingMs(Number.isFinite(Number(data.remainingMs)) ? Number(data.remainingMs) : 0)
       setBlockReason(typeof data.reason === 'string' ? data.reason : null)
-      setInProgressId(data.inProgressId ?? null)
-      setAwaitingGradingId(data.awaitingGradingId ?? null)
+      setInProgressId(nextInProgress)
+      setAwaitingGradingId(nextAwaiting)
       const mc = Number(data.mcCount)
       const disc = Number(data.discursiveCount)
       const mcW = Number(data.mcWeightPercent)
@@ -81,7 +124,7 @@ export default function ProvaStartPage() {
         setBlockReason('Erro ao verificar disponibilidade da prova.')
       }
     } finally {
-      setChecking(false)
+      if (seq === requestSeqRef.current) setChecking(false)
     }
   }, [])
 
@@ -89,25 +132,48 @@ export default function ProvaStartPage() {
     void loadEligibility()
   }, [loadEligibility])
 
-  // Enquanto a prova estiver bloqueada, consulta a liberação a cada 3s (e ao focar a aba).
+  // Enquanto a prova estiver bloqueada, consulta a liberação periodicamente.
   const waitingForUnlock =
     enrolled && !unlocked && !inProgressId && !awaitingGradingId && !checking
 
   useEffect(() => {
+    enrolledRef.current = enrolled
+    unlockedRef.current = unlocked
+    inProgressRef.current = inProgressId
+    awaitingRef.current = awaitingGradingId
+  }, [enrolled, unlocked, inProgressId, awaitingGradingId])
+
+  useEffect(() => {
     if (!waitingForUnlock) return
 
-    const interval = setInterval(() => {
-      void loadEligibility({ silent: true })
-    }, 3000)
+    const shouldPoll = () =>
+      enrolledRef.current &&
+      !unlockedRef.current &&
+      !inProgressRef.current &&
+      !awaitingRef.current
 
-    const onFocus = () => {
+    const poll = () => {
+      if (!shouldPoll()) return
       void loadEligibility({ silent: true })
     }
-    window.addEventListener('focus', onFocus)
+
+    // Consulta imediata ao entrar no modo de espera (além do intervalo).
+    poll()
+    const interval = setInterval(poll, UNLOCK_POLL_MS)
+
+    const onResume = () => {
+      if (document.visibilityState === 'hidden') return
+      poll()
+    }
+    window.addEventListener('focus', onResume)
+    window.addEventListener('pageshow', onResume)
+    document.addEventListener('visibilitychange', onResume)
 
     return () => {
       clearInterval(interval)
-      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('focus', onResume)
+      window.removeEventListener('pageshow', onResume)
+      document.removeEventListener('visibilitychange', onResume)
     }
   }, [waitingForUnlock, loadEligibility])
 

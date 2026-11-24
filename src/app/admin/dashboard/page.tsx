@@ -97,6 +97,15 @@ type PendingGrading = {
   totalDiscursive: number
 }
 
+type WeakPasswordStudent = {
+  id: string
+  fullName: string
+  username: string
+  email: string | null
+  phone: string | null
+  updatedAt: string
+}
+
 type DashboardStats = {
   courseId?: string
   course?: { id: string; name: string; slug: string } | null
@@ -117,6 +126,7 @@ type DashboardStats = {
     contas: PendingAccount[]
     matriculas: PendingEnrollment[]
     correcoes?: PendingGrading[]
+    senhasFracas?: WeakPasswordStudent[]
   }
 }
 
@@ -130,7 +140,7 @@ const emptyStats: DashboardStats = {
   perguntas: { totalProva: 0, totalSimulado: 0, ativas: 0, inativas: 0 },
   prova: { unlocked: false, unlockUntil: null, remainingMs: 0 },
   alertas: [],
-  pendencias: { contas: [], matriculas: [], correcoes: [] },
+  pendencias: { contas: [], matriculas: [], correcoes: [], senhasFracas: [] },
 }
 
 function formatPendingDate(iso: string) {
@@ -415,10 +425,12 @@ export default function AdminDashboardPage() {
   const pendingAccounts = stats.pendencias?.contas ?? []
   const pendingEnrollments = stats.pendencias?.matriculas ?? []
   const pendingGradings = stats.pendencias?.correcoes ?? []
+  const weakPasswords = stats.pendencias?.senhasFracas ?? []
   const hasPendencias =
     pendingAccounts.length > 0 ||
     pendingEnrollments.length > 0 ||
-    pendingGradings.length > 0
+    pendingGradings.length > 0 ||
+    weakPasswords.length > 0
 
   return (
     <div className="space-y-6">
@@ -442,7 +454,8 @@ export default function AdminDashboardPage() {
               <Badge variant="warning">
                 {pendingAccounts.length +
                   pendingEnrollments.length +
-                  pendingGradings.length}
+                  pendingGradings.length +
+                  weakPasswords.length}
               </Badge>
             </CardTitle>
             <CardDescription>
@@ -451,6 +464,47 @@ export default function AdminDashboardPage() {
             </CardDescription>
           </CardHeader>
           <div className="p-4 pt-0 space-y-6">
+            {weakPasswords.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Senha fraca — resetar ({weakPasswords.length})
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Estes alunos usam senhas muito fáceis (ex.: 123456). Gere uma senha temporária
+                  e peça a troca no próximo acesso.
+                </p>
+                <ul className="space-y-2">
+                  {weakPasswords.map((aluno) => (
+                    <li
+                      key={aluno.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50/50 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{aluno.fullName}</p>
+                        <p className="text-sm text-slate-600">
+                          @{aluno.username}
+                          {aluno.email ? ` · ${aluno.email}` : ''}
+                          {aluno.phone ? ` · ${aluno.phone}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <Link href={`/admin/alunos/${aluno.id}?resetPassword=1`}>
+                          <Button size="sm" variant="primary">
+                            Resetar senha
+                          </Button>
+                        </Link>
+                        <Link href={`/admin/alunos/${aluno.id}`}>
+                          <Button size="sm" variant="ghost">
+                            Detalhes
+                          </Button>
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {pendingGradings.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-800">

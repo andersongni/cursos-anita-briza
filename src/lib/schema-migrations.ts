@@ -163,4 +163,128 @@ export const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     id: '2026-10-05_answer_grading_feedback',
     sql: `ALTER TABLE AssessmentAnswer ADD COLUMN grading_feedback TEXT`,
   },
+  {
+    id: '2026-11-12_create_mouse_accuracy_attempt',
+    sql: `CREATE TABLE IF NOT EXISTS MouseAccuracyAttempt (
+      id TEXT PRIMARY KEY NOT NULL,
+      student_id TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      hits INTEGER NOT NULL,
+      misses INTEGER NOT NULL,
+      points INTEGER NOT NULL,
+      accuracy REAL NOT NULL,
+      score REAL NOT NULL,
+      max_combo INTEGER NOT NULL DEFAULT 0,
+      avg_reaction_ms REAL NOT NULL DEFAULT 0,
+      completed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES Profile(id)
+    )`,
+  },
+  {
+    id: '2026-11-12_mouse_accuracy_attempt_score_idx',
+    sql: `CREATE INDEX IF NOT EXISTS MouseAccuracyAttempt_score_accuracy_hits_idx
+      ON MouseAccuracyAttempt(score, accuracy, hits)`,
+  },
+  {
+    id: '2026-11-12_mouse_accuracy_attempt_student_idx',
+    sql: `CREATE INDEX IF NOT EXISTS MouseAccuracyAttempt_student_id_completed_at_idx
+      ON MouseAccuracyAttempt(student_id, completed_at)`,
+  },
+  {
+    id: '2026-11-12_mouse_accuracy_avg_reaction_ms',
+    sql: `ALTER TABLE MouseAccuracyAttempt ADD COLUMN avg_reaction_ms REAL NOT NULL DEFAULT 0`,
+  },
+  {
+    id: '2026-11-12_mouse_accuracy_attempt_score_speed_idx',
+    sql: `CREATE INDEX IF NOT EXISTS MouseAccuracyAttempt_score_avg_reaction_ms_accuracy_hits_idx
+      ON MouseAccuracyAttempt(score, avg_reaction_ms, accuracy, hits)`,
+  },
+  {
+    id: '2026-11-12_mouse_accuracy_expired',
+    sql: `ALTER TABLE MouseAccuracyAttempt ADD COLUMN expired INTEGER NOT NULL DEFAULT 0`,
+  },
+  {
+    id: '2026-11-24_profile_password_is_weak',
+    sql: `ALTER TABLE Profile ADD COLUMN password_is_weak INTEGER NOT NULL DEFAULT 0`,
+  },
+  {
+    id: '2026-11-24_profile_password_strength_checked_at',
+    sql: `ALTER TABLE Profile ADD COLUMN password_strength_checked_at DATETIME`,
+  },
+  {
+    id: '2026-11-24_profile_temp_password_hash',
+    sql: `ALTER TABLE Profile ADD COLUMN temp_password_hash TEXT`,
+  },
+  {
+    id: '2026-11-24_profile_temp_password_expires_at',
+    sql: `ALTER TABLE Profile ADD COLUMN temp_password_expires_at DATETIME`,
+  },
+  {
+    id: '2026-11-24_create_profile_merge',
+    sql: `CREATE TABLE IF NOT EXISTS ProfileMerge (
+      id TEXT PRIMARY KEY NOT NULL,
+      survivor_id TEXT NOT NULL,
+      absorbed_id TEXT NOT NULL,
+      keep_username_from TEXT NOT NULL,
+      keep_password_from TEXT NOT NULL,
+      survivor_username_before TEXT NOT NULL,
+      survivor_password_hash_before TEXT NOT NULL,
+      absorbed_username_snapshot TEXT NOT NULL,
+      absorbed_password_hash_snapshot TEXT NOT NULL,
+      absorbed_full_name_snapshot TEXT NOT NULL,
+      absorbed_placeholder_username TEXT NOT NULL,
+      moved_assessment_ids TEXT NOT NULL DEFAULT '[]',
+      moved_certificate_ids TEXT NOT NULL DEFAULT '[]',
+      moved_typing_ids TEXT NOT NULL DEFAULT '[]',
+      moved_mouse_ids TEXT NOT NULL DEFAULT '[]',
+      moved_feedback_ids TEXT NOT NULL DEFAULT '[]',
+      moved_release_ids TEXT NOT NULL DEFAULT '[]',
+      enrollment_snapshot TEXT NOT NULL DEFAULT '[]',
+      created_by TEXT NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      undone_at DATETIME,
+      undone_by TEXT
+    )`,
+  },
+  {
+    id: '2026-11-24_profile_merge_survivor_idx',
+    sql: `CREATE INDEX IF NOT EXISTS ProfileMerge_survivor_id_idx ON ProfileMerge(survivor_id)`,
+  },
+  {
+    id: '2026-11-24_profile_merge_absorbed_idx',
+    sql: `CREATE INDEX IF NOT EXISTS ProfileMerge_absorbed_id_idx ON ProfileMerge(absorbed_id)`,
+  },
+  {
+    id: '2026-11-24_profile_merge_keep_full_name_from',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN keep_full_name_from TEXT NOT NULL DEFAULT 'survivor'`,
+  },
+  {
+    id: '2026-11-24_profile_merge_keep_email_from',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN keep_email_from TEXT NOT NULL DEFAULT 'survivor'`,
+  },
+  {
+    id: '2026-11-24_profile_merge_keep_phone_from',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN keep_phone_from TEXT NOT NULL DEFAULT 'survivor'`,
+  },
+  {
+    id: '2026-11-24_profile_merge_survivor_full_name_before',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN survivor_full_name_before TEXT NOT NULL DEFAULT ''`,
+  },
+  {
+    id: '2026-11-24_profile_merge_survivor_email_before',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN survivor_email_before TEXT NOT NULL DEFAULT ''`,
+  },
+  {
+    id: '2026-11-24_profile_merge_survivor_phone_before',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN survivor_phone_before TEXT NOT NULL DEFAULT ''`,
+  },
+  {
+    id: '2026-11-24_profile_merge_absorbed_email_snapshot',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN absorbed_email_snapshot TEXT NOT NULL DEFAULT ''`,
+  },
+  {
+    id: '2026-11-24_profile_merge_absorbed_phone_snapshot',
+    sql: `ALTER TABLE ProfileMerge ADD COLUMN absorbed_phone_snapshot TEXT NOT NULL DEFAULT ''`,
+  },
 ]

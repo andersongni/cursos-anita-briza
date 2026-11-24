@@ -56,17 +56,24 @@ describe('certificate layout', () => {
       ],
     })
     expect(normalized.backgroundUrl).toBe('/bg.jpg')
+    expect(normalized.elements).toHaveLength(3)
     expect(normalized.elements.find((e) => e.id === 'title')?.align).toBe('left')
     expect(normalized.elements.some((e) => e.id === 'custom')).toBe(true)
     expect(normalized.elements.some((e) => e.id === 'img1')).toBe(true)
+    // Removidos do save não voltam (ex.: logo, student_name, etc.)
+    expect(normalized.elements.some((e) => e.id === 'logo')).toBe(false)
+    expect(normalized.elements.some((e) => e.id === 'student_name')).toBe(false)
+    expect(normalized.showLogo).toBe(false)
 
-    const migrated = normalizeCertificateLayout({ showLogo: true, elements: [] })
+    // Array vazio explícito: nenhum elemento fixo
+    const empty = normalizeCertificateLayout({ showLogo: true, elements: [] })
+    expect(empty.elements).toEqual([])
+    expect(empty.showLogo).toBe(false)
+
+    // Sem `elements` (legado): usa defaults e migra showLogo
+    const migrated = normalizeCertificateLayout({ showLogo: true })
     expect(migrated.elements.find((e) => e.id === 'logo')?.visible).toBe(true)
-
-    const migratedHidden = normalizeCertificateLayout({
-      showLogo: false,
-      elements: [],
-    })
+    const migratedHidden = normalizeCertificateLayout({ showLogo: false })
     expect(migratedHidden.elements.find((e) => e.id === 'logo')?.visible).toBe(false)
 
     expect(normalizeCertificateLayout(null).version).toBe(1)
@@ -98,7 +105,6 @@ describe('certificate layout', () => {
         ],
       }).showLogo
     ).toBe(false)
-
 
     const el = normalizeLayoutElement(
       { type: 'text', color: 1 as unknown as string, align: 'weird' as never },

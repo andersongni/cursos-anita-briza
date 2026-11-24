@@ -15,6 +15,7 @@ import {
   isValidEmail,
   isValidFullName,
   isValidUsername,
+  normalizeUsernameInput,
 } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -266,7 +267,7 @@ export default function CadastroPage() {
     const { name, value } = e.target
     let nextValue = value
     if (name === 'username') {
-      nextValue = value.toLowerCase().replace(/[^a-z0-9.]/g, '')
+      nextValue = normalizeUsernameInput(value)
       setUsernameOk(false)
     } else if (name === 'phone') {
       nextValue = formatPhoneMask(value)

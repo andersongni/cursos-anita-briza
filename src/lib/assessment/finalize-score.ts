@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { ensureCertificateForPassedProva } from '@/lib/certificate/issue'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
 
 export type ScoreBreakdown = {
@@ -171,6 +172,13 @@ export async function tryFinalizeAssessment(assessmentId: string) {
       completed_at: assessment.completed_at ?? new Date(),
     },
   })
+
+  if (
+    breakdown.passed &&
+    String(assessment.type).toUpperCase() === 'PROVA'
+  ) {
+    await ensureCertificateForPassedProva(assessmentId)
+  }
 
   return { finalized: true as const, breakdown, assessment: updated }
 }

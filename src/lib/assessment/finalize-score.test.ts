@@ -15,9 +15,13 @@ vi.mock('@/lib/settings/assessment', () => ({
     passingScore: 70,
   })),
 }))
+vi.mock('@/lib/certificate/issue', () => ({
+  ensureCertificateForPassedProva: vi.fn(async () => null),
+}))
 
 import { computeScoreBreakdown, tryFinalizeAssessment } from './finalize-score'
 import { getAssessmentSettings } from '@/lib/settings/assessment'
+import { ensureCertificateForPassedProva } from '@/lib/certificate/issue'
 
 describe('computeScoreBreakdown', () => {
   const weights = {
@@ -159,6 +163,29 @@ describe('tryFinalizeAssessment', () => {
     expect(result?.finalized).toBe(true)
     expect(getAssessmentSettings).toHaveBeenCalledWith('simulado', 'c1')
     expect(prisma.assessment.update).toHaveBeenCalled()
+    expect(ensureCertificateForPassedProva).not.toHaveBeenCalled()
+  })
+
+  it('emite certificado ao finalizar prova aprovada', async () => {
+    prisma.assessment.findUnique.mockResolvedValueOnce({
+      id: 'a-prova',
+      status: 'AWAITING_GRADING',
+      type: 'PROVA',
+      course_id: 'c1',
+      completed_at: null,
+      questions: [{ id: 'q1', format: 'MULTIPLE_CHOICE', correct_option: 'A' }],
+      answers: [
+        { assessment_question_id: 'q1', selected_option: 'A', is_correct: true },
+      ],
+    })
+    prisma.assessment.update.mockResolvedValueOnce({
+      id: 'a-prova',
+      status: 'COMPLETED',
+      passed: true,
+    })
+    const result = await tryFinalizeAssessment('a-prova')
+    expect(result?.finalized).toBe(true)
+    expect(ensureCertificateForPassedProva).toHaveBeenCalledWith('a-prova')
   })
 
   it('define completed_at quando ainda nulo', async () => {

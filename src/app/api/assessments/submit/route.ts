@@ -8,6 +8,7 @@ import {
   estimateDiscursiveGrading,
   formatGradingEta,
 } from '@/lib/assessment/grading-latency'
+import { ensureCertificateForPassedProva } from '@/lib/certificate/issue'
 
 /** Tempo para a correção em background (Gemini) após a resposta HTTP. */
 export const maxDuration = 300
@@ -134,6 +135,14 @@ export async function POST(req: Request) {
         passed: hasDiscursive ? null : breakdown.passed,
       },
     })
+
+    if (
+      !hasDiscursive &&
+      breakdown.passed &&
+      String(updatedAssessment.type).toUpperCase() === 'PROVA'
+    ) {
+      await ensureCertificateForPassedProva(updatedAssessment.id)
+    }
 
     let gradingEta: {
       pendingCount: number

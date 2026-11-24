@@ -5,6 +5,7 @@ import {
   courseHasStudentExercises,
   ensureCourses,
   listActiveCourses,
+  listCourseFeatures,
   listStudentCourses,
   requestCourseEnrollment,
   resolveStudentCourseId,
@@ -77,6 +78,7 @@ export async function GET() {
     const activeCourse =
       active.find((c) => c.id === activeCourseId) ?? active[0] ?? null
     const activeCourseHasExercises = courseHasStudentExercises(activeCourse?.slug)
+    const activeCourseFeatures = listCourseFeatures(activeCourse?.slug)
 
     return NextResponse.json({
       courses: active,
@@ -87,6 +89,7 @@ export async function GET() {
       activeCourseId,
       activeCourse,
       activeCourseHasExercises,
+      activeCourseFeatures,
     })
   } catch (error: unknown) {
     const err = error as { message?: string; status?: number }

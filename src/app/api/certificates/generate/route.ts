@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/verify'
 import { prisma } from '@/lib/db'
-import { formatFullName, generateCertificateCode } from '@/lib/utils'
+import { issueCertificateForAssessment } from '@/lib/certificate/issue'
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     const assessment = await prisma.assessment.findUnique({
       where: { id: assessment_id },
-      include: { student: true, course: true },
+      select: { id: true, student_id: true },
     })
 
     if (!assessment) {
@@ -29,48 +29,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
     }
 
-    if (
-      assessment.type !== 'PROVA' ||
-      assessment.status !== 'COMPLETED' ||
-      !assessment.passed
-    ) {
-      return NextResponse.json(
-        { error: 'Avaliação não elegível para certificado' },
-        { status: 400 }
-      )
+    const result = await issueCertificateForAssessment(assessment_id)
+    if (!result.ok) {
+      return NextResponse.json({ error: result.reason }, { status: 400 })
     }
 
-    const existingCert = await prisma.certificate.findUnique({
-      where: { assessment_id },
-    })
-
-    if (existingCert) {
+    if (!result.created) {
       return NextResponse.json({
         message: 'Certificado já gerado',
-        certificate: existingCert,
+        certificate: result.certificate,
       })
     }
 
-    const certificate_code = generateCertificateCode()
-    const courseName =
-      assessment.course?.name ||
-      'Curso'
-
-    const newCertificate = await prisma.certificate.create({
-      data: {
-        student_id: user.id,
-        course_id: assessment.course_id,
-        assessment_id,
-        certificate_code,
-        student_name_snapshot: formatFullName(assessment.student.full_name),
-        course_name_snapshot: courseName,
-        completion_date: assessment.completed_at || new Date(),
-        score_snapshot: assessment.score || 0,
-      },
-    })
-
     return NextResponse.json(
-      { success: true, certificate: newCertificate },
+      { success: true, certificate: result.certificate },
       { status: 201 }
     )
   } catch (err: unknown) {

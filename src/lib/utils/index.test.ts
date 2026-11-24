@@ -12,6 +12,7 @@ import {
   isValidEmail,
   isValidFullName,
   isValidUsername,
+  normalizeUsernameInput,
   phoneDigits,
 } from './index'
 
@@ -26,6 +27,12 @@ describe('username / nome / email', () => {
     expect(isValidUsername('ana.briza')).toBe(true)
     expect(isValidUsername('Ana')).toBe(false)
     expect(isValidUsername('ana_briza')).toBe(false)
+  })
+
+  it('mascara username na digitação', () => {
+    expect(normalizeUsernameInput('Ana.Briza')).toBe('ana.briza')
+    expect(normalizeUsernameInput('Ana Briza!')).toBe('anabriza')
+    expect(normalizeUsernameInput('ana_123')).toBe('ana123')
   })
 
   it('valida nome completo', () => {
