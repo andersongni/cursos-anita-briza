@@ -59,6 +59,9 @@ describe('mouse-accuracy', () => {
   })
 
   it('mantém o alvo no tamanho máximo por 1s antes de encolher', () => {
+    expect(targetScaleAtAge(0)).toBe(0)
+    expect(targetScaleAtAge(-1)).toBe(0)
+    expect(targetScaleAtAge(MOUSE_ACCURACY_TARGET_GROW_MS / 2)).toBeCloseTo(0.5)
     expect(targetScaleAtAge(MOUSE_ACCURACY_TARGET_GROW_MS)).toBe(1)
     expect(
       targetScaleAtAge(MOUSE_ACCURACY_TARGET_GROW_MS + MOUSE_ACCURACY_TARGET_HOLD_MS - 1)

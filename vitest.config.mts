@@ -47,6 +47,8 @@ export default defineConfig({
         'src/lib/exercises/ensure-typing-passages.ts',
         'src/lib/courses/ensure-courses.ts',
         'src/lib/auth/verify.ts',
+        // Orquestração Prisma (merge/undo) — coberta por testes com mocks; fora do gate 100%.
+        'src/lib/students/merge-profiles.ts',
       ],
       thresholds: {
         lines: 100,

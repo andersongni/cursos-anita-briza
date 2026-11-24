@@ -42,7 +42,8 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        # pin: actions/upload-artifact@v6.0.0 (Node 24)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: coverage-report
           path: |
@@ -53,8 +54,8 @@ jobs:
 
       - name: Publish test results
         if: always()
-        # pin: dorny/test-reporter@v2.7.0
-        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451
+        # pin: dorny/test-reporter@v3.0.0 (Node 24)
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2
         with:
           name: Vitest Results
           path: reports/junit.xml
@@ -97,7 +98,8 @@ jobs:
 
       - name: Upload mutation report
         if: always()
-        uses: actions/upload-artifact@v4
+        # pin: actions/upload-artifact@v6.0.0 (Node 24)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: mutation-report
           path: reports/mutation/

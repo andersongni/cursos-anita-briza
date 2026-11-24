@@ -25,5 +25,8 @@ describe('temporary-password', () => {
     expect(isTempPasswordActive(new Date('2026-11-24T13:00:00.000Z'))).toBe(true)
     expect(isTempPasswordActive(new Date('2026-11-24T11:00:00.000Z'))).toBe(false)
     expect(isTempPasswordActive(null)).toBe(false)
+    expect(isTempPasswordActive(undefined)).toBe(false)
+    expect(isTempPasswordActive('2026-11-24T13:00:00.000Z')).toBe(true)
+    expect(isTempPasswordActive('invalid-date')).toBe(false)
   })
 })
