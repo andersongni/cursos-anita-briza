@@ -26,7 +26,7 @@ describe('crypto/secret', () => {
   it('falha sem chave e com payload inválido', async () => {
     vi.stubEnv('JWT_SECRET', '')
     vi.stubEnv('SETTINGS_ENCRYPTION_KEY', '')
-    const { encryptSecret, decryptSecret } = await import('./secret')
+    const { encryptSecret } = await import('./secret')
     expect(() => encryptSecret('a')).toThrow(/JWT_SECRET/)
     vi.stubEnv('JWT_SECRET', 'ok')
     vi.resetModules()

@@ -92,6 +92,7 @@ export default function MouseAccuracyPractice({
   const [countdownSec, setCountdownSec] = useState(MOUSE_ACCURACY_COUNTDOWN_SECONDS)
   const [portalReady, setPortalReady] = useState(false)
   const [, setFrame] = useState(0)
+  const [animNow, setAnimNow] = useState(0)
 
   const hitsRef = useRef(0)
   const missesRef = useRef(0)
@@ -123,13 +124,13 @@ export default function MouseAccuracyPractice({
     }
   }
 
-  const stopLoop = () => {
+  const stopLoop = useCallback(() => {
     clearCountdownTimer()
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
-  }
+  }, [])
 
   const abort = useCallback(() => {
     if (abortedRef.current || finishedRef.current) return
@@ -139,7 +140,7 @@ export default function MouseAccuracyPractice({
     stopLoop()
     syncTargets([])
     onAbort()
-  }, [onAbort])
+  }, [onAbort, stopLoop])
 
   const finish = useCallback(() => {
     if (finishedRef.current || abortedRef.current) return
@@ -161,7 +162,7 @@ export default function MouseAccuracyPractice({
       durationMs,
       reactionSumMs: reactionSumRef.current,
     })
-  }, [onComplete])
+  }, [onComplete, stopLoop])
 
   const spawnTarget = useCallback(() => {
     const arena = arenaRef.current
@@ -199,6 +200,7 @@ export default function MouseAccuracyPractice({
       }
 
       const now = performance.now()
+      setAnimNow(now)
       const previous = targetsRef.current
       const alive = previous.filter(
         (t) => now - t.bornAt < MOUSE_ACCURACY_TARGET_LIFETIME_MS
@@ -363,7 +365,6 @@ export default function MouseAccuracyPractice({
     durationMs: MOUSE_ACCURACY_DURATION_MS,
     maxCombo,
   })
-  const nowAnim = performance.now()
   const comboLabel = `${combo} (×${multiplier % 1 === 0 ? multiplier : multiplier.toFixed(1)})`
 
   const shell = (
@@ -433,7 +434,7 @@ export default function MouseAccuracyPractice({
 
         {phase === 'playing' &&
           targets.map((target) => {
-            const scale = Math.max(0.08, targetScaleAtAge(nowAnim - target.bornAt))
+            const scale = Math.max(0.08, targetScaleAtAge(animNow - target.bornAt))
             return (
               <button
                 key={target.id}

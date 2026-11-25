@@ -137,11 +137,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         isTempPasswordActive(profile.temp_password_expires_at)
     )
 
-    const {
-      temp_password_hash: _hash,
-      temp_password_expires_at,
-      ...safeProfile
-    } = profile
+    const { temp_password_hash, temp_password_expires_at, ...safeProfile } = profile
+    void temp_password_hash
 
     let mergeInfo: {
       id: string
