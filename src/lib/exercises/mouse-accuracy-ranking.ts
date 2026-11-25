@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db'
-import { MOUSE_ACCURACY_RANKING_SCALAR_FIELDS } from '@/lib/exercises/mouse-accuracy'
 
 export type MouseAccuracyRankingRow = {
   rank: number
@@ -46,9 +45,18 @@ async function fetchMouseAccuracyAttempts(): Promise<AttemptRecord[]> {
       },
     },
     select: {
-      ...Object.fromEntries(
-        MOUSE_ACCURACY_RANKING_SCALAR_FIELDS.map((field) => [field, true])
-      ),
+      id: true,
+      student_id: true,
+      duration_ms: true,
+      hits: true,
+      misses: true,
+      expired: true,
+      points: true,
+      accuracy: true,
+      score: true,
+      max_combo: true,
+      avg_reaction_ms: true,
+      completed_at: true,
       student: { select: { full_name: true, username: true } },
     },
     orderBy: [
